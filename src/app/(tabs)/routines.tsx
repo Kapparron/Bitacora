@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
+import { ExerciseThumbnail } from '@/features/exercises/components/exercise-thumbnail';
+import { badgeFor } from '@/features/workout/components/set-type-sheet';
 import {
   useHistorySessions,
   type HistoryExercise,
@@ -93,16 +95,32 @@ function SessionCard({ session, onPress }: { session: HistorySession; onPress: (
       </ThemedText>
 
       {session.exercises.map((exercise, index) => (
-        <View key={index} style={styles.exercise}>
-          <ThemedText type="small" style={styles.exerciseName} numberOfLines={1}>
-            {exercise.name}
-          </ThemedText>
+        <View key={index} style={[styles.exercise, { borderTopColor: theme.border }]}>
+          <ExerciseThumbnail exercise={exercise.exercise} />
 
-          <ThemedText type="small" themeColor="textSecondary" style={styles.sets}>
-            {exercise.sets.length === 0
-              ? 'sin series'
-              : exercise.sets.map(describeSet).join('  ·  ')}
-          </ThemedText>
+          <View style={styles.exerciseBody}>
+            <ThemedText type="default" style={styles.exerciseName} numberOfLines={1}>
+              {exercise.exercise.name}
+            </ThemedText>
+
+            {exercise.sets.length === 0 ? (
+              <ThemedText type="small" themeColor="textSecondary">
+                Sin series
+              </ThemedText>
+            ) : (
+              exercise.sets.map((set, setIndex) => (
+                <View key={setIndex} style={styles.setRow}>
+                  {/* Same badge the session screen uses: a number, or the
+                      letter of the set type. */}
+                  <ThemedText type="small" themeColor="textSecondary" style={styles.setIndex}>
+                    {badgeFor(set.type, setIndex)}
+                  </ThemedText>
+
+                  <ThemedText type="small">{describeSet(set)}</ThemedText>
+                </View>
+              ))
+            )}
+          </View>
         </View>
       ))}
     </Pressable>
@@ -125,8 +143,17 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   cardTitle: { fontWeight: '700' },
-  exercise: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingTop: 4 },
-  exerciseName: { flex: 1, fontWeight: '600' },
-  sets: { flex: 1.4, textAlign: 'right' },
+  exercise: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  exerciseBody: { flex: 1, gap: 2 },
+  exerciseName: { fontWeight: '600' },
+  setRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  setIndex: { width: 14, textAlign: 'center' },
   empty: { textAlign: 'center', paddingHorizontal: 32, paddingTop: 24 },
 });

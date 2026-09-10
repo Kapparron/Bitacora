@@ -17,8 +17,11 @@ import { useTheme } from '@/hooks/use-theme';
  */
 export const ExerciseThumbnail = memo(function ExerciseThumbnail({
   exercise,
+  size = 44,
 }: {
-  exercise: Exercise;
+  /** Only the fields the still needs, so a list query can select just those. */
+  exercise: Pick<Exercise, 'id' | 'name' | 'imagePath'>;
+  size?: number;
 }) {
   const theme = useTheme();
   const router = useRouter();
@@ -32,7 +35,10 @@ export const ExerciseThumbnail = memo(function ExerciseThumbnail({
         source={exerciseMediaUrl(exercise.imagePath)}
         recyclingKey={exercise.id}
         cachePolicy="memory-disk"
-        style={[styles.thumbnail, { backgroundColor: theme.backgroundElement }]}
+        style={[
+          styles.thumbnail,
+          { width: size, height: size, backgroundColor: theme.backgroundElement },
+        ]}
         contentFit="cover"
         transition={120}
       />

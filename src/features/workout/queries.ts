@@ -333,7 +333,8 @@ export function useWeeklyVolume(): WeeklyVolume[] {
 
 /** One exercise of a past session, with the sets that were actually completed. */
 export type HistoryExercise = {
-  name: string;
+  /** Only the exercise fields the history card draws. */
+  exercise: Pick<Exercise, 'id' | 'name' | 'imagePath'>;
   sets: { weight: number | null; reps: number | null; type: WorkoutSet['type'] }[];
 };
 
@@ -380,7 +381,9 @@ export function useHistorySessions(limit = HISTORY_LIMIT): {
           workoutId: workoutExercises.workoutId,
           workoutExerciseId: workoutExercises.id,
           position: workoutExercises.position,
+          exerciseId: exercises.id,
           name: exercises.name,
+          imagePath: exercises.imagePath,
           setPosition: sets.position,
           weight: sets.weight,
           reps: sets.reps,
@@ -408,7 +411,10 @@ export function useHistorySessions(limit = HISTORY_LIMIT): {
 
         let entry = exercisesOfWorkout.get(row.workoutExerciseId);
         if (!entry) {
-          entry = { name: row.name, sets: [] };
+          entry = {
+            exercise: { id: row.exerciseId, name: row.name, imagePath: row.imagePath },
+            sets: [],
+          };
           exercisesOfWorkout.set(row.workoutExerciseId, entry);
         }
 
