@@ -67,7 +67,7 @@ src/
     routine/      editor de una rutina
     pick-exercise selector de ejercicios (sesión y rutina)
   components/     componentes compartidos
-  features/       logica por dominio (workout, routines, exercises)
+  features/       logica por dominio (workout, routines, exercises, calendar)
   db/             cliente SQLite, esquema, migraciones y semilla
   constants/      tema y tipografías
   hooks/
