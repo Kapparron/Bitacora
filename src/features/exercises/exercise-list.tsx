@@ -4,7 +4,7 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useState } from 'react';
-import { Pressable, SectionList, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, SectionList, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { db } from '@/db/client';
@@ -43,6 +43,8 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
   const theme = useTheme();
   const router = useRouter();
   const [query, setQuery] = useState('');
+  /** Muscle group filter; null means every group. */
+  const [group, setGroup] = useState<string | null>(null);
 
   const { data } = useLiveQuery(
     db
@@ -66,21 +68,33 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
     [data]
   );
 
+  /** Muscle groups present in the catalogue, most populated first. */
+  const groups = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const exercise of data) {
+      counts.set(exercise.muscleGroup, (counts.get(exercise.muscleGroup) ?? 0) + 1);
+    }
+
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name);
+  }, [data]);
+
   const sections = useMemo(() => {
     const needle = normalize(query.trim());
-    const matches = needle
+    let matches = needle
       ? searchIndex.filter((entry) => entry.haystack.includes(needle)).map((entry) => entry.exercise)
       : data;
 
+    if (group) matches = matches.filter((exercise) => exercise.muscleGroup === group);
+
     const byGroup = new Map<string, Exercise[]>();
     for (const exercise of matches) {
-      const group = byGroup.get(exercise.muscleGroup);
-      if (group) group.push(exercise);
+      const current = byGroup.get(exercise.muscleGroup);
+      if (current) current.push(exercise);
       else byGroup.set(exercise.muscleGroup, [exercise]);
     }
 
     return [...byGroup.entries()].map(([title, items]) => ({ title, data: items }));
-  }, [data, searchIndex, query]);
+  }, [data, searchIndex, query, group]);
 
   const selectable = selectedIds !== undefined;
 
@@ -127,16 +141,50 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
             autoCorrect={false}
             style={[styles.search, { backgroundColor: theme.backgroundElement, color: theme.text }]}
           />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.chips}>
+            {groups.map((name) => {
+              const active = name === group;
+
+              return (
+                <Pressable
+                  key={name}
+                  // Tapping the active chip clears the filter.
+                  onPress={() => setGroup(active ? null : name)}
+                  style={({ pressed }) => [
+                    styles.chip,
+                    { backgroundColor: active ? theme.accent : theme.backgroundElement },
+                    pressed && { opacity: 0.6 },
+                  ]}>
+                  <ThemedText
+                    type="small"
+                    style={{ color: active ? theme.onAccent : theme.text, fontWeight: '600' }}>
+                    {name}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
           <ThemedText type="small" themeColor="textSecondary" style={styles.count}>
-            {data.length} ejercicios en el catalogo
+            {group
+              ? `${sections[0]?.data.length ?? 0} en ${group}`
+              : `${data.length} ejercicios en el catalogo`}
           </ThemedText>
         </View>
       }
-      renderSectionHeader={({ section }) => (
-        <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionHeader}>
-          {section.title.toUpperCase()}
-        </ThemedText>
-      )}
+      renderSectionHeader={({ section }) =>
+        // With a group selected there is only one section, and its chip already
+        // names it.
+        group ? null : (
+          <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionHeader}>
+            {section.title.toUpperCase()}
+          </ThemedText>
+        )
+      }
       ListEmptyComponent={
         <ThemedText type="default" themeColor="textSecondary" style={styles.empty}>
           Ningun ejercicio coincide con la busqueda.
@@ -214,7 +262,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 16,
   },
-  count: { paddingHorizontal: 16, paddingTop: 6 },
+  chips: { gap: 8, paddingHorizontal: 16, paddingTop: 12 },
+  chip: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
+  count: { paddingHorizontal: 16, paddingTop: 10 },
   sectionHeader: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 },
   row: {
     height: ROW_HEIGHT,
