@@ -38,7 +38,6 @@ export default function WorkoutScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.header}>
-            <ThemedText type="subtitle">Entreno</ThemedText>
             <Button
               title={active ? 'Volver al entreno en curso' : 'Empezar entreno vacio'}
               // navigate, not push: the session is a single destination, so a

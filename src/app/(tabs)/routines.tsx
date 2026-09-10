@@ -100,21 +100,18 @@ export default function RoutinesScreen() {
         contentContainerStyle={styles.list}
         stickySectionHeadersEnabled={false}
         ListHeaderComponent={
-          <View style={styles.header}>
-            <ThemedText type="subtitle">Rutinas</ThemedText>
-            <View style={styles.headerActions}>
-              <Button
-                title="Nueva rutina"
-                style={styles.headerButton}
-                onPress={() => setPrompt('routine')}
-              />
-              <Button
-                title="Nueva carpeta"
-                variant="secondary"
-                style={styles.headerButton}
-                onPress={() => setPrompt('folder')}
-              />
-            </View>
+          <View style={styles.headerActions}>
+            <Button
+              title="Nueva rutina"
+              style={styles.headerButton}
+              onPress={() => setPrompt('routine')}
+            />
+            <Button
+              title="Nueva carpeta"
+              variant="secondary"
+              style={styles.headerButton}
+              onPress={() => setPrompt('folder')}
+            />
           </View>
         }
         renderSectionHeader={({ section }) => (
@@ -236,8 +233,7 @@ function RoutineRow({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   list: { paddingBottom: 120 },
-  header: { paddingHorizontal: 16, paddingTop: 8, gap: 12 },
-  headerActions: { flexDirection: 'row', gap: 8 },
+  headerActions: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 8 },
   headerButton: { flex: 1, paddingVertical: 12 },
   sectionHeader: {
     flexDirection: 'row',
