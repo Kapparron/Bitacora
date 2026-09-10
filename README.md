@@ -64,10 +64,11 @@ src/
     workout/      sesión en curso y detalle de un entreno
     exercises     catálogo de ejercicios
     exercise/     ficha de un ejercicio
+    food/         buscar, escanear, crear y registrar alimentos
     routine/      editor de una rutina
     pick-exercise selector de ejercicios (sesión y rutina)
   components/     componentes compartidos
-  features/       logica por dominio (workout, routines, exercises, calendar)
+  features/       logica por dominio (workout, routines, exercises, nutrition, calendar)
   db/             cliente SQLite, esquema, migraciones y semilla
   constants/      tema y tipografías
   hooks/

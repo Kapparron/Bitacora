@@ -8,6 +8,7 @@ import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { MonthCalendar } from '@/features/calendar/month-calendar';
 import { useRoutines, type RoutineSummary } from '@/features/routines/queries';
+import { useDailyKcal } from '@/features/nutrition/queries';
 import { isScheduledOn, scheduleOf } from '@/features/routines/schedule';
 import { startEmptyWorkout, startWorkoutFromRoutine } from '@/features/workout/mutations';
 import {
@@ -24,6 +25,7 @@ export default function WorkoutScreen() {
   const { contents: active } = useActiveWorkout();
   const { workouts } = useWorkoutHistory();
   const { routines } = useRoutines();
+  const kcalByDay = useDailyKcal();
 
   const [starting, setStarting] = useState(false);
   const [month, setMonth] = useState(() => {
@@ -82,6 +84,7 @@ export default function WorkoutScreen() {
   const todaysRoutines = useMemo(() => scheduledFor(today), [scheduledFor, today]);
   const listed = selectedDay ? (byDay.get(selectedDay) ?? []) : workouts;
   const plannedForSelected = selectedDay ? scheduledFor(selectedDay) : [];
+  const kcalForSelected = selectedDay ? kcalByDay.get(selectedDay) : undefined;
 
   async function startEmpty() {
     if (starting) return;
@@ -168,6 +171,21 @@ export default function WorkoutScreen() {
                 </Pressable>
               ) : null}
             </View>
+
+            {kcalForSelected !== undefined ? (
+              <Pressable
+                onPress={() => router.navigate('/nutrition')}
+                style={({ pressed }) => [
+                  styles.planned,
+                  { borderColor: theme.border, borderStyle: 'solid' },
+                  pressed && { backgroundColor: theme.backgroundElement },
+                ]}>
+                <Ionicons name="restaurant-outline" size={18} color={theme.accentText} />
+                <ThemedText type="small" style={styles.plannedText}>
+                  {formatNumber(kcalForSelected, 0)} kcal registradas
+                </ThemedText>
+              </Pressable>
+            ) : null}
 
             {plannedForSelected.map((routine) => (
               <Pressable

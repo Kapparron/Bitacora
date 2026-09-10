@@ -76,7 +76,10 @@ coincidir con un nombre del dataset.
 
 - Producto por código de barras:
   `GET https://world.openfoodfacts.org/api/v2/product/{barcode}.json`
-- Búsqueda por texto: endpoint de búsqueda v2, filtrando por país e idioma.
+- Búsqueda por texto: `https://search.openfoodfacts.org/search`. El antiguo
+  `/cgi/search.pl` responde 503 y está retirado. El filtro por país no funciona
+  en ese endpoint con ninguna sintaxis probada, así que los productos vendidos en
+  España se ordenan primero en el cliente con `countries_tags`.
 - La cabecera `User-Agent` identificando la aplicación es obligatoria.
 - Límites aproximados: 100 peticiones/minuto para producto, 10/minuto para
   búsqueda. La búsqueda se hace con debounce y una sola petición en vuelo.
@@ -91,7 +94,7 @@ coincidir con un nombre del dataset.
 | 0 | Andamiaje Expo, esquema Drizzle, migraciones, catálogo de ejercicios, navegación | Hecha |
 | 1 | Registrar una sesión vacía, editar series, historial | Hecha |
 | 2 | Rutinas, superseries, temporizador de descanso, récords, calendario y programación | Hecha |
-| 3 | Nutrición: escáner de códigos, Open Food Facts, diario, objetivos | Pendiente |
+| 3 | Nutrición: escáner de códigos, Open Food Facts, diario, objetivos | Hecha |
 | 4 | Gráficas, medidas corporales, exportar e importar datos | Pendiente |
 | 5 | Sincronización y autenticación (opcional) | Pendiente |
 
