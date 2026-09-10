@@ -187,10 +187,10 @@ const styles = StyleSheet.create({
   day: {
     width: 32,
     height: 32,
-    // 999 rather than half the side: some Android builds round a small explicit
-    // radius down and draw the fill as a square.
+    // 999 rather than half the side, which some Android builds rounded down and
+    // drew as a square. No overflow clipping: with a radius past half the side
+    // the clip path swallowed the number.
     borderRadius: 999,
-    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
