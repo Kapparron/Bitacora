@@ -74,6 +74,17 @@ export async function updateFood(foodId: string, patch: Partial<CustomFoodInput>
     .where(eq(foods.id, foodId));
 }
 
+/**
+ * Soft delete: the food leaves every list, but entries that point at it keep
+ * their own frozen values, and the history stays readable.
+ */
+export async function deleteFood(foodId: string): Promise<void> {
+  await db
+    .update(foods)
+    .set({ deletedAt: Date.now(), ...touch() })
+    .where(eq(foods.id, foodId));
+}
+
 export async function toggleFavorite(foodId: string, isFavorite: boolean): Promise<void> {
   await db
     .update(foods)

@@ -6,10 +6,12 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { useConfirm } from '@/components/confirm-dialog';
+import { OptionSheet, type SheetOption } from '@/components/option-sheet';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import type { Food } from '@/db/schema';
-import { cacheProduct } from '@/features/nutrition/mutations';
+import { cacheProduct, deleteFood } from '@/features/nutrition/mutations';
 import { searchProducts, type OffProduct } from '@/features/nutrition/openfoodfacts';
 import { useLocalFoods, useSuggestedFoods, type Meal } from '@/features/nutrition/queries';
 import { useTheme } from '@/hooks/use-theme';
@@ -33,7 +35,10 @@ export default function FoodSearchScreen() {
   const router = useRouter();
   const { date, meal } = useLocalSearchParams<{ date: string; meal: Meal }>();
 
+  const confirm = useConfirm();
   const [query, setQuery] = useState('');
+  /** Food whose long-press menu is open. */
+  const [menuFood, setMenuFood] = useState<Food | null>(null);
   /** The term the user sent to the network, if any. */
   const [webQuery, setWebQuery] = useState<string | null>(null);
 
@@ -88,6 +93,17 @@ export default function FoodSearchScreen() {
 
   const searchedWeb = webQuery !== null && webQuery === trimmed;
 
+  async function removeFood(food: Food) {
+    const accepted = await confirm({
+      title: 'Eliminar alimento',
+      message: `Se quita "${food.name}" de tus alimentos. Lo que ya registraste con el se mantiene.`,
+      confirmLabel: 'Eliminar',
+      destructive: true,
+    });
+
+    if (accepted) await deleteFood(food.id);
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScreenHeader title="Anadir alimento" />
@@ -116,7 +132,7 @@ export default function FoodSearchScreen() {
           <Action
             icon="create-outline"
             label="Crear alimento"
-            onPress={() => router.push({ pathname: '/food/new', params: { date, meal } })}
+            onPress={() => router.push({ pathname: '/food/form', params: { date, meal } })}
           />
         </View>
       </View>
@@ -142,6 +158,7 @@ export default function FoodSearchScreen() {
               imageUrl={item.food.imageUrl}
               favorite={item.food.isFavorite}
               onPress={() => openAmount(item.food.id)}
+              onLongPress={() => setMenuFood(item.food)}
             />
           ) : (
             <FoodRow
@@ -178,9 +195,34 @@ export default function FoodSearchScreen() {
           )
         }
       />
+
+      {menuFood ? (
+        <OptionSheet
+          title={menuFood.name}
+          options={FOOD_ACTIONS}
+          current={null}
+          onSelect={(action) => {
+            const food = menuFood;
+            setMenuFood(null);
+            if (!food) return;
+
+            if (action === 'edit') {
+              router.push({ pathname: '/food/form', params: { date, meal, foodId: food.id } });
+            } else {
+              void removeFood(food);
+            }
+          }}
+          onClose={() => setMenuFood(null)}
+        />
+      ) : null}
     </View>
   );
 }
+
+const FOOD_ACTIONS: SheetOption<'edit' | 'delete'>[] = [
+  { value: 'edit', label: 'Editar', description: 'Cambiar nombre, calorias o macros' },
+  { value: 'delete', label: 'Eliminar', description: 'Se quita de tus alimentos' },
+];
 
 function ListHeader({
   typing,
@@ -249,6 +291,7 @@ function FoodRow({
   favorite,
   remote,
   onPress,
+  onLongPress,
 }: {
   name: string;
   brand: string | null;
@@ -257,12 +300,14 @@ function FoodRow({
   favorite?: boolean;
   remote?: boolean;
   onPress: () => void;
+  onLongPress?: () => void;
 }) {
   const theme = useTheme();
 
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       style={({ pressed }) => [
         styles.row,
         { borderBottomColor: theme.backgroundElement },

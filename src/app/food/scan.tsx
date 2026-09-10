@@ -89,7 +89,7 @@ export default function ScanScreen() {
           <Button
             title="Crear a mano"
             variant="secondary"
-            onPress={() => router.replace({ pathname: '/food/new', params: { date, meal } })}
+            onPress={() => router.replace({ pathname: '/food/form', params: { date, meal } })}
           />
         </View>
       ) : (
