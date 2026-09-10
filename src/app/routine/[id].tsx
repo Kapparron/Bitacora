@@ -1,5 +1,4 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
@@ -10,7 +9,7 @@ import { OptionSheet, type SheetOption } from '@/components/option-sheet';
 import { ScreenHeader } from '@/components/screen-header';
 import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
-import { exerciseMediaUrl } from '@/features/exercises/media';
+import { ExerciseThumbnail } from '@/features/exercises/components/exercise-thumbnail';
 import {
   linkWithNext,
   moveRoutineExercise,
@@ -209,13 +208,7 @@ function RoutineExerciseCard({
       ) : null}
 
       <View style={styles.cardHeader}>
-        <Image
-          source={exerciseMediaUrl(entry.exercise.imagePath)}
-          recyclingKey={entry.exercise.id}
-          cachePolicy="memory-disk"
-          style={[styles.thumbnail, { backgroundColor: theme.backgroundElement }]}
-          contentFit="cover"
-        />
+        <ExerciseThumbnail exercise={entry.exercise} />
 
         <View style={styles.cardHeaderText}>
           <ThemedText type="default" style={styles.cardTitle}>
@@ -380,7 +373,6 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12 },
   cardHeaderText: { flex: 1, gap: 2 },
   cardTitle: { fontWeight: '700' },
-  thumbnail: { width: 44, height: 44, borderRadius: 8 },
   fields: { flexDirection: 'row', gap: 8, paddingHorizontal: 12 },
   field: { flex: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, gap: 2 },
   repsInput: { fontSize: 16, fontWeight: '500', padding: 0 },

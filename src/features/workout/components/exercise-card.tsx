@@ -1,6 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -9,7 +8,7 @@ import { Button } from '@/components/button';
 import { useConfirm } from '@/components/confirm-dialog';
 import { ThemedText } from '@/components/themed-text';
 import type { WorkoutSet } from '@/db/schema';
-import { exerciseMediaUrl } from '@/features/exercises/media';
+import { ExerciseThumbnail } from '@/features/exercises/components/exercise-thumbnail';
 import { useTheme } from '@/hooks/use-theme';
 import {
   addSet,
@@ -107,14 +106,7 @@ function ExerciseCardComponent({
       ) : null}
 
       <View style={styles.header}>
-        <Image
-          source={exerciseMediaUrl(entry.exercise.imagePath)}
-          recyclingKey={entry.exercise.id}
-          cachePolicy="memory-disk"
-          style={[styles.thumbnail, { backgroundColor: theme.backgroundElement }]}
-          contentFit="cover"
-          transition={120}
-        />
+        <ExerciseThumbnail exercise={entry.exercise} />
 
         <View style={styles.headerText}>
           <ThemedText type="default" style={styles.title}>
@@ -245,7 +237,6 @@ const styles = StyleSheet.create({
   superset: { paddingHorizontal: 12, paddingBottom: 2 },
   rest: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingTop: 6 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 12 },
-  thumbnail: { width: 44, height: 44, borderRadius: 8 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   headerText: { flex: 1, gap: 2 },
   title: { fontWeight: '700' },
