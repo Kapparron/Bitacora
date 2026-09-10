@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, isNull, ne, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, isNull, ne, sql, type SQL } from 'drizzle-orm';
 import { useMemo } from 'react';
 
 import { db } from '@/db/client';
@@ -150,6 +150,68 @@ export function useWorkoutHistory(): { workouts: WorkoutSummary[]; loading: bool
   );
 
   return { workouts: data ?? [], loading };
+}
+
+export type ExercisePreview = {
+  workoutId: string;
+  exerciseName: string;
+  setCount: number;
+  /**
+   * Heaviest completed set. Only the weight: pairing it with max(reps) would
+   * describe a set that never happened.
+   */
+  topWeight: number | null;
+};
+
+/**
+ * What was actually performed on one day, exercise by exercise. Feeds the
+ * preview the workout tab shows when a calendar day is picked; the day is
+ * matched in SQL against the local calendar day the session started on.
+ */
+export function useDayWorkoutPreviews(day: string | null): Map<string, ExercisePreview[]> {
+  const { data } = useLiveTables(
+    SESSION_TABLES,
+    async () => {
+      if (!day) return [];
+
+      return db
+        .select({
+          workoutId: workouts.id,
+          exerciseName: exercises.name,
+          position: workoutExercises.position,
+          setCount: sql<number>`count(${sets.id})`,
+          topWeight: sql<number | null>`max(${sets.weight})`,
+        })
+        .from(workouts)
+        .innerJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
+        .innerJoin(exercises, eq(exercises.id, workoutExercises.exerciseId))
+        .leftJoin(sets, and(eq(sets.workoutExerciseId, workoutExercises.id), eq(sets.completed, true)))
+        .where(
+          and(
+            isNull(workouts.deletedAt),
+            sql`date(${workouts.startedAt} / 1000, 'unixepoch', 'localtime') = ${day}`
+          )
+        )
+        .groupBy(workoutExercises.id)
+        .orderBy(asc(workoutExercises.position));
+    },
+    [day]
+  );
+
+  const byWorkout = new Map<string, ExercisePreview[]>();
+
+  for (const row of data ?? []) {
+    const current = byWorkout.get(row.workoutId) ?? [];
+    current.push({
+      workoutId: row.workoutId,
+      exerciseName: row.exerciseName,
+      setCount: row.setCount,
+      topWeight: row.topWeight,
+    });
+    byWorkout.set(row.workoutId, current);
+  }
+
+  return byWorkout;
 }
 
 /**

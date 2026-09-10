@@ -40,6 +40,8 @@ export type MonthCalendarProps = {
   markedDays: ReadonlySet<string>;
   /** Days a routine is scheduled on but that have no session yet. */
   plannedDays?: ReadonlySet<string>;
+  /** Days with food logged. */
+  loggedDays?: ReadonlySet<string>;
   selectedDay: string | null;
   onSelectDay: (day: string | null) => void;
 };
@@ -56,6 +58,7 @@ export function MonthCalendar({
   onMonthChange,
   markedDays,
   plannedDays,
+  loggedDays,
   selectedDay,
   onSelectDay,
 }: MonthCalendarProps) {
@@ -102,6 +105,7 @@ export function MonthCalendar({
           const iso = toIsoDay(date);
           const marked = markedDays.has(iso);
           const planned = !marked && (plannedDays?.has(iso) ?? false);
+          const logged = loggedDays?.has(iso) ?? false;
           const selected = iso === selectedDay;
 
           return (
@@ -126,14 +130,18 @@ export function MonthCalendar({
                 </ThemedText>
               </View>
 
-              {/* Done days get a filled dot, planned ones a hollow one. */}
-              <View
-                style={[
-                  styles.dot,
-                  marked && { backgroundColor: selected ? theme.accent : theme.success },
-                  planned && { borderWidth: 1, borderColor: theme.textSecondary },
-                ]}
-              />
+              {/* Training: filled dot when done, hollow when only planned.
+                  Food logged that day adds a second dot beside it. */}
+              <View style={styles.dots}>
+                <View
+                  style={[
+                    styles.dot,
+                    marked && { backgroundColor: selected ? theme.accent : theme.success },
+                    planned && { borderWidth: 1, borderColor: theme.textSecondary },
+                  ]}
+                />
+                {logged ? <View style={[styles.dot, { backgroundColor: theme.accentText }]} /> : null}
+              </View>
             </Pressable>
           );
         })}
@@ -157,5 +165,6 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: `${100 / 7}%`, alignItems: 'center', paddingVertical: 3, gap: 3 },
   day: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  dots: { flexDirection: 'row', gap: 3, height: 5 },
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: 'transparent' },
 });

@@ -7,13 +7,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { MonthCalendar } from '@/features/calendar/month-calendar';
+import { MacroSummary } from '@/features/nutrition/components/macro-summary';
+import { useDailyKcal, useDayDiary, useGoalFor } from '@/features/nutrition/queries';
 import { useRoutines, type RoutineSummary } from '@/features/routines/queries';
-import { useDailyKcal } from '@/features/nutrition/queries';
 import { isScheduledOn, scheduleOf } from '@/features/routines/schedule';
 import { startEmptyWorkout, startWorkoutFromRoutine } from '@/features/workout/mutations';
 import {
   useActiveWorkout,
+  useDayWorkoutPreviews,
   useWorkoutHistory,
+  type ExercisePreview,
   type WorkoutSummary,
 } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
@@ -35,11 +38,16 @@ export default function WorkoutScreen() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   const today = toIsoDay();
+  /** The summary follows the calendar, and shows today until a day is picked. */
+  const shownDay = selectedDay ?? today;
+
+  const { diary } = useDayDiary(shownDay);
+  const goal = useGoalFor(shownDay);
+  const previews = useDayWorkoutPreviews(selectedDay);
 
   /**
    * Sessions grouped by the local day they started on. The calendar marks those
-   * days, and picking one filters the list below it. Nutrition will mark the
-   * same grid once the diary exists.
+   * days, and picking one filters the list below it.
    */
   const byDay = useMemo(() => {
     const map = new Map<string, WorkoutSummary[]>();
@@ -55,6 +63,7 @@ export default function WorkoutScreen() {
   }, [workouts]);
 
   const markedDays = useMemo(() => new Set(byDay.keys()), [byDay]);
+  const loggedDays = useMemo(() => new Set(kcalByDay.keys()), [kcalByDay]);
 
   /**
    * Days of the shown month a routine falls on. Only the visible month is
@@ -83,8 +92,9 @@ export default function WorkoutScreen() {
 
   const todaysRoutines = useMemo(() => scheduledFor(today), [scheduledFor, today]);
   const listed = selectedDay ? (byDay.get(selectedDay) ?? []) : workouts;
-  const plannedForSelected = selectedDay ? scheduledFor(selectedDay) : [];
-  const kcalForSelected = selectedDay ? kcalByDay.get(selectedDay) : undefined;
+  // Only worth showing when the day produced nothing: otherwise the preview of
+  // what was actually done says more than what was planned.
+  const plannedForSelected = selectedDay && listed.length === 0 ? scheduledFor(selectedDay) : [];
 
   async function startEmpty() {
     if (starting) return;
@@ -118,11 +128,16 @@ export default function WorkoutScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.header}>
+            <Pressable onPress={() => router.navigate('/nutrition')}>
+              <MacroSummary totals={diary.totals} goal={goal} />
+            </Pressable>
+
             <MonthCalendar
               month={month}
               onMonthChange={setMonth}
               markedDays={markedDays}
               plannedDays={plannedDays}
+              loggedDays={loggedDays}
               selectedDay={selectedDay}
               onSelectDay={setSelectedDay}
             />
@@ -172,21 +187,6 @@ export default function WorkoutScreen() {
               ) : null}
             </View>
 
-            {kcalForSelected !== undefined ? (
-              <Pressable
-                onPress={() => router.navigate('/nutrition')}
-                style={({ pressed }) => [
-                  styles.planned,
-                  { borderColor: theme.border, borderStyle: 'solid' },
-                  pressed && { backgroundColor: theme.backgroundElement },
-                ]}>
-                <Ionicons name="restaurant-outline" size={18} color={theme.accentText} />
-                <ThemedText type="small" style={styles.plannedText}>
-                  {formatNumber(kcalForSelected, 0)} kcal registradas
-                </ThemedText>
-              </Pressable>
-            ) : null}
-
             {plannedForSelected.map((routine) => (
               <Pressable
                 key={routine.id}
@@ -204,9 +204,19 @@ export default function WorkoutScreen() {
             ))}
           </View>
         }
-        renderItem={({ item }) => (
-          <HistoryRow summary={item} onPress={() => router.push(`/workout/${item.id}`)} />
-        )}
+        renderItem={({ item }) =>
+          // A picked day shows what was performed, exercise by exercise; the
+          // full history only has room for the totals.
+          selectedDay ? (
+            <WorkoutPreviewCard
+              summary={item}
+              exercises={previews.get(item.id) ?? []}
+              onPress={() => router.push(`/workout/${item.id}`)}
+            />
+          ) : (
+            <HistoryRow summary={item} onPress={() => router.push(`/workout/${item.id}`)} />
+          )
+        }
         ListEmptyComponent={
           <ThemedText type="default" themeColor="textSecondary" style={styles.empty}>
             {selectedDay
@@ -216,6 +226,52 @@ export default function WorkoutScreen() {
         }
       />
     </SafeAreaView>
+  );
+}
+
+function WorkoutPreviewCard({
+  summary,
+  exercises,
+  onPress,
+}: {
+  summary: WorkoutSummary;
+  exercises: ExercisePreview[];
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const duration =
+    summary.finishedAt === null ? null : formatDuration(summary.finishedAt - summary.startedAt);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.row,
+        { borderColor: theme.border },
+        pressed && { backgroundColor: theme.backgroundElement },
+      ]}>
+      <ThemedText type="default" style={styles.rowTitle}>
+        {summary.name}
+      </ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">
+        {formatTime(summary.startedAt)}
+        {duration ? ` · ${duration}` : ''} · {formatNumber(summary.volume, 0)} kg
+      </ThemedText>
+
+      <View style={styles.previewList}>
+        {exercises.map((exercise, index) => (
+          <View key={`${exercise.workoutId}-${index}`} style={styles.previewRow}>
+            <ThemedText type="small" numberOfLines={1} style={styles.previewName}>
+              {exercise.exerciseName}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {exercise.setCount} series
+              {exercise.topWeight ? ` · hasta ${formatNumber(exercise.topWeight)} kg` : ''}
+            </ThemedText>
+          </View>
+        ))}
+      </View>
+    </Pressable>
   );
 }
 
@@ -278,5 +334,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   rowTitle: { fontWeight: '700' },
+  previewList: { paddingTop: 8, gap: 4 },
+  previewRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  previewName: { flex: 1 },
   empty: { textAlign: 'center', paddingHorizontal: 32, paddingTop: 24 },
 });
