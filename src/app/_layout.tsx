@@ -26,15 +26,12 @@ export default function RootLayout() {
         <DatabaseProvider>
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
             <ConfirmProvider>
-              <Stack>
+              <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="workout" options={{ headerShown: false }} />
                 <Stack.Screen name="exercise" options={{ headerShown: false }} />
                 <Stack.Screen name="routine" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="pick-exercise"
-                  options={{ title: 'Anadir ejercicio', presentation: 'modal' }}
-                />
+                <Stack.Screen name="pick-exercise" options={{ presentation: 'modal' }} />
               </Stack>
               <StatusBar style="auto" />
             </ConfirmProvider>

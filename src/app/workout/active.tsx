@@ -1,8 +1,9 @@
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { useConfirm } from '@/components/confirm-dialog';
+import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDuration, formatNumber } from '@/lib/format';
@@ -99,17 +100,15 @@ export default function ActiveWorkoutScreen() {
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Stack.Screen
-        options={{
-          title: workout.name,
-          headerRight: () => (
-            <Pressable onPress={() => void confirmFinish()} hitSlop={8}>
-              <ThemedText type="default" style={{ color: theme.accent, fontWeight: '700' }}>
-                Terminar
-              </ThemedText>
-            </Pressable>
-          ),
-        }}
+      <ScreenHeader
+        title={workout.name}
+        right={
+          <Pressable onPress={() => void confirmFinish()} hitSlop={8}>
+            <ThemedText type="default" style={{ color: theme.accent, fontWeight: '700' }}>
+              Terminar
+            </ThemedText>
+          </Pressable>
+        }
       />
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

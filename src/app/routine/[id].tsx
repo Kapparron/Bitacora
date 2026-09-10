@@ -1,12 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { useConfirm } from '@/components/confirm-dialog';
 import { OptionSheet, type SheetOption } from '@/components/option-sheet';
+import { ScreenHeader } from '@/components/screen-header';
 import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
 import { exerciseMediaUrl } from '@/features/exercises/media';
@@ -67,19 +68,20 @@ export default function RoutineEditorScreen() {
   }
 
   return (
-    <ScrollView style={{ backgroundColor: theme.background }} contentContainerStyle={styles.content}>
-      <Stack.Screen
-        options={{
-          title: routine.name,
-          headerRight: () => (
-            <Pressable onPress={() => setRenaming(true)} hitSlop={8}>
-              <ThemedText type="default" style={{ color: theme.accent, fontWeight: '700' }}>
-                Renombrar
-              </ThemedText>
-            </Pressable>
-          ),
-        }}
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+      <ScreenHeader
+        title={routine.name}
+        subtitle={entries.length === 1 ? '1 ejercicio' : `${entries.length} ejercicios`}
+        right={
+          <Pressable onPress={() => setRenaming(true)} hitSlop={8}>
+            <ThemedText type="default" style={{ color: theme.accent, fontWeight: '700' }}>
+              Renombrar
+            </ThemedText>
+          </Pressable>
+        }
       />
+
+      <ScrollView contentContainerStyle={styles.content}>
 
       {entries.map((entry, index) => (
         <RoutineExerciseCard
@@ -112,6 +114,8 @@ export default function RoutineEditorScreen() {
         />
       </View>
 
+      </ScrollView>
+
       {renaming ? (
         <TextPrompt
           title="Renombrar rutina"
@@ -124,7 +128,7 @@ export default function RoutineEditorScreen() {
           }}
         />
       ) : null}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -315,6 +319,7 @@ function Tool({
 
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  screen: { flex: 1 },
   content: { paddingVertical: 12, paddingBottom: 48 },
   card: {
     borderWidth: StyleSheet.hairlineWidth,

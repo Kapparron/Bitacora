@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { ScreenHeader } from '@/components/screen-header';
 import type { Exercise } from '@/db/schema';
 import { ExerciseList } from '@/features/exercises/exercise-list';
 import { addExercisesToRoutine } from '@/features/routines/mutations';
@@ -40,6 +41,8 @@ export default function PickExerciseScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScreenHeader title="Anadir ejercicio" />
+
       <ExerciseList selectedIds={selectedIds} onToggle={toggle} />
 
       <View style={[styles.footer, { borderTopColor: theme.border }]}>

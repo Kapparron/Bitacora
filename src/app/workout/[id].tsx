@@ -1,6 +1,7 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { ExerciseCard } from '@/features/workout/components/exercise-card';
 import { useWorkoutContents } from '@/features/workout/queries';
@@ -8,7 +9,7 @@ import { completedSetCount, totalVolume } from '@/features/workout/volume';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDay, formatDuration, formatNumber, formatTime } from '@/lib/format';
 
-/** Read-only view of a finished session. Editing past sessions comes in phase 2. */
+/** Read-only view of a finished session. Editing past sessions comes in phase 4. */
 export default function WorkoutDetailScreen() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -29,16 +30,13 @@ export default function WorkoutDetailScreen() {
   const duration = workout.finishedAt === null ? null : workout.finishedAt - workout.startedAt;
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.background }}
-      contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: workout.name }} />
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+      <ScreenHeader
+        title={workout.name}
+        subtitle={`${formatDay(workout.startedAt)} · ${formatTime(workout.startedAt)}`}
+      />
 
-      <View style={styles.header}>
-        <ThemedText type="small" themeColor="textSecondary">
-          {formatDay(workout.startedAt)} · {formatTime(workout.startedAt)}
-        </ThemedText>
-      </View>
+      <ScrollView contentContainerStyle={styles.content}>
 
       <View style={[styles.stats, { borderColor: theme.border }]}>
         <Stat label="Duracion" value={duration === null ? '-' : formatDuration(duration)} />
@@ -54,7 +52,8 @@ export default function WorkoutDetailScreen() {
           editable={false}
         />
       ))}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -73,8 +72,8 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  screen: { flex: 1 },
   content: { paddingVertical: 12, paddingBottom: 48 },
-  header: { paddingHorizontal: 16, paddingBottom: 12 },
   stats: {
     flexDirection: 'row',
     marginHorizontal: 12,

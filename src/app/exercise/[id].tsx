@@ -1,9 +1,10 @@
 import { eq } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Image } from 'expo-image';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { db } from '@/db/client';
 import { exercises, personalRecords } from '@/db/schema';
@@ -35,8 +36,10 @@ export default function ExerciseDetailScreen() {
   const steps = exercise.steps ?? [];
 
   return (
-    <ScrollView style={{ backgroundColor: theme.background }} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: exercise.name }} />
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+      <ScreenHeader title={exercise.name} />
+
+      <ScrollView contentContainerStyle={styles.content}>
 
       {animation ? (
         <View style={styles.mediaBlock}>
@@ -53,10 +56,6 @@ export default function ExerciseDetailScreen() {
       ) : null}
 
       <View style={styles.header}>
-        <ThemedText type="default" style={styles.title}>
-          {exercise.name}
-        </ThemedText>
-
         {exercise.nameEn && exercise.nameEn !== exercise.name ? (
           <ThemedText type="small" themeColor="textSecondary">
             {exercise.nameEn}
@@ -89,7 +88,8 @@ export default function ExerciseDetailScreen() {
           ))}
         </View>
       ) : null}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -140,12 +140,12 @@ function Tag({ label }: { label: string }) {
 
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  screen: { flex: 1 },
   content: { paddingBottom: 48 },
   mediaBlock: { alignItems: 'center', paddingTop: 12, gap: 6 },
   media: { width: 240, height: 240, borderRadius: 16 },
   attribution: { fontSize: 11 },
   header: { paddingHorizontal: 16, paddingTop: 16, gap: 6 },
-  title: { fontWeight: '700', fontSize: 20 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4 },
   tag: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   records: { paddingHorizontal: 16, paddingTop: 24, gap: 6 },
