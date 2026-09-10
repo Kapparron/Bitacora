@@ -152,15 +152,18 @@ export function SetRow({
         </ThemedText>
       </Pressable>
 
-      <SetTypeSheet
-        visible={typeSheetOpen}
-        current={set.type}
-        onSelect={(type) => {
-          setTypeSheetOpen(false);
-          onChangeType(type);
-        }}
-        onClose={() => setTypeSheetOpen(false)}
-      />
+      {/* Mounted only while open: a session has dozens of set rows, and every
+          mounted Modal is a native window even when it is not visible. */}
+      {typeSheetOpen ? (
+        <SetTypeSheet
+          current={set.type}
+          onSelect={(type) => {
+            setTypeSheetOpen(false);
+            onChangeType(type);
+          }}
+          onClose={() => setTypeSheetOpen(false)}
+        />
+      ) : null}
 
       {fields.map((field) => (
         <TextInput

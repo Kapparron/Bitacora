@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,9 +16,18 @@ export default function WorkoutScreen() {
   const { contents: active } = useActiveWorkout();
   const { workouts } = useWorkoutHistory();
 
+  const [starting, setStarting] = useState(false);
+
   async function start() {
-    await startEmptyWorkout();
-    router.push('/workout/active');
+    if (starting) return;
+    setStarting(true);
+
+    try {
+      await startEmptyWorkout();
+      router.navigate('/workout/active');
+    } finally {
+      setStarting(false);
+    }
   }
 
   return (
@@ -31,7 +41,11 @@ export default function WorkoutScreen() {
             <ThemedText type="subtitle">Entreno</ThemedText>
             <Button
               title={active ? 'Volver al entreno en curso' : 'Empezar entreno vacio'}
-              onPress={active ? () => router.push('/workout/active') : start}
+              // navigate, not push: the session is a single destination, so a
+              // second tap must return to the open screen instead of stacking a
+              // duplicate of it.
+              onPress={active ? () => router.navigate('/workout/active') : () => void start()}
+              disabled={starting}
             />
             <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionTitle}>
               HISTORIAL

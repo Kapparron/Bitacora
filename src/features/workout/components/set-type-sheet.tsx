@@ -24,13 +24,12 @@ export function badgeFor(type: SetType, index: number): string {
   return type === 'normal' ? String(index + 1) : (SET_TYPES.find((t) => t.value === type)?.badge ?? '');
 }
 
+/** Render this only while it is open; see the note in SetRow. */
 export function SetTypeSheet({
-  visible,
   current,
   onSelect,
   onClose,
 }: {
-  visible: boolean;
   current: SetType;
   onSelect: (type: SetType) => void;
   onClose: () => void;
@@ -38,7 +37,7 @@ export function SetTypeSheet({
   const theme = useTheme();
 
   return (
-    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+    <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         {/* Swallows taps on the sheet so they do not reach the backdrop. */}
         <Pressable
