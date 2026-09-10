@@ -398,3 +398,23 @@ export async function getWorkoutExerciseIds(workoutId: string): Promise<string[]
 
   return rows.map((row) => row.exerciseId);
 }
+
+/**
+ * Moves a logged session to another date and time. The duration is preserved:
+ * `finishedAt` shifts by the same amount, because correcting when a session
+ * happened says nothing about how long it lasted.
+ *
+ * Records are left where they are, like every other edit to a finished session.
+ */
+export async function rescheduleWorkout(workoutId: string, startedAt: number): Promise<void> {
+  const [workout] = await db.select().from(workouts).where(eq(workouts.id, workoutId));
+  if (!workout) return;
+
+  const finishedAt =
+    workout.finishedAt === null ? null : workout.finishedAt + (startedAt - workout.startedAt);
+
+  await db
+    .update(workouts)
+    .set({ startedAt, finishedAt, ...touch() })
+    .where(eq(workouts.id, workoutId));
+}

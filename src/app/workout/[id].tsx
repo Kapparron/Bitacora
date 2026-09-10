@@ -6,8 +6,9 @@ import { Button } from '@/components/button';
 import { ScreenHeader } from '@/components/screen-header';
 import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
+import { DatePrompt } from '@/features/calendar/date-prompt';
 import { ExerciseCard } from '@/features/workout/components/exercise-card';
-import { updateWorkout } from '@/features/workout/mutations';
+import { rescheduleWorkout, updateWorkout } from '@/features/workout/mutations';
 import { useWorkoutContents } from '@/features/workout/queries';
 import { completedSetCount, totalVolume } from '@/features/workout/volume';
 import { useTheme } from '@/hooks/use-theme';
@@ -29,6 +30,7 @@ export default function WorkoutDetailScreen() {
 
   const [editing, setEditing] = useState(edit === '1');
   const [renaming, setRenaming] = useState(false);
+  const [rescheduling, setRescheduling] = useState(false);
 
   if (!contents) {
     return (
@@ -87,6 +89,11 @@ export default function WorkoutDetailScreen() {
               }
             />
             <Button title="Renombrar entreno" variant="secondary" onPress={() => setRenaming(true)} />
+            <Button
+              title="Cambiar fecha"
+              variant="secondary"
+              onPress={() => setRescheduling(true)}
+            />
           </View>
         ) : null}
       </ScrollView>
@@ -100,6 +107,18 @@ export default function WorkoutDetailScreen() {
           onSubmit={(name) => {
             setRenaming(false);
             void updateWorkout(workout.id, { name });
+          }}
+        />
+      ) : null}
+
+      {rescheduling ? (
+        <DatePrompt
+          title="Cambiar fecha"
+          initialValue={workout.startedAt}
+          onCancel={() => setRescheduling(false)}
+          onSubmit={(startedAt) => {
+            setRescheduling(false);
+            void rescheduleWorkout(workout.id, startedAt);
           }}
         />
       ) : null}
