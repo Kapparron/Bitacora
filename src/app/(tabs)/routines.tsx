@@ -1,58 +1,27 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, SectionList, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { useConfirm } from '@/components/confirm-dialog';
 import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
-import {
-  createFolder,
-  createRoutine,
-  deleteFolder,
-  deleteRoutine,
-} from '@/features/routines/mutations';
-import { useRoutineFolders, useRoutines, type RoutineSummary } from '@/features/routines/queries';
+import { createRoutine, deleteRoutine } from '@/features/routines/mutations';
+import { useRoutines, type RoutineSummary } from '@/features/routines/queries';
 import { startWorkoutFromRoutine } from '@/features/workout/mutations';
 import { useActiveWorkout } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDay } from '@/lib/format';
-
-const ROOT_SECTION = 'Sin carpeta';
 
 export default function RoutinesScreen() {
   const theme = useTheme();
   const router = useRouter();
   const confirm = useConfirm();
   const { routines } = useRoutines();
-  const folders = useRoutineFolders();
   const { contents: active } = useActiveWorkout();
-
-  const [prompt, setPrompt] = useState<'routine' | 'folder' | null>(null);
-
-  const sections = useMemo(() => {
-    const byFolder = new Map<string, RoutineSummary[]>();
-    for (const routine of routines) {
-      const key = routine.folderId ?? '';
-      const current = byFolder.get(key);
-      if (current) current.push(routine);
-      else byFolder.set(key, [routine]);
-    }
-
-    // Folders come first in their own order; loose routines close the list.
-    const foldered = folders.map((folder) => ({
-      title: folder.name,
-      folderId: folder.id,
-      data: byFolder.get(folder.id) ?? [],
-    }));
-
-    return [
-      ...foldered,
-      { title: ROOT_SECTION, folderId: null, data: byFolder.get('') ?? [] },
-    ].filter((section) => section.data.length > 0 || section.folderId !== null);
-  }, [routines, folders]);
+  const [naming, setNaming] = useState(false);
 
   async function start(routine: RoutineSummary) {
     if (active) {
@@ -70,18 +39,7 @@ export default function RoutinesScreen() {
     router.navigate('/workout/active');
   }
 
-  async function removeFolder(folderId: string, name: string) {
-    const accepted = await confirm({
-      title: 'Borrar carpeta',
-      message: `Se borra "${name}". Sus rutinas se quedan, fuera de la carpeta.`,
-      confirmLabel: 'Borrar',
-      destructive: true,
-    });
-
-    if (accepted) await deleteFolder(folderId);
-  }
-
-  async function removeRoutine(routine: RoutineSummary) {
+  async function remove(routine: RoutineSummary) {
     const accepted = await confirm({
       title: 'Borrar rutina',
       message: `Se borra "${routine.name}". Los entrenos ya registrados con ella se mantienen.`,
@@ -94,54 +52,31 @@ export default function RoutinesScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      <SectionList
-        sections={sections}
+      <FlatList
+        data={routines}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        stickySectionHeadersEnabled={false}
         ListHeaderComponent={
           <View style={styles.headerActions}>
             <Button
               title="Nueva rutina"
               style={styles.headerButton}
-              onPress={() => setPrompt('routine')}
+              onPress={() => setNaming(true)}
             />
             <Button
-              title="Nueva carpeta"
+              title="Ejercicios"
               variant="secondary"
               style={styles.headerButton}
-              onPress={() => setPrompt('folder')}
+              onPress={() => router.push('/exercises')}
             />
           </View>
-        }
-        renderSectionHeader={({ section }) => (
-          <View style={styles.sectionHeader}>
-            <ThemedText type="smallBold" themeColor="textSecondary">
-              {section.title.toUpperCase()}
-            </ThemedText>
-
-            {section.folderId ? (
-              <Pressable
-                onPress={() => void removeFolder(section.folderId!, section.title)}
-                hitSlop={8}>
-                <Ionicons name="trash-outline" size={16} color={theme.textSecondary} />
-              </Pressable>
-            ) : null}
-          </View>
-        )}
-        renderSectionFooter={({ section }) =>
-          section.data.length === 0 ? (
-            <ThemedText type="small" themeColor="textSecondary" style={styles.emptyFolder}>
-              Carpeta vacia
-            </ThemedText>
-          ) : null
         }
         renderItem={({ item }) => (
           <RoutineRow
             routine={item}
             onOpen={() => router.push(`/routine/${item.id}`)}
             onStart={() => void start(item)}
-            onDelete={() => void removeRoutine(item)}
+            onDelete={() => void remove(item)}
           />
         )}
         ListEmptyComponent={
@@ -151,21 +86,14 @@ export default function RoutinesScreen() {
         }
       />
 
-      {prompt ? (
+      {naming ? (
         <TextPrompt
-          title={prompt === 'routine' ? 'Nueva rutina' : 'Nueva carpeta'}
-          placeholder={prompt === 'routine' ? 'Torso, Pierna, Empuje...' : 'Nombre de la carpeta'}
+          title="Nueva rutina"
+          placeholder="Torso, Pierna, Empuje..."
           confirmLabel="Crear"
-          onCancel={() => setPrompt(null)}
+          onCancel={() => setNaming(false)}
           onSubmit={async (name) => {
-            const kind = prompt;
-            setPrompt(null);
-
-            if (kind === 'folder') {
-              await createFolder(name);
-              return;
-            }
-
+            setNaming(false);
             const id = await createRoutine(name);
             router.push(`/routine/${id}`);
           }}
@@ -234,21 +162,13 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   list: { paddingBottom: 120 },
   headerActions: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 8 },
-  headerButton: { flex: 1, paddingVertical: 12 },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 6,
-  },
+  headerButton: { flex: 1 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     marginHorizontal: 12,
-    marginBottom: 8,
+    marginTop: 8,
     padding: 14,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
@@ -256,6 +176,5 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, gap: 2 },
   rowTitle: { fontWeight: '700' },
   play: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  emptyFolder: { paddingHorizontal: 16, paddingBottom: 8 },
   empty: { textAlign: 'center', paddingHorizontal: 32, paddingTop: 24 },
 });

@@ -2,11 +2,11 @@ import { and, asc, eq, max, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { newId } from '@/db/ids';
-import { routineExercises, routineFolders, routines } from '@/db/schema';
+import { routineExercises, routines } from '@/db/schema';
 
 const touch = () => ({ updatedAt: Date.now() });
 
-export async function createRoutine(name: string, folderId: string | null = null): Promise<string> {
+export async function createRoutine(name: string): Promise<string> {
   const [{ value: lastPosition } = { value: null }] = await db
     .select({ value: max(routines.position) })
     .from(routines);
@@ -15,7 +15,6 @@ export async function createRoutine(name: string, folderId: string | null = null
   await db.insert(routines).values({
     id,
     name: name.trim() || 'Rutina sin nombre',
-    folderId,
     position: (lastPosition ?? -1) + 1,
   });
 
@@ -24,7 +23,7 @@ export async function createRoutine(name: string, folderId: string | null = null
 
 export async function updateRoutine(
   routineId: string,
-  patch: Partial<{ name: string; notes: string | null; folderId: string | null }>
+  patch: Partial<{ name: string; notes: string | null }>
 ): Promise<void> {
   await db
     .update(routines)
@@ -217,35 +216,6 @@ async function nextSupersetGroup(routineId: string): Promise<number> {
     .where(eq(routineExercises.routineId, routineId));
 
   return (value ?? 0) + 1;
-}
-
-/* -------------------------------------------------------------------- folders */
-
-export async function createFolder(name: string): Promise<string> {
-  const [{ value: lastPosition } = { value: null }] = await db
-    .select({ value: max(routineFolders.position) })
-    .from(routineFolders);
-
-  const id = newId();
-  await db.insert(routineFolders).values({
-    id,
-    name: name.trim() || 'Carpeta',
-    position: (lastPosition ?? -1) + 1,
-  });
-
-  return id;
-}
-
-export async function renameFolder(folderId: string, name: string): Promise<void> {
-  await db
-    .update(routineFolders)
-    .set({ name: name.trim() || 'Carpeta', ...touch() })
-    .where(eq(routineFolders.id, folderId));
-}
-
-/** Routines inside are kept; the foreign key drops them back to the root. */
-export async function deleteFolder(folderId: string): Promise<void> {
-  await db.delete(routineFolders).where(eq(routineFolders.id, folderId));
 }
 
 /** Exercise ids already in the routine, so the picker can pre-tick them. */

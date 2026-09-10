@@ -52,25 +52,17 @@ export const exercises = sqliteTable(
   ]
 );
 
-export const routineFolders = sqliteTable('routine_folders', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  position: integer('position').notNull().default(0),
-  ...auditColumns,
-});
-
 export const routines = sqliteTable(
   'routines',
   {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
-    folderId: text('folder_id').references(() => routineFolders.id, { onDelete: 'set null' }),
     notes: text('notes'),
     position: integer('position').notNull().default(0),
     lastPerformedAt: integer('last_performed_at'),
     ...auditColumns,
   },
-  (t) => [index('routines_folder_idx').on(t.folderId)]
+  (t) => [index('routines_position_idx').on(t.position)]
 );
 
 export const routineExercises = sqliteTable(

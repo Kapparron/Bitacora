@@ -60,8 +60,9 @@ están en [`docs/PLAN.md`](docs/PLAN.md).
 ```
 src/
   app/            rutas de expo-router
-    (tabs)/       Entreno, Rutinas, Ejercicios, Nutrición, Perfil
+    (tabs)/       Entreno, Rutinas, Nutrición, Perfil
     workout/      sesión en curso y detalle de un entreno
+    exercises     catálogo de ejercicios
     exercise/     ficha de un ejercicio
     routine/      editor de una rutina
     pick-exercise selector de ejercicios (sesión y rutina)

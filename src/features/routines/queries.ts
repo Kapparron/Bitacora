@@ -5,26 +5,22 @@ import { useLiveTables } from '@/db/live';
 import {
   exercises,
   routineExercises,
-  routineFolders,
   routines,
   type Exercise,
   type Routine,
 } from '@/db/schema';
 
-const ROUTINE_TABLES = ['routines', 'routine_exercises', 'routine_folders', 'exercises'] as const;
+const ROUTINE_TABLES = ['routines', 'routine_exercises', 'exercises'] as const;
 
 export type RoutineSummary = {
   id: string;
   name: string;
-  folderId: string | null;
   position: number;
   lastPerformedAt: number | null;
   exerciseCount: number;
   /** Comma-separated exercise names, for the one-line preview in the list. */
   preview: string | null;
 };
-
-export type RoutineFolder = typeof routineFolders.$inferSelect;
 
 export type RoutineEntry = {
   routineExerciseId: string;
@@ -54,7 +50,6 @@ export function useRoutines(): { routines: RoutineSummary[]; loading: boolean } 
         .select({
           id: routines.id,
           name: routines.name,
-          folderId: routines.folderId,
           position: routines.position,
           lastPerformedAt: routines.lastPerformedAt,
           exerciseCount: sql<number>`count(${routineExercises.id})`,
@@ -70,21 +65,6 @@ export function useRoutines(): { routines: RoutineSummary[]; loading: boolean } 
   );
 
   return { routines: data ?? [], loading };
-}
-
-export function useRoutineFolders(): RoutineFolder[] {
-  const { data } = useLiveTables(
-    ['routine_folders'],
-    async () =>
-      db
-        .select()
-        .from(routineFolders)
-        .where(isNull(routineFolders.deletedAt))
-        .orderBy(asc(routineFolders.position), asc(routineFolders.name)),
-    []
-  );
-
-  return data ?? [];
 }
 
 export function useRoutineContents(routineId: string): {

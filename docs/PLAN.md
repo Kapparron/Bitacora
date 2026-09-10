@@ -39,7 +39,7 @@ Definido en `src/db/schema.ts`. Convenciones comunes:
 - Los días de calendario (nutrición, medidas corporales) son cadenas `YYYY-MM-DD`
   en la zona horaria del dispositivo, no marcas de tiempo.
 
-Entrenamiento: `exercises`, `routine_folders`, `routines`, `routine_exercises`,
+Entrenamiento: `exercises`, `routines`, `routine_exercises`,
 `workouts`, `workout_exercises`, `sets`, `personal_records`.
 
 Nutrición: `foods` (caché de Open Food Facts más alimentos propios),
@@ -90,7 +90,7 @@ coincidir con un nombre del dataset.
 | --- | --- | --- |
 | 0 | Andamiaje Expo, esquema Drizzle, migraciones, catálogo de ejercicios, navegación | Hecha |
 | 1 | Registrar una sesión vacía, editar series, historial | Hecha |
-| 2 | Rutinas, plantillas, superseries, temporizador de descanso, récords | Hecha |
+| 2 | Rutinas, superseries, temporizador de descanso, récords | Hecha |
 | 3 | Nutrición: escáner de códigos, Open Food Facts, diario, objetivos | Pendiente |
 | 4 | Gráficas, medidas corporales, exportar e importar datos | Pendiente |
 | 5 | Sincronización y autenticación (opcional) | Pendiente |
