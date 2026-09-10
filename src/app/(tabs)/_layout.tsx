@@ -81,8 +81,10 @@ export default function TabsLayout() {
           // The icon and the name are both drawn by the button above.
           tabBarShowLabel: false,
           tabBarStyle: {
-            height: 68,
-            paddingTop: 6,
+            height: 76,
+            paddingTop: 14,
+            // The selected pill sits above the bar's own edge.
+            overflow: 'visible',
             backgroundColor: theme.background,
             borderTopColor: theme.border,
           },
@@ -126,22 +128,22 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  button: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  button: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
   pill: {
     alignItems: 'center',
     gap: 2,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   pillFocused: {
-    // Lifted clear of the bar, with a shadow under it, so the selected tab reads
-    // as the one in front.
-    transform: [{ translateY: -6 }],
-    elevation: 6,
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    // Lifted clear of the bar and slightly larger, with a shadow under it, so
+    // the selected tab reads as the one in front.
+    transform: [{ translateY: -14 }, { scale: 1.06 }],
+    elevation: 10,
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
   },
   label: { fontSize: 11, lineHeight: 14, fontWeight: '700' },
 });
