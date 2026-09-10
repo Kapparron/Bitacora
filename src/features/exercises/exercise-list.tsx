@@ -1,12 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { asc, isNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { db } from '@/db/client';
 import { exercises, type Exercise } from '@/db/schema';
+import { exerciseMediaUrl } from '@/features/exercises/media';
 import { useTheme } from '@/hooks/use-theme';
 
 /** Strips accents so "biceps" matches "bíceps" and vice versa. */
@@ -31,6 +34,7 @@ export type ExerciseListProps = {
  */
 export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProps) {
   const theme = useTheme();
+  const router = useRouter();
   const [query, setQuery] = useState('');
 
   const { data } = useLiveQuery(
@@ -47,6 +51,8 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
       ? data.filter(
           (exercise) =>
             normalize(exercise.name).includes(needle) ||
+            // The catalogue is English upstream, so both names are searchable.
+            normalize(exercise.nameEn ?? '').includes(needle) ||
             normalize(exercise.muscleGroup).includes(needle) ||
             normalize(exercise.equipment).includes(needle)
         )
@@ -94,15 +100,25 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
       )}
       renderItem={({ item }) => {
         const selected = selectedIds?.has(item.id) ?? false;
+        const thumbnail = exerciseMediaUrl(item.imagePath);
 
         return (
           <Pressable
-            onPress={selectable ? () => onToggle?.(item) : undefined}
+            onPress={
+              selectable ? () => onToggle?.(item) : () => router.push(`/exercise/${item.id}`)
+            }
             style={({ pressed }) => [
               styles.row,
               { borderBottomColor: theme.backgroundElement },
-              pressed && selectable && { backgroundColor: theme.backgroundElement },
+              pressed && { backgroundColor: theme.backgroundElement },
             ]}>
+            <Image
+              source={thumbnail}
+              style={[styles.thumbnail, { backgroundColor: theme.backgroundElement }]}
+              contentFit="cover"
+              transition={120}
+            />
+
             <View style={styles.rowText}>
               <ThemedText type="default">{item.name}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
@@ -116,7 +132,9 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
                 size={24}
                 color={selected ? theme.accent : theme.textSecondary}
               />
-            ) : null}
+            ) : (
+              <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+            )}
           </Pressable>
         );
       }}
@@ -149,6 +167,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  thumbnail: { width: 44, height: 44, borderRadius: 8 },
   rowText: { flex: 1, gap: 2 },
   empty: { textAlign: 'center', paddingTop: 32 },
 });

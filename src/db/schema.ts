@@ -24,9 +24,19 @@ export const exercises = sqliteTable(
   'exercises',
   {
     id: text('id').primaryKey(),
+    /** Id in the upstream dataset. Null for exercises the user created. */
+    externalId: text('external_id'),
     name: text('name').notNull(),
+    /** Original English name, kept so search matches either language. */
+    nameEn: text('name_en'),
     muscleGroup: text('muscle_group').notNull(),
     equipment: text('equipment').notNull(),
+    bodyPart: text('body_part'),
+    /** Technique steps in Spanish, one per array entry, stored as JSON. */
+    steps: text('steps', { mode: 'json' }).$type<string[]>(),
+    /** Repository-relative paths; the CDN URL is built in the app. */
+    imagePath: text('image_path'),
+    gifPath: text('gif_path'),
     /** How a set of this exercise is measured, which decides the set input fields. */
     trackingType: text('tracking_type')
       .$type<'weight_reps' | 'reps' | 'duration' | 'distance_duration'>()
@@ -38,7 +48,7 @@ export const exercises = sqliteTable(
   },
   (t) => [
     index('exercises_muscle_group_idx').on(t.muscleGroup),
-    uniqueIndex('exercises_name_unique').on(t.name),
+    uniqueIndex('exercises_external_id_unique').on(t.externalId),
   ]
 );
 

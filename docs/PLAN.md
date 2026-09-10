@@ -45,6 +45,33 @@ Entrenamiento: `exercises`, `routine_folders`, `routines`, `routine_exercises`,
 Nutrición: `foods` (caché de Open Food Facts más alimentos propios),
 `food_entries`, `nutrition_goals`, `body_metrics`.
 
+## Catálogo de ejercicios
+
+Los 1.324 ejercicios integrados vienen de
+[hasaneyldrm/exercises-dataset](https://github.com/hasaneyldrm/exercises-dataset).
+
+- **Datos** (nombres, categorías, material, músculos e instrucciones): licencia
+  MIT. Las instrucciones se usan en español, que el dataset ya trae traducido.
+- **Nombres**: el dataset solo los tiene en inglés. Unos 105 ejercicios comunes
+  llevan nombre en español mediante la tabla `SPANISH_NAMES` de
+  `scripts/build-exercise-catalog.mjs`; el resto conserva el inglés. El buscador
+  compara contra los dos, así que ningún ejercicio queda inaccesible.
+- **Medios**: las miniaturas y los GIFs son propiedad de
+  **Gym visual** (https://gymvisual.com/), redistribuidos en ese repositorio con
+  permiso suyo. El NOTICE deja claro que clonar el repositorio **no concede
+  licencia sobre el material**. Se usan a 180×180 y siempre con la atribución
+  «© Gym visual — gymvisual.com», que la ficha del ejercicio muestra bajo la
+  animación. Publicar la app en una tienda exigiría una licencia propia.
+- **No se empaquetan**: los GIFs suman unos 160 MB. Se sirven desde jsDelivr y
+  `expo-image` los cachea en disco tras la primera descarga. Sin conexión no hay
+  imágenes, pero el resto de la app funciona igual.
+
+El JSON original pesa 17 MB porque lleva diez idiomas.
+`npm run build:catalog -- <ruta a exercises.json>` lo recorta a español y a los
+campos que usa la app, y escribe `assets/data/exercises.json` (~1 MB), que sí va
+dentro del bundle. El script aborta si alguna clave de `SPANISH_NAMES` deja de
+coincidir con un nombre del dataset.
+
 ## Integración con Open Food Facts
 
 - Producto por código de barras:

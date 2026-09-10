@@ -30,6 +30,7 @@ export default function RootLayout() {
               <Stack>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="workout" options={{ headerShown: false }} />
+                <Stack.Screen name="exercise" options={{ headerShown: false }} />
               </Stack>
               <ActiveWorkoutBar />
               <StatusBar style="auto" />

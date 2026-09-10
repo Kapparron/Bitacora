@@ -35,9 +35,25 @@ incluyen en el bundle y se aplican en el dispositivo al arrancar, desde
 `src/db/provider.tsx`. No hay base de datos remota: `drizzle-kit push` y
 `drizzle-kit studio` no se usan en este proyecto.
 
-El catálogo de ejercicios integrado está en `src/db/seed/exercises.ts` y se
-inserta en el primer arranque. Añadir entradas nuevas ahí basta para que
-aparezcan tras actualizar; las filas existentes nunca se sobrescriben.
+## Catálogo de ejercicios
+
+Los 1.324 ejercicios integrados salen de
+[hasaneyldrm/exercises-dataset](https://github.com/hasaneyldrm/exercises-dataset)
+y viven en `assets/data/exercises.json`, generado por
+`scripts/build-exercise-catalog.mjs`. Se insertan en el primer arranque y se
+identifican por el id del dataset, así que una versión posterior puede añadir
+entradas nuevas sin tocar las existentes.
+
+Para regenerarlo tras actualizar el dataset o añadir nombres en español:
+
+```bash
+curl -L -o exercises.json https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/data/exercises.json
+npm run build:catalog -- exercises.json
+```
+
+Los datos son MIT. Las imágenes y GIFs son de **Gym visual**, se sirven desde
+jsDelivr en vez de empaquetarse, y exigen mantener la atribución. Los detalles
+están en [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Estructura
 
@@ -46,12 +62,15 @@ src/
   app/            rutas de expo-router
     (tabs)/       Entreno, Rutinas, Ejercicios, Nutrición, Perfil
     workout/      sesión en curso, detalle y selector de ejercicios
+    exercise/     ficha de un ejercicio
   components/     componentes compartidos
   features/       logica por dominio (workout, exercises)
   db/             cliente SQLite, esquema, migraciones y semilla
   constants/      tema y tipografías
   hooks/
 drizzle/          migraciones SQL generadas
+assets/data/      catálogo de ejercicios generado
+scripts/          generador del catálogo
 docs/PLAN.md      plan de producto y fases
 ```
 
