@@ -32,7 +32,6 @@ export default function NutritionScreen() {
 
   const { diary } = useDayDiary(date);
   const goal = useGoalFor(date);
-  const today = toIsoDay();
 
   async function remove(entry: FoodEntry) {
     const accepted = await confirm({
@@ -54,7 +53,7 @@ export default function NutritionScreen() {
 
         <Pressable onPress={() => setPickingDay(true)} style={styles.dayLabel}>
           <ThemedText type="default" style={styles.dayText}>
-            {date === today ? 'Hoy' : formatDay(new Date(`${date}T12:00:00`).getTime())}
+            {formatDay(new Date(`${date}T12:00:00`).getTime())}
           </ThemedText>
         </Pressable>
 

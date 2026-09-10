@@ -49,7 +49,7 @@ export function BodyPanel() {
   async function remove(metric: BodyMetric) {
     const accepted = await confirm({
       title: 'Borrar medida',
-      message: `Se borra la medida del ${formatDay(dayTimestamp(metric.date))}.`,
+      message: `Se borra la medida de ${formatDay(dayTimestamp(metric.date)).toLowerCase()}.`,
       confirmLabel: 'Borrar',
       destructive: true,
     });

@@ -198,7 +198,7 @@ function ExerciseRecords({ exerciseId }: { exerciseId: string }) {
       ))}
 
       <ThemedText type="small" themeColor="textSecondary">
-        Ultimo el {formatDay(Math.max(...data.map((record) => record.achievedAt)))}
+        Ultimo {formatDay(Math.max(...data.map((record) => record.achievedAt))).toLowerCase()}
       </ThemedText>
     </View>
   );

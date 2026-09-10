@@ -132,7 +132,9 @@ function RoutineRow({
 
         <ThemedText type="small" themeColor="textSecondary">
           {describeSchedule(scheduleOf(routine))}
-          {routine.lastPerformedAt ? ` · ultima vez ${formatDay(routine.lastPerformedAt)}` : ''}
+          {routine.lastPerformedAt
+            ? ` · ultima vez ${formatDay(routine.lastPerformedAt).toLowerCase()}`
+            : ''}
         </ThemedText>
       </View>
 

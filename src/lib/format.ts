@@ -21,8 +21,28 @@ export function formatNumber(value: number, maximumFractionDigits = 2): string {
   return new Intl.NumberFormat('es-ES', { maximumFractionDigits }).format(value);
 }
 
-/** `mié, 12 mar` — short enough for a history row, unambiguous within a year. */
+/** The same calendar day shifted by `delta` days, through a local Date. */
+function shiftDays(date: Date, delta: number): Date {
+  const shifted = new Date(date);
+  shifted.setDate(shifted.getDate() + delta);
+  return shifted;
+}
+
+/**
+ * `Hoy`, `Ayer`, `Manana`, or `mié, 12 mar` for anything further out: short
+ * enough for a history row and unambiguous within a year.
+ *
+ * Which day counts as today is read at every call, so a screen left open past
+ * midnight only needs to re-render to say the right thing.
+ */
 export function formatDay(timestamp: number): string {
+  const day = toIsoDay(new Date(timestamp));
+  const now = new Date();
+
+  if (day === toIsoDay(now)) return 'Hoy';
+  if (day === toIsoDay(shiftDays(now, -1))) return 'Ayer';
+  if (day === toIsoDay(shiftDays(now, 1))) return 'Manana';
+
   return new Intl.DateTimeFormat('es-ES', {
     weekday: 'short',
     day: 'numeric',
