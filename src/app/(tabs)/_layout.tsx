@@ -129,18 +129,21 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 1,
   },
   pillFocused: {
-    // Lifted clear of the bar and slightly larger, with a shadow under it, so
-    // the selected tab reads as the one in front.
-    transform: [{ translateY: -14 }, { scale: 1.06 }],
-    elevation: 10,
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
+    // Lifted clear of the bar, so the selected tab reads as the one in front.
+    // No scale: on Android a scaled view keeps the outline it had before the
+    // transform, and the lifted shadow is then drawn as a square.
+    transform: [{ translateY: -14 }],
+    borderRadius: 29,
+    elevation: 8,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
   },
   label: { fontSize: 10, lineHeight: 13, fontWeight: '700', paddingHorizontal: 4 },
 });
