@@ -1,32 +1,80 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
-import { StyleSheet, View, type ColorValue } from 'react-native';
+import type { ReactNode } from 'react';
+import {
+  Pressable,
+  StyleSheet,
+  View,
+  type AccessibilityState,
+  type GestureResponderEvent,
+} from 'react-native';
 
+import { ThemedText } from '@/components/themed-text';
 import { ActiveWorkoutBar } from '@/features/workout/components/active-workout-bar';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
- * A tab's icon, on an accent disc while its tab is the one being shown. The
- * label alone reads the same in both states on a dark background, so the disc
- * is what says where you are.
+ * A tab, drawn whole: the icon and its name inside one pill. The selected tab's
+ * pill is filled with the accent colour and lifted above the bar, which is what
+ * says where you are — the label alone reads much the same either way.
  */
-function TabIcon({
+function TabItem({
   name,
-  color,
-  size,
+  label,
   focused,
 }: {
   name: keyof typeof Ionicons.glyphMap;
-  color: ColorValue;
-  size: number;
+  label: string;
   focused: boolean;
 }) {
   const theme = useTheme();
 
   return (
-    <View style={[styles.icon, focused && { backgroundColor: theme.accent }]}>
-      <Ionicons name={name} color={focused ? theme.onAccent : String(color)} size={size} />
+    <View
+      style={[
+        styles.pill,
+        focused && [styles.pillFocused, { backgroundColor: theme.accent, shadowColor: theme.text }],
+      ]}>
+      <Ionicons
+        name={name}
+        color={focused ? theme.onAccent : theme.textSecondary}
+        size={focused ? 18 : 22}
+      />
+      <ThemedText
+        type="small"
+        style={[styles.label, { color: focused ? theme.onAccent : theme.textSecondary }]}>
+        {label}
+      </ThemedText>
     </View>
+  );
+}
+
+/**
+ * The pressable behind a tab. React Navigation's own draws a ripple on Android
+ * and fades the item on press; both fight with the pill, so this one reports the
+ * press and nothing else.
+ */
+function TabButton({
+  children,
+  onPress,
+  onLongPress,
+  accessibilityState,
+}: {
+  children?: ReactNode;
+  onPress?: ((event: GestureResponderEvent) => void) | null;
+  onLongPress?: ((event: GestureResponderEvent) => void) | null;
+  accessibilityState?: AccessibilityState;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      accessibilityRole="button"
+      accessibilityState={accessibilityState}
+      android_ripple={null}
+      style={styles.button}>
+      {children}
+    </Pressable>
   );
 }
 
@@ -40,35 +88,41 @@ export default function TabsLayout() {
           // The tab bar already names the tab; its header only repeated that
           // above the content, with a background of its own.
           headerShown: false,
-          tabBarActiveTintColor: theme.text,
-          tabBarInactiveTintColor: theme.textSecondary,
+          // The name is drawn inside the pill instead.
+          tabBarShowLabel: false,
+          tabBarButton: (props) => <TabButton {...props} />,
+          tabBarStyle: { backgroundColor: theme.background, borderTopColor: theme.border },
         }}>
         <Tabs.Screen
           name="index"
           options={{
             title: 'Inicio',
-            tabBarIcon: (props) => <TabIcon name="home" {...props} />,
+            tabBarIcon: ({ focused }) => <TabItem name="home" label="Inicio" focused={focused} />,
           }}
         />
         <Tabs.Screen
           name="routines"
           options={{
             title: 'Entrenos',
-            tabBarIcon: (props) => <TabIcon name="barbell" {...props} />,
+            tabBarIcon: ({ focused }) => (
+              <TabItem name="barbell" label="Entrenos" focused={focused} />
+            ),
           }}
         />
         <Tabs.Screen
           name="nutrition"
           options={{
             title: 'Nutricion',
-            tabBarIcon: (props) => <TabIcon name="restaurant" {...props} />,
+            tabBarIcon: ({ focused }) => (
+              <TabItem name="restaurant" label="Nutricion" focused={focused} />
+            ),
           }}
         />
         <Tabs.Screen
           name="profile"
           options={{
             title: 'Perfil',
-            tabBarIcon: (props) => <TabIcon name="person" {...props} />,
+            tabBarIcon: ({ focused }) => <TabItem name="person" label="Perfil" focused={focused} />,
           }}
         />
       </Tabs>
@@ -82,11 +136,23 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  icon: {
-    width: 44,
-    height: 30,
-    borderRadius: 15,
+  button: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  pill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
   },
+  pillFocused: {
+    // Lifted clear of the bar, with a shadow under it, so the selected tab reads
+    // as the one in front.
+    transform: [{ translateY: -6 }],
+    elevation: 6,
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  label: { fontWeight: '700' },
 });
