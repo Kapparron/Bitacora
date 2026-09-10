@@ -2,13 +2,16 @@ import { eq } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { db } from '@/db/client';
 import { exercises, personalRecords } from '@/db/schema';
+import { LineChart } from '@/features/charts/line-chart';
 import { MEDIA_ATTRIBUTION, exerciseMediaUrl } from '@/features/exercises/media';
+import { useExerciseProgress } from '@/features/workout/queries';
 import { RECORD_LABEL } from '@/features/workout/records';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDay, formatNumber, formatWeight } from '@/lib/format';
@@ -70,6 +73,8 @@ export default function ExerciseDetailScreen() {
 
       <ExerciseRecords exerciseId={exercise.id} />
 
+      <ExerciseProgress exerciseId={exercise.id} />
+
       {steps.length > 0 ? (
         <View style={styles.steps}>
           <ThemedText type="smallBold" themeColor="textSecondary">
@@ -90,6 +95,77 @@ export default function ExerciseDetailScreen() {
       ) : null}
       </ScrollView>
     </View>
+  );
+}
+
+/** How the exercise moved session by session, on the metric the user picks. */
+function ExerciseProgress({ exerciseId }: { exerciseId: string }) {
+  const sessions = useExerciseProgress(exerciseId);
+  const [metric, setMetric] = useState<ProgressMetric>('topWeight');
+
+  if (sessions.length === 0) return null;
+
+  return (
+    <View style={styles.progress}>
+      <ThemedText type="smallBold" themeColor="textSecondary">
+        PROGRESO
+      </ThemedText>
+
+      <View style={styles.metrics}>
+        {PROGRESS_METRICS.map((option) => (
+          <MetricChip
+            key={option.value}
+            label={option.label}
+            active={option.value === metric}
+            onPress={() => setMetric(option.value)}
+          />
+        ))}
+      </View>
+
+      <LineChart
+        points={sessions.map((session) => ({ x: session.startedAt, y: session[metric] }))}
+        formatValue={(value) =>
+          metric === 'volume' ? `${formatNumber(value, 0)} kg` : formatWeight(value)
+        }
+        formatX={(x) => formatDay(x)}
+      />
+    </View>
+  );
+}
+
+type ProgressMetric = 'topWeight' | 'oneRepMax' | 'volume';
+
+const PROGRESS_METRICS: { value: ProgressMetric; label: string }[] = [
+  { value: 'topWeight', label: 'Peso maximo' },
+  { value: 'oneRepMax', label: '1RM estimado' },
+  { value: 'volume', label: 'Volumen' },
+];
+
+function MetricChip({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.metricChip,
+        { backgroundColor: active ? theme.accent : theme.backgroundElement },
+        pressed && { opacity: 0.6 },
+      ]}>
+      <ThemedText
+        type="small"
+        style={{ color: active ? theme.onAccent : theme.text, fontWeight: '600' }}>
+        {label}
+      </ThemedText>
+    </Pressable>
   );
 }
 
@@ -149,6 +225,9 @@ const styles = StyleSheet.create({
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4 },
   tag: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   records: { paddingHorizontal: 16, paddingTop: 24, gap: 6 },
+  progress: { paddingHorizontal: 16, paddingTop: 24, gap: 8 },
+  metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  metricChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   record: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   recordLabel: { flex: 1 },
   recordValue: { fontWeight: '700' },

@@ -268,3 +268,4 @@ export type Workout = typeof workouts.$inferSelect;
 export type WorkoutSet = typeof sets.$inferSelect;
 export type Food = typeof foods.$inferSelect;
 export type FoodEntry = typeof foodEntries.$inferSelect;
+export type BodyMetric = typeof bodyMetrics.$inferSelect;

@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +17,7 @@ function parse(value: string): number | null {
 
 export default function ProfileScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const today = toIsoDay();
   const goal = useGoalFor(today);
 
@@ -54,9 +56,18 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
-          El peso corporal, las unidades y exportar los datos llegan en la fase 4.
-        </ThemedText>
+        <View style={[styles.card, { borderColor: theme.border }]}>
+          <ThemedText type="small" themeColor="textSecondary">
+            DATOS
+          </ThemedText>
+
+          <Button title="Progreso" variant="secondary" onPress={() => router.push('/progress')} />
+          <Button
+            title="Peso corporal"
+            variant="secondary"
+            onPress={() => router.push('/body')}
+          />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -138,5 +149,4 @@ const styles = StyleSheet.create({
   form: { gap: 10 },
   field: { gap: 4 },
   input: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
-  note: { textAlign: 'center', paddingHorizontal: 24, paddingTop: 8 },
 });

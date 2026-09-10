@@ -246,3 +246,87 @@ export async function getLastPerformance(
     .where(and(eq(sets.workoutExerciseId, lastEntry.workoutExerciseId), eq(sets.completed, true)))
     .orderBy(sets.position);
 }
+
+export type ExerciseSessionStat = {
+  /** When the session that produced these numbers started. */
+  startedAt: number;
+  /** Heaviest completed working set. */
+  topWeight: number;
+  /** Best Epley estimate of a one-rep max in that session. */
+  oneRepMax: number;
+  volume: number;
+};
+
+/**
+ * One row per finished session that trained this exercise, oldest first, so the
+ * detail screen can plot progress. Warm-ups are excluded, matching the rule the
+ * records use: they are not what the exercise is being judged on.
+ */
+export function useExerciseProgress(exerciseId: string): ExerciseSessionStat[] {
+  const { data } = useLiveTables(
+    SESSION_TABLES,
+    async () =>
+      db
+        .select({
+          startedAt: workouts.startedAt,
+          topWeight: sql<number>`coalesce(max(${sets.weight}), 0)`,
+          oneRepMax: sql<number>`coalesce(max(${sets.weight} * (1 + ${sets.reps} / 30.0)), 0)`,
+          volume: sql<number>`coalesce(sum(${sets.weight} * ${sets.reps}), 0)`,
+        })
+        .from(workouts)
+        .innerJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
+        .innerJoin(
+          sets,
+          and(
+            eq(sets.workoutExerciseId, workoutExercises.id),
+            eq(sets.completed, true),
+            ne(sets.type, 'warmup')
+          )
+        )
+        .where(
+          and(
+            eq(workoutExercises.exerciseId, exerciseId),
+            isNotNull(workouts.finishedAt),
+            isNull(workouts.deletedAt)
+          )
+        )
+        .groupBy(workouts.id)
+        .orderBy(asc(workouts.startedAt)),
+    [exerciseId]
+  );
+
+  return data ?? [];
+}
+
+export type WeeklyVolume = {
+  /** Monday of the week, as `YYYY-MM-DD`. */
+  week: string;
+  volume: number;
+  workouts: number;
+};
+
+/**
+ * Volume per calendar week, oldest first. SQLite's `weekday 0` is the coming
+ * Sunday, so the week is anchored by stepping back to its Monday.
+ */
+export function useWeeklyVolume(): WeeklyVolume[] {
+  const { data } = useLiveTables(
+    SESSION_TABLES,
+    async () =>
+      db
+        .select({
+          week: sql<string>`date(${workouts.startedAt} / 1000, 'unixepoch', 'localtime', 'weekday 0', '-6 days')`,
+          volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${sets.type} <> 'warmup' then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
+          workouts: sql<number>`count(distinct ${workouts.id})`,
+        })
+        .from(workouts)
+        .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
+        .leftJoin(sets, eq(sets.workoutExerciseId, workoutExercises.id))
+        .where(and(isNotNull(workouts.finishedAt), isNull(workouts.deletedAt)))
+        .groupBy(sql`1`)
+        .orderBy(sql`1`),
+    []
+  );
+
+  return data ?? [];
+}
