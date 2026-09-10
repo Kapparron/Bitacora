@@ -21,15 +21,15 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Entreno',
-            tabBarIcon: ({ color, size }) => <Ionicons name="barbell" color={color} size={size} />,
+            title: 'Inicio',
+            tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} />,
           }}
         />
         <Tabs.Screen
           name="routines"
           options={{
             title: 'Rutinas',
-            tabBarIcon: ({ color, size }) => <Ionicons name="list" color={color} size={size} />,
+            tabBarIcon: ({ color, size }) => <Ionicons name="barbell" color={color} size={size} />,
           }}
         />
         <Tabs.Screen
