@@ -124,11 +124,14 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   button: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
   pill: {
+    // A circle, sized so the longest tab name fits inside it; the same box is
+    // kept unfilled for the other tabs so nothing shifts when one is selected.
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    justifyContent: 'center',
+    gap: 1,
   },
   pillFocused: {
     // Lifted clear of the bar and slightly larger, with a shadow under it, so
@@ -139,5 +142,5 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
   },
-  label: { fontSize: 11, lineHeight: 14, fontWeight: '700' },
+  label: { fontSize: 10, lineHeight: 13, fontWeight: '700', paddingHorizontal: 4 },
 });
