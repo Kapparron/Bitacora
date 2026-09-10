@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -16,15 +16,19 @@ export default function PickExerciseScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
+  /** An array, not a Set, because the tap order decides the order they land in. */
   const [selected, setSelected] = useState<string[]>([]);
 
-  function toggle(exercise: Exercise) {
+  // Rebuilt only when the selection changes, so the list rows keep a stable prop.
+  const selectedIds = useMemo(() => new Set(selected), [selected]);
+
+  const toggle = useCallback((exercise: Exercise) => {
     setSelected((current) =>
       current.includes(exercise.id)
         ? current.filter((id) => id !== exercise.id)
         : [...current, exercise.id]
     );
-  }
+  }, []);
 
   async function add() {
     await addExercisesToWorkout(workoutId, selected);
@@ -33,7 +37,7 @@ export default function PickExerciseScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ExerciseList selectedIds={new Set(selected)} onToggle={toggle} />
+      <ExerciseList selectedIds={selectedIds} onToggle={toggle} />
 
       <View style={[styles.footer, { borderTopColor: theme.border }]}>
         <Button

@@ -3,7 +3,7 @@ import { asc, isNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -20,6 +20,9 @@ function normalize(value: string): string {
     .toLowerCase();
 }
 
+/** Fixed so the list can skip measuring 1.324 rows while scrolling. */
+const ROW_HEIGHT = 69;
+
 export type ExerciseListProps = {
   /** When set, rows show a checkbox and report taps instead of being inert. */
   selectedIds?: ReadonlySet<string>;
@@ -31,6 +34,10 @@ export type ExerciseListProps = {
 /**
  * The catalogue, grouped by muscle and searchable. Shared by the Ejercicios tab
  * and the picker inside a session so both always show the same list.
+ *
+ * The catalogue has over a thousand rows, so the row is memoised and every prop
+ * it receives is stable across renders. Otherwise ticking one checkbox
+ * re-renders every mounted row and reloads its thumbnail.
  */
 export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProps) {
   const theme = useTheme();
@@ -45,17 +52,24 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
       .orderBy(asc(exercises.muscleGroup), asc(exercises.name))
   );
 
+  // Normalising four fields of 1.324 rows on every keystroke was the other half
+  // of the lag, so the searchable text is built once per catalogue change.
+  // The English name is included because the catalogue is English upstream.
+  const searchIndex = useMemo(
+    () =>
+      data.map((exercise) => ({
+        exercise,
+        haystack: normalize(
+          `${exercise.name} ${exercise.nameEn ?? ''} ${exercise.muscleGroup} ${exercise.equipment}`
+        ),
+      })),
+    [data]
+  );
+
   const sections = useMemo(() => {
     const needle = normalize(query.trim());
     const matches = needle
-      ? data.filter(
-          (exercise) =>
-            normalize(exercise.name).includes(needle) ||
-            // The catalogue is English upstream, so both names are searchable.
-            normalize(exercise.nameEn ?? '').includes(needle) ||
-            normalize(exercise.muscleGroup).includes(needle) ||
-            normalize(exercise.equipment).includes(needle)
-        )
+      ? searchIndex.filter((entry) => entry.haystack.includes(needle)).map((entry) => entry.exercise)
       : data;
 
     const byGroup = new Map<string, Exercise[]>();
@@ -66,17 +80,42 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
     }
 
     return [...byGroup.entries()].map(([title, items]) => ({ title, data: items }));
-  }, [data, query]);
+  }, [data, searchIndex, query]);
 
   const selectable = selectedIds !== undefined;
+
+  const handlePress = useCallback(
+    (exercise: Exercise) => {
+      if (selectable) onToggle?.(exercise);
+      else router.push(`/exercise/${exercise.id}`);
+    },
+    [selectable, onToggle, router]
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: Exercise }) => (
+      <ExerciseRow
+        exercise={item}
+        selected={selectedIds?.has(item.id) ?? false}
+        selectable={selectable}
+        onPress={handlePress}
+      />
+    ),
+    [selectedIds, selectable, handlePress]
+  );
 
   return (
     <SectionList
       sections={sections}
-      keyExtractor={(item) => item.id}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
       contentContainerStyle={styles.list}
       keyboardShouldPersistTaps="handled"
       stickySectionHeadersEnabled={false}
+      initialNumToRender={12}
+      maxToRenderPerBatch={8}
+      windowSize={5}
+      removeClippedSubviews
       ListHeaderComponent={
         <View>
           {header}
@@ -98,46 +137,6 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
           {section.title.toUpperCase()}
         </ThemedText>
       )}
-      renderItem={({ item }) => {
-        const selected = selectedIds?.has(item.id) ?? false;
-        const thumbnail = exerciseMediaUrl(item.imagePath);
-
-        return (
-          <Pressable
-            onPress={
-              selectable ? () => onToggle?.(item) : () => router.push(`/exercise/${item.id}`)
-            }
-            style={({ pressed }) => [
-              styles.row,
-              { borderBottomColor: theme.backgroundElement },
-              pressed && { backgroundColor: theme.backgroundElement },
-            ]}>
-            <Image
-              source={thumbnail}
-              style={[styles.thumbnail, { backgroundColor: theme.backgroundElement }]}
-              contentFit="cover"
-              transition={120}
-            />
-
-            <View style={styles.rowText}>
-              <ThemedText type="default">{item.name}</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {item.equipment}
-              </ThemedText>
-            </View>
-
-            {selectable ? (
-              <Ionicons
-                name={selected ? 'checkmark-circle' : 'ellipse-outline'}
-                size={24}
-                color={selected ? theme.accent : theme.textSecondary}
-              />
-            ) : (
-              <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
-            )}
-          </Pressable>
-        );
-      }}
       ListEmptyComponent={
         <ThemedText type="default" themeColor="textSecondary" style={styles.empty}>
           Ningun ejercicio coincide con la busqueda.
@@ -146,6 +145,64 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
     />
   );
 }
+
+function keyExtractor(item: Exercise): string {
+  return item.id;
+}
+
+const ExerciseRow = memo(function ExerciseRow({
+  exercise,
+  selected,
+  selectable,
+  onPress,
+}: {
+  exercise: Exercise;
+  selected: boolean;
+  selectable: boolean;
+  onPress: (exercise: Exercise) => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      onPress={() => onPress(exercise)}
+      style={({ pressed }) => [
+        styles.row,
+        { borderBottomColor: theme.backgroundElement },
+        pressed && { backgroundColor: theme.backgroundElement },
+      ]}>
+      <Image
+        source={exerciseMediaUrl(exercise.imagePath)}
+        // Lets expo-image reuse the view when the list recycles this row.
+        recyclingKey={exercise.id}
+        cachePolicy="memory-disk"
+        priority="low"
+        style={[styles.thumbnail, { backgroundColor: theme.backgroundElement }]}
+        contentFit="cover"
+        transition={0}
+      />
+
+      <View style={styles.rowText}>
+        <ThemedText type="default" numberOfLines={1}>
+          {exercise.name}
+        </ThemedText>
+        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+          {exercise.equipment}
+        </ThemedText>
+      </View>
+
+      {selectable ? (
+        <Ionicons
+          name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+          size={24}
+          color={selected ? theme.accent : theme.textSecondary}
+        />
+      ) : (
+        <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+      )}
+    </Pressable>
+  );
+});
 
 const styles = StyleSheet.create({
   list: { paddingBottom: 24 },
@@ -160,11 +217,11 @@ const styles = StyleSheet.create({
   count: { paddingHorizontal: 16, paddingTop: 6 },
   sectionHeader: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 },
   row: {
+    height: ROW_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   thumbnail: { width: 44, height: 44, borderRadius: 8 },
