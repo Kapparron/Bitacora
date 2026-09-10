@@ -1,159 +1,110 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
-import { useConfirm } from '@/components/confirm-dialog';
-import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
-import { createRoutine, deleteRoutine } from '@/features/routines/mutations';
-import { useRoutines, type RoutineSummary } from '@/features/routines/queries';
-import { describeSchedule, scheduleOf } from '@/features/routines/schedule';
-import { startWorkoutFromRoutine } from '@/features/workout/mutations';
-import { useActiveWorkout } from '@/features/workout/queries';
+import {
+  useHistorySessions,
+  type HistoryExercise,
+  type HistorySession,
+} from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
-import { formatDay } from '@/lib/format';
+import { formatDay, formatDuration, formatNumber, formatTime } from '@/lib/format';
 
+/** One set as it is read back: `60 kg × 10`, or whatever half of it was logged. */
+function describeSet(set: HistoryExercise['sets'][number]): string {
+  const weight = set.weight === null ? null : `${formatNumber(set.weight)} kg`;
+  const reps = set.reps === null ? null : `${set.reps}`;
+
+  if (weight && reps) return `${weight} × ${reps}`;
+  return weight ?? (reps ? `× ${reps}` : '-');
+}
+
+/**
+ * Routines and exercises live one tap away; the page itself is the training log,
+ * session by session, with the sets that were performed.
+ */
 export default function RoutinesScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const confirm = useConfirm();
-  const { routines } = useRoutines();
-  const { contents: active } = useActiveWorkout();
-  const [naming, setNaming] = useState(false);
-
-  async function start(routine: RoutineSummary) {
-    if (active) {
-      const accepted = await confirm({
-        title: 'Ya hay un entreno en curso',
-        message: 'Termina o descarta el entreno actual antes de empezar esta rutina.',
-        confirmLabel: 'Ir al entreno',
-      });
-
-      if (accepted) router.navigate('/workout/active');
-      return;
-    }
-
-    await startWorkoutFromRoutine(routine.id);
-    router.navigate('/workout/active');
-  }
-
-  async function remove(routine: RoutineSummary) {
-    const accepted = await confirm({
-      title: 'Borrar rutina',
-      message: `Se borra "${routine.name}". Los entrenos ya registrados con ella se mantienen.`,
-      confirmLabel: 'Borrar',
-      destructive: true,
-    });
-
-    if (accepted) await deleteRoutine(routine.id);
-  }
+  const { sessions, loading } = useHistorySessions();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       <FlatList
-        data={routines}
+        data={sessions}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          <View style={styles.headerActions}>
-            <Button
-              title="Nueva rutina"
-              style={styles.headerButton}
-              onPress={() => setNaming(true)}
-            />
-            <Button
-              title="Ejercicios"
-              variant="secondary"
-              style={styles.headerButton}
-              onPress={() => router.push('/exercises')}
-            />
+          <View style={styles.header}>
+            <View style={styles.headerActions}>
+              <Button
+                title="Rutinas"
+                style={styles.headerButton}
+                onPress={() => router.push('/routine')}
+              />
+              <Button
+                title="Ejercicios"
+                variant="secondary"
+                style={styles.headerButton}
+                onPress={() => router.push('/exercises')}
+              />
+            </View>
+
+            <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionTitle}>
+              HISTORIAL
+            </ThemedText>
           </View>
         }
         renderItem={({ item }) => (
-          <RoutineRow
-            routine={item}
-            onOpen={() => router.push(`/routine/${item.id}`)}
-            onStart={() => void start(item)}
-            onDelete={() => void remove(item)}
-          />
+          <SessionCard session={item} onPress={() => router.push(`/workout/${item.id}`)} />
         )}
         ListEmptyComponent={
           <ThemedText type="default" themeColor="textSecondary" style={styles.empty}>
-            Todavia no hay rutinas. Crea una para no tener que montar el entreno cada vez.
+            {loading ? 'Cargando...' : 'Todavia no has terminado ningun entreno.'}
           </ThemedText>
         }
       />
-
-      {naming ? (
-        <TextPrompt
-          title="Nueva rutina"
-          placeholder="Torso, Pierna, Empuje..."
-          confirmLabel="Crear"
-          onCancel={() => setNaming(false)}
-          onSubmit={async (name) => {
-            setNaming(false);
-            const id = await createRoutine(name);
-            router.push(`/routine/${id}`);
-          }}
-        />
-      ) : null}
     </SafeAreaView>
   );
 }
 
-function RoutineRow({
-  routine,
-  onOpen,
-  onStart,
-  onDelete,
-}: {
-  routine: RoutineSummary;
-  onOpen: () => void;
-  onStart: () => void;
-  onDelete: () => void;
-}) {
+function SessionCard({ session, onPress }: { session: HistorySession; onPress: () => void }) {
   const theme = useTheme();
+  const duration =
+    session.finishedAt === null ? null : formatDuration(session.finishedAt - session.startedAt);
 
   return (
     <Pressable
-      onPress={onOpen}
-      onLongPress={onDelete}
+      onPress={onPress}
       style={({ pressed }) => [
-        styles.row,
+        styles.card,
         { borderColor: theme.border },
         pressed && { backgroundColor: theme.backgroundElement },
       ]}>
-      <View style={styles.rowText}>
-        <ThemedText type="default" style={styles.rowTitle}>
-          {routine.name}
-        </ThemedText>
+      <ThemedText type="default" style={styles.cardTitle}>
+        {session.name}
+      </ThemedText>
 
-        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-          {routine.exerciseCount === 0
-            ? 'Sin ejercicios todavia'
-            : (routine.preview ?? `${routine.exerciseCount} ejercicios`)}
-        </ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">
+        {formatDay(session.startedAt)} · {formatTime(session.startedAt)}
+        {duration ? ` · ${duration}` : ''} · {formatNumber(session.volume, 0)} kg
+      </ThemedText>
 
-        <ThemedText type="small" themeColor="textSecondary">
-          {describeSchedule(scheduleOf(routine))}
-          {routine.lastPerformedAt ? ` · ultima vez ${formatDay(routine.lastPerformedAt)}` : ''}
-        </ThemedText>
-      </View>
+      {session.exercises.map((exercise, index) => (
+        <View key={index} style={styles.exercise}>
+          <ThemedText type="small" style={styles.exerciseName} numberOfLines={1}>
+            {exercise.name}
+          </ThemedText>
 
-      <Pressable
-        onPress={onStart}
-        disabled={routine.exerciseCount === 0}
-        hitSlop={8}
-        style={({ pressed }) => [
-          styles.play,
-          { backgroundColor: theme.accent },
-          (pressed || routine.exerciseCount === 0) && { opacity: 0.4 },
-        ]}>
-        <Ionicons name="play" size={18} color={theme.onAccent} />
-      </Pressable>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.sets}>
+            {exercise.sets.length === 0
+              ? 'sin series'
+              : exercise.sets.map(describeSet).join('  ·  ')}
+          </ThemedText>
+        </View>
+      ))}
     </Pressable>
   );
 }
@@ -161,20 +112,21 @@ function RoutineRow({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   list: { paddingBottom: 120 },
-  headerActions: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 8 },
+  header: { paddingHorizontal: 12, paddingTop: 8, gap: 12 },
+  headerActions: { flexDirection: 'row', gap: 8 },
   headerButton: { flex: 1 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  sectionTitle: { paddingHorizontal: 2 },
+  card: {
     marginHorizontal: 12,
     marginTop: 8,
     padding: 14,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
+    gap: 4,
   },
-  rowText: { flex: 1, gap: 2 },
-  rowTitle: { fontWeight: '700' },
-  play: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontWeight: '700' },
+  exercise: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingTop: 4 },
+  exerciseName: { flex: 1, fontWeight: '600' },
+  sets: { flex: 1.4, textAlign: 'right' },
   empty: { textAlign: 'center', paddingHorizontal: 32, paddingTop: 24 },
 });

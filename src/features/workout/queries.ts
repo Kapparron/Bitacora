@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNotNull, isNull, ne, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, sql, type SQL } from 'drizzle-orm';
 import { useMemo } from 'react';
 
 import { db } from '@/db/client';
@@ -329,4 +329,102 @@ export function useWeeklyVolume(): WeeklyVolume[] {
   );
 
   return data ?? [];
+}
+
+/** One exercise of a past session, with the sets that were actually completed. */
+export type HistoryExercise = {
+  name: string;
+  sets: { weight: number | null; reps: number | null; type: WorkoutSet['type'] }[];
+};
+
+export type HistorySession = WorkoutSummary & { exercises: HistoryExercise[] };
+
+/** Sessions listed at once. Older ones are rarely read and cost a join each. */
+const HISTORY_LIMIT = 30;
+
+/**
+ * Finished sessions with the exercises and sets they contained, newest first.
+ *
+ * The sets are read in a second query restricted to the sessions on screen, so
+ * the join never walks the whole history to show the last handful of sessions.
+ */
+export function useHistorySessions(limit = HISTORY_LIMIT): {
+  sessions: HistorySession[];
+  loading: boolean;
+} {
+  const { data, loading } = useLiveTables(
+    SESSION_TABLES,
+    async () => {
+      const summaries = (await db
+        .select({
+          id: workouts.id,
+          name: workouts.name,
+          startedAt: workouts.startedAt,
+          finishedAt: workouts.finishedAt,
+          exerciseCount: sql<number>`count(distinct ${workoutExercises.id})`,
+          setCount: sql<number>`count(distinct case when ${sets.completed} = 1 then ${sets.id} end)`,
+          volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${sets.type} <> 'warmup' then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
+        })
+        .from(workouts)
+        .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
+        .leftJoin(sets, eq(sets.workoutExerciseId, workoutExercises.id))
+        .where(and(isNotNull(workouts.finishedAt), isNull(workouts.deletedAt)))
+        .groupBy(workouts.id)
+        .orderBy(desc(workouts.startedAt))
+        .limit(limit)) as WorkoutSummary[];
+
+      if (summaries.length === 0) return [];
+
+      const rows = await db
+        .select({
+          workoutId: workoutExercises.workoutId,
+          workoutExerciseId: workoutExercises.id,
+          position: workoutExercises.position,
+          name: exercises.name,
+          setPosition: sets.position,
+          weight: sets.weight,
+          reps: sets.reps,
+          type: sets.type,
+        })
+        .from(workoutExercises)
+        .innerJoin(exercises, eq(exercises.id, workoutExercises.exerciseId))
+        .leftJoin(sets, and(eq(sets.workoutExerciseId, workoutExercises.id), eq(sets.completed, true)))
+        .where(
+          inArray(
+            workoutExercises.workoutId,
+            summaries.map((summary) => summary.id)
+          )
+        )
+        .orderBy(asc(workoutExercises.position), asc(sets.position));
+
+      const byWorkout = new Map<string, Map<string, HistoryExercise>>();
+
+      for (const row of rows) {
+        let exercisesOfWorkout = byWorkout.get(row.workoutId);
+        if (!exercisesOfWorkout) {
+          exercisesOfWorkout = new Map();
+          byWorkout.set(row.workoutId, exercisesOfWorkout);
+        }
+
+        let entry = exercisesOfWorkout.get(row.workoutExerciseId);
+        if (!entry) {
+          entry = { name: row.name, sets: [] };
+          exercisesOfWorkout.set(row.workoutExerciseId, entry);
+        }
+
+        // The left join yields one null row for an exercise with no completed set.
+        if (row.setPosition !== null && row.type !== null) {
+          entry.sets.push({ weight: row.weight, reps: row.reps, type: row.type });
+        }
+      }
+
+      return summaries.map((summary) => ({
+        ...summary,
+        exercises: [...(byWorkout.get(summary.id)?.values() ?? [])],
+      }));
+    },
+    [limit]
+  );
+
+  return { sessions: data ?? [], loading };
 }
