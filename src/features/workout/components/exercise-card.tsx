@@ -1,11 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { useConfirm } from '@/components/confirm-dialog';
 import { ThemedText } from '@/components/themed-text';
 import type { WorkoutSet } from '@/db/schema';
+import { exerciseMediaUrl } from '@/features/exercises/media';
 import { useTheme } from '@/hooks/use-theme';
 import {
   addSet,
@@ -17,9 +19,6 @@ import {
 } from '../mutations';
 import { getLastPerformance, type WorkoutEntry } from '../queries';
 import { SetRow, SetRowHeader } from './set-row';
-
-/** Tapping the set number cycles through these. */
-const SET_TYPE_ORDER = ['normal', 'warmup', 'drop', 'failure'] as const;
 
 export function ExerciseCard({
   entry,
@@ -56,14 +55,16 @@ export function ExerciseCard({
     if (accepted) await removeWorkoutExercise(entry.workoutExerciseId);
   }
 
-  function cycleType(setId: string, current: (typeof SET_TYPE_ORDER)[number]) {
-    const next = SET_TYPE_ORDER[(SET_TYPE_ORDER.indexOf(current) + 1) % SET_TYPE_ORDER.length];
-    void updateSet(setId, { type: next });
-  }
-
   return (
     <View style={[styles.card, { backgroundColor: theme.background, borderColor: theme.border }]}>
       <View style={styles.header}>
+        <Image
+          source={exerciseMediaUrl(entry.exercise.imagePath)}
+          style={[styles.thumbnail, { backgroundColor: theme.backgroundElement }]}
+          contentFit="cover"
+          transition={120}
+        />
+
         <View style={styles.headerText}>
           <ThemedText type="default" style={styles.title}>
             {entry.exercise.name}
@@ -100,7 +101,7 @@ export function ExerciseCard({
               distanceM: previous?.distanceM ?? null,
             });
           }}
-          onCycleType={() => cycleType(set.id, set.type)}
+          onChangeType={(type) => void updateSet(set.id, { type })}
           onDelete={() => void deleteSet(set.id)}
         />
       ))}
@@ -127,6 +128,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 12 },
+  thumbnail: { width: 44, height: 44, borderRadius: 8 },
   headerText: { flex: 1, gap: 2 },
   title: { fontWeight: '700' },
   addSet: { marginHorizontal: 12, marginTop: 8, paddingVertical: 10 },

@@ -8,6 +8,7 @@ import type { Exercise, WorkoutSet } from '@/db/schema';
 import { useTheme } from '@/hooks/use-theme';
 import { formatNumber } from '@/lib/format';
 import type { SetPatch } from '../mutations';
+import { SetTypeSheet, badgeFor, type SetType } from './set-type-sheet';
 
 /** Accepts both "62.5" and "62,5"; returns null for anything not a number. */
 function parseDecimal(text: string): number | null {
@@ -66,7 +67,7 @@ export type SetRowProps = {
   editable: boolean;
   onChange: (patch: SetPatch) => void;
   onToggleCompleted: () => void;
-  onCycleType: () => void;
+  onChangeType: (type: SetType) => void;
   onDelete: () => void;
 };
 
@@ -78,12 +79,13 @@ export function SetRow({
   editable,
   onChange,
   onToggleCompleted,
-  onCycleType,
+  onChangeType,
   onDelete,
 }: SetRowProps) {
   const theme = useTheme();
   const confirm = useConfirm();
   const fields = fieldsFor(trackingType);
+  const [typeSheetOpen, setTypeSheetOpen] = useState(false);
 
   // Local state keeps the caret stable while typing; the database is written on
   // every keystroke because a local SQLite write costs well under a frame.
@@ -132,8 +134,8 @@ export function SetRow({
     if (accepted) onDelete();
   }
 
-  const label = set.type === 'warmup' ? 'C' : String(index + 1);
-  const labelColor = set.type === 'warmup' ? theme.accent : theme.text;
+  const label = badgeFor(set.type, index);
+  const labelColor = set.type === 'normal' ? theme.text : theme.accent;
 
   return (
     <View
@@ -142,13 +144,23 @@ export function SetRow({
         set.completed && { backgroundColor: theme.backgroundSelected },
       ]}>
       <Pressable
-        onPress={editable ? onCycleType : undefined}
+        onPress={editable ? () => setTypeSheetOpen(true) : undefined}
         onLongPress={editable ? () => void confirmDelete() : undefined}
         style={styles.indexCell}>
         <ThemedText type="smallBold" style={{ color: labelColor }}>
           {label}
         </ThemedText>
       </Pressable>
+
+      <SetTypeSheet
+        visible={typeSheetOpen}
+        current={set.type}
+        onSelect={(type) => {
+          setTypeSheetOpen(false);
+          onChangeType(type);
+        }}
+        onClose={() => setTypeSheetOpen(false)}
+      />
 
       {fields.map((field) => (
         <TextInput
