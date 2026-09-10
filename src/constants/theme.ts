@@ -15,10 +15,13 @@ export const Colors = {
     backgroundSelected: '#E0E1E6',
     textSecondary: '#60646C',
     border: '#D8D9E0',
-    accent: '#3C87F7',
-    /** Text and icons drawn on top of `accent`. */
-    onAccent: '#ffffff',
-    success: '#1F9254',
+    /** Monster Energy green. */
+    accent: '#84C226',
+    /** Text and icons drawn on top of `accent`; the green is too light for white. */
+    onAccent: '#10230A',
+    /** Darker green for accent-coloured text, which needs contrast on the background. */
+    accentText: '#4E7A12',
+    success: '#5D9E1B',
     danger: '#D93A3A',
   },
   dark: {
@@ -28,9 +31,10 @@ export const Colors = {
     backgroundSelected: '#2E3135',
     textSecondary: '#B0B4BA',
     border: '#33363B',
-    accent: '#4C93FF',
-    onAccent: '#ffffff',
-    success: '#3DD68C',
+    accent: '#96D62F',
+    onAccent: '#10230A',
+    accentText: '#96D62F',
+    success: '#96D62F',
     danger: '#FF6B6B',
   },
 } as const;

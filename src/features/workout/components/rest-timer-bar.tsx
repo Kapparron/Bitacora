@@ -66,7 +66,7 @@ export function RestTimerBar() {
         </ThemedText>
 
         <Pressable onPress={() => extend(15)} hitSlop={6} style={styles.action}>
-          <ThemedText type="small" style={{ color: theme.accent, fontWeight: '700' }}>
+          <ThemedText type="small" style={{ color: theme.accentText, fontWeight: '700' }}>
             +15 s
           </ThemedText>
         </Pressable>

@@ -25,7 +25,7 @@ export function Button({ title, variant = 'primary', style, disabled, ...rest }:
     primary: theme.onAccent,
     secondary: theme.text,
     danger: theme.danger,
-    ghost: theme.accent,
+    ghost: theme.accentText,
   };
 
   return (

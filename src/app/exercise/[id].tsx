@@ -78,7 +78,7 @@ export default function ExerciseDetailScreen() {
 
           {steps.map((step, index) => (
             <View key={index} style={styles.step}>
-              <ThemedText type="smallBold" style={[styles.stepNumber, { color: theme.accent }]}>
+              <ThemedText type="smallBold" style={[styles.stepNumber, { color: theme.accentText }]}>
                 {index + 1}
               </ThemedText>
               <ThemedText type="default" style={styles.stepText}>

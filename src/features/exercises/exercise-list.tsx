@@ -195,7 +195,7 @@ const ExerciseRow = memo(function ExerciseRow({
         <Ionicons
           name={selected ? 'checkmark-circle' : 'ellipse-outline'}
           size={24}
-          color={selected ? theme.accent : theme.textSecondary}
+          color={selected ? theme.accentText : theme.textSecondary}
         />
       ) : (
         <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />

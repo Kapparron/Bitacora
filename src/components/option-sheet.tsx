@@ -56,7 +56,7 @@ export function OptionSheet<T extends string | number | null>({
                 ]}>
                 {option.badge ? (
                   <View style={[styles.badge, { backgroundColor: theme.backgroundElement }]}>
-                    <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                    <ThemedText type="smallBold" style={{ color: theme.accentText }}>
                       {option.badge}
                     </ThemedText>
                   </View>
@@ -72,7 +72,7 @@ export function OptionSheet<T extends string | number | null>({
                 </View>
 
                 {option.value === current ? (
-                  <Ionicons name="checkmark" size={20} color={theme.accent} />
+                  <Ionicons name="checkmark" size={20} color={theme.accentText} />
                 ) : null}
               </Pressable>
             ))}

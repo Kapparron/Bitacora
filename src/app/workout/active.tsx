@@ -104,7 +104,7 @@ export default function ActiveWorkoutScreen() {
         title={workout.name}
         right={
           <Pressable onPress={() => void confirmFinish()} hitSlop={8}>
-            <ThemedText type="default" style={{ color: theme.accent, fontWeight: '700' }}>
+            <ThemedText type="default" style={{ color: theme.accentText, fontWeight: '700' }}>
               Terminar
             </ThemedText>
           </Pressable>

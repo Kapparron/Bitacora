@@ -99,7 +99,7 @@ function ExerciseCardComponent({
         entry.supersetGroup !== null && { borderLeftWidth: 3, borderLeftColor: theme.accent },
       ]}>
       {entry.supersetGroup !== null ? (
-        <ThemedText type="smallBold" style={[styles.superset, { color: theme.accent }]}>
+        <ThemedText type="smallBold" style={[styles.superset, { color: theme.accentText }]}>
           SUPERSERIE {String.fromCharCode(64 + entry.supersetGroup)}
         </ThemedText>
       ) : null}
@@ -137,8 +137,8 @@ function ExerciseCardComponent({
         <Pressable
           onPress={() => setRestSheetOpen(true)}
           style={({ pressed }) => [styles.rest, pressed && { opacity: 0.6 }]}>
-          <Ionicons name="timer-outline" size={16} color={theme.accent} />
-          <ThemedText type="small" style={{ color: theme.accent }}>
+          <Ionicons name="timer-outline" size={16} color={theme.accentText} />
+          <ThemedText type="small" style={{ color: theme.accentText }}>
             Descanso: {formatRest(entry.restSeconds)}
           </ThemedText>
         </Pressable>

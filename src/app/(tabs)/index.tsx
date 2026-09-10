@@ -97,7 +97,7 @@ export default function WorkoutScreen() {
 
               {selectedDay ? (
                 <Pressable onPress={() => setSelectedDay(null)} hitSlop={8}>
-                  <ThemedText type="small" style={{ color: theme.accent, fontWeight: '700' }}>
+                  <ThemedText type="small" style={{ color: theme.accentText, fontWeight: '700' }}>
                     Ver todo
                   </ThemedText>
                 </Pressable>

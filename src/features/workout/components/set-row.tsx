@@ -169,7 +169,7 @@ function SetRowComponent({
   }
 
   const label = badgeFor(set.type, index);
-  const labelColor = set.type === 'normal' ? theme.text : theme.accent;
+  const labelColor = set.type === 'normal' ? theme.text : theme.accentText;
 
   return (
     <View style={[styles.row, set.completed && { backgroundColor: theme.backgroundSelected }]}>
