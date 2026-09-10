@@ -208,6 +208,11 @@ export async function findFoodByBarcode(barcode: string): Promise<Food | null> {
   return found ?? null;
 }
 
+export async function getEntry(entryId: string): Promise<FoodEntry | null> {
+  const [found] = await db.select().from(foodEntries).where(eq(foodEntries.id, entryId)).limit(1);
+  return found ?? null;
+}
+
 export async function getFood(foodId: string): Promise<Food | null> {
   const [found] = await db.select().from(foods).where(eq(foods.id, foodId)).limit(1);
   return found ?? null;

@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useConfirm } from '@/components/confirm-dialog';
+import { OptionSheet, type SheetOption } from '@/components/option-sheet';
 import { ThemedText } from '@/components/themed-text';
 import { MacroSummary } from '@/features/nutrition/components/macro-summary';
 import { deleteEntry } from '@/features/nutrition/mutations';
@@ -24,6 +25,8 @@ export default function NutritionScreen() {
   const router = useRouter();
   const confirm = useConfirm();
   const [date, setDate] = useState(() => toIsoDay());
+  /** Entry whose long-press menu is open. */
+  const [menuEntry, setMenuEntry] = useState<FoodEntry | null>(null);
 
   const { diary } = useDayDiary(date);
   const goal = useGoalFor(date);
@@ -70,26 +73,54 @@ export default function NutritionScreen() {
             onAdd={() =>
               router.push({ pathname: '/food/search', params: { date, meal: value } })
             }
-            onRemove={remove}
+            onLongPressEntry={setMenuEntry}
           />
         ))}
       </ScrollView>
+
+      {menuEntry ? (
+        <OptionSheet
+          title={menuEntry.name}
+          options={ENTRY_ACTIONS}
+          current={null}
+          onSelect={(action) => {
+            const entry = menuEntry;
+            setMenuEntry(null);
+            if (!entry) return;
+
+            if (action === 'edit') {
+              router.push({
+                pathname: '/food/amount',
+                params: { entryId: entry.id, date: entry.date, meal: entry.meal },
+              });
+            } else {
+              void remove(entry);
+            }
+          }}
+          onClose={() => setMenuEntry(null)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
+
+const ENTRY_ACTIONS: SheetOption<'edit' | 'delete'>[] = [
+  { value: 'edit', label: 'Editar', description: 'Cambiar la cantidad o la comida' },
+  { value: 'delete', label: 'Eliminar', description: 'Quitar del diario' },
+];
 
 function MealSection({
   label,
   entries,
   kcal,
   onAdd,
-  onRemove,
+  onLongPressEntry,
 }: {
   label: string;
   entries: FoodEntry[];
   kcal: number;
   onAdd: () => void;
-  onRemove: (entry: FoodEntry) => void;
+  onLongPressEntry: (entry: FoodEntry) => void;
 }) {
   const theme = useTheme();
 
@@ -107,7 +138,7 @@ function MealSection({
       {entries.map((entry) => (
         <Pressable
           key={entry.id}
-          onLongPress={() => onRemove(entry)}
+          onLongPress={() => onLongPressEntry(entry)}
           style={({ pressed }) => [
             styles.entry,
             { borderTopColor: theme.border },
