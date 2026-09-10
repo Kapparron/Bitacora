@@ -62,7 +62,7 @@ Nutrición: `foods` (caché de Open Food Facts más alimentos propios),
 | Fase | Contenido | Estado |
 | --- | --- | --- |
 | 0 | Andamiaje Expo, esquema Drizzle, migraciones, catálogo de ejercicios, navegación | Hecha |
-| 1 | Registrar una sesión vacía, editar series, historial | Pendiente |
+| 1 | Registrar una sesión vacía, editar series, historial | Hecha |
 | 2 | Rutinas, plantillas, superseries, temporizador de descanso, récords | Pendiente |
 | 3 | Nutrición: escáner de códigos, Open Food Facts, diario, objetivos | Pendiente |
 | 4 | Gráficas, medidas corporales, exportar e importar datos | Pendiente |

@@ -45,7 +45,9 @@ aparezcan tras actualizar; las filas existentes nunca se sobrescriben.
 src/
   app/            rutas de expo-router
     (tabs)/       Entreno, Rutinas, Ejercicios, Nutrición, Perfil
+    workout/      sesión en curso, detalle y selector de ejercicios
   components/     componentes compartidos
+  features/       logica por dominio (workout, exercises)
   db/             cliente SQLite, esquema, migraciones y semilla
   constants/      tema y tipografías
   hooks/
