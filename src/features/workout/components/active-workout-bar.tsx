@@ -30,7 +30,12 @@ export function ActiveWorkoutBar() {
   return (
     <Link href="/workout/active" asChild>
       <Pressable
-        style={[styles.bar, { backgroundColor: theme.accent, bottom: BottomTabInset + 8 }]}
+        // `asChild` clones this element through a Slot, which rejects style
+        // arrays, so the styles are merged before they reach it.
+        style={StyleSheet.flatten([
+          styles.bar,
+          { backgroundColor: theme.accent, bottom: BottomTabInset + 8 },
+        ])}
         accessibilityRole="button">
         <Ionicons name="barbell" size={20} color={theme.onAccent} />
         <View style={styles.text}>

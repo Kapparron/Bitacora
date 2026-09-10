@@ -1,8 +1,8 @@
-import { and, desc, eq, isNotNull, isNull, ne, sql } from 'drizzle-orm';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
+import { and, desc, eq, isNotNull, isNull, ne, sql, type SQL } from 'drizzle-orm';
 import { useMemo } from 'react';
 
 import { db } from '@/db/client';
+import { useLiveTables } from '@/db/live';
 import {
   exercises,
   sets,
@@ -12,6 +12,9 @@ import {
   type Workout,
   type WorkoutSet,
 } from '@/db/schema';
+
+/** Tables a session screen reads, and therefore has to watch for changes. */
+const SESSION_TABLES = ['workouts', 'workout_exercises', 'exercises', 'sets'] as const;
 
 /** One exercise inside a session, with its sets in display order. */
 export type WorkoutEntry = {
@@ -27,22 +30,6 @@ export type WorkoutContents = {
   entries: WorkoutEntry[];
 };
 
-/**
- * Flat join of a session and everything under it. Grouping happens in JS: the
- * row count per session is small (tens), and one query keeps the live-query
- * subscription single, so a set edit re-renders the screen exactly once.
- */
-function contentsQuery(where: ReturnType<typeof and>) {
-  return db
-    .select({ workout: workouts, workoutExercise: workoutExercises, exercise: exercises, set: sets })
-    .from(workouts)
-    .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
-    .leftJoin(exercises, eq(exercises.id, workoutExercises.exerciseId))
-    .leftJoin(sets, eq(sets.workoutExerciseId, workoutExercises.id))
-    .where(where)
-    .orderBy(workouts.startedAt, workoutExercises.position, sets.position);
-}
-
 type ContentsRow = {
   workout: Workout;
   workoutExercise: typeof workoutExercises.$inferSelect | null;
@@ -50,7 +37,21 @@ type ContentsRow = {
   set: WorkoutSet | null;
 };
 
-function groupContents(rows: ContentsRow[]): WorkoutContents | null {
+/**
+ * Flat join of a session and everything under it. Grouping happens in JS: the
+ * row count per session is small (tens), and one query keeps the change
+ * subscription single, so a set edit re-renders the screen exactly once.
+ */
+async function loadContents(where: SQL | undefined): Promise<WorkoutContents | null> {
+  const rows = (await db
+    .select({ workout: workouts, workoutExercise: workoutExercises, exercise: exercises, set: sets })
+    .from(workouts)
+    .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
+    .leftJoin(exercises, eq(exercises.id, workoutExercises.exerciseId))
+    .leftJoin(sets, eq(sets.workoutExerciseId, workoutExercises.id))
+    .where(where)
+    .orderBy(workouts.startedAt, workoutExercises.position, sets.position)) as ContentsRow[];
+
   if (rows.length === 0) return null;
 
   const entries = new Map<string, WorkoutEntry>();
@@ -84,24 +85,26 @@ function groupContents(rows: ContentsRow[]): WorkoutContents | null {
  * for it, so killing the app mid-workout loses nothing.
  */
 export function useActiveWorkout(): { contents: WorkoutContents | null; loading: boolean } {
-  const { data, updatedAt } = useLiveQuery(
-    contentsQuery(and(isNull(workouts.finishedAt), isNull(workouts.deletedAt)))
+  const { data, loading } = useLiveTables(
+    SESSION_TABLES,
+    () => loadContents(and(isNull(workouts.finishedAt), isNull(workouts.deletedAt))),
+    []
   );
 
-  const contents = useMemo(() => groupContents(data as ContentsRow[]), [data]);
-  return { contents, loading: updatedAt === undefined };
+  return { contents: data ?? null, loading };
 }
 
 export function useWorkoutContents(workoutId: string): {
   contents: WorkoutContents | null;
   loading: boolean;
 } {
-  const { data, updatedAt } = useLiveQuery(
-    contentsQuery(and(eq(workouts.id, workoutId), isNull(workouts.deletedAt)))
+  const { data, loading } = useLiveTables(
+    SESSION_TABLES,
+    () => loadContents(and(eq(workouts.id, workoutId), isNull(workouts.deletedAt))),
+    [workoutId]
   );
 
-  const contents = useMemo(() => groupContents(data as ContentsRow[]), [data]);
-  return { contents, loading: updatedAt === undefined };
+  return { contents: data ?? null, loading };
 }
 
 export type WorkoutSummary = {
@@ -119,26 +122,29 @@ export type WorkoutSummary = {
  * history list does not have to load every set.
  */
 export function useWorkoutHistory(): { workouts: WorkoutSummary[]; loading: boolean } {
-  const { data, updatedAt } = useLiveQuery(
-    db
-      .select({
-        id: workouts.id,
-        name: workouts.name,
-        startedAt: workouts.startedAt,
-        finishedAt: workouts.finishedAt,
-        exerciseCount: sql<number>`count(distinct ${workoutExercises.id})`,
-        setCount: sql<number>`count(distinct case when ${sets.completed} = 1 then ${sets.id} end)`,
-        volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${sets.type} <> 'warmup' then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
-      })
-      .from(workouts)
-      .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
-      .leftJoin(sets, eq(sets.workoutExerciseId, workoutExercises.id))
-      .where(and(isNotNull(workouts.finishedAt), isNull(workouts.deletedAt)))
-      .groupBy(workouts.id)
-      .orderBy(desc(workouts.startedAt))
+  const { data, loading } = useLiveTables(
+    ['workouts', 'workout_exercises', 'sets'],
+    async () =>
+      db
+        .select({
+          id: workouts.id,
+          name: workouts.name,
+          startedAt: workouts.startedAt,
+          finishedAt: workouts.finishedAt,
+          exerciseCount: sql<number>`count(distinct ${workoutExercises.id})`,
+          setCount: sql<number>`count(distinct case when ${sets.completed} = 1 then ${sets.id} end)`,
+          volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${sets.type} <> 'warmup' then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
+        })
+        .from(workouts)
+        .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
+        .leftJoin(sets, eq(sets.workoutExerciseId, workoutExercises.id))
+        .where(and(isNotNull(workouts.finishedAt), isNull(workouts.deletedAt)))
+        .groupBy(workouts.id)
+        .orderBy(desc(workouts.startedAt)),
+    []
   );
 
-  return { workouts: data as WorkoutSummary[], loading: updatedAt === undefined };
+  return { workouts: data ?? [], loading };
 }
 
 /**

@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import { useConfirm } from '@/components/confirm-dialog';
 import { ThemedText } from '@/components/themed-text';
 import type { Exercise, WorkoutSet } from '@/db/schema';
 import { useTheme } from '@/hooks/use-theme';
@@ -44,11 +45,8 @@ const FIELD_LABEL = {
 export function SetRowHeader({ trackingType }: { trackingType: Exercise['trackingType'] }) {
   return (
     <View style={styles.row}>
-      <ThemedText type="small" themeColor="textSecondary" style={styles.indexCell}>
+      <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} style={styles.indexCell}>
         SERIE
-      </ThemedText>
-      <ThemedText type="small" themeColor="textSecondary" style={styles.previousCell}>
-        ANTERIOR
       </ThemedText>
       {fieldsFor(trackingType).map((field) => (
         <ThemedText key={field} type="small" themeColor="textSecondary" style={styles.inputCell}>
@@ -84,6 +82,7 @@ export function SetRow({
   onDelete,
 }: SetRowProps) {
   const theme = useTheme();
+  const confirm = useConfirm();
   const fields = fieldsFor(trackingType);
 
   // Local state keeps the caret stable while typing; the database is written on
@@ -122,25 +121,19 @@ export function SetRow({
     }
   }
 
-  function confirmDelete() {
-    Alert.alert('Borrar serie', `Se borra la serie ${index + 1}.`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Borrar', style: 'destructive', onPress: onDelete },
-    ]);
+  async function confirmDelete() {
+    const accepted = await confirm({
+      title: 'Borrar serie',
+      message: `Se borra la serie ${index + 1}.`,
+      confirmLabel: 'Borrar',
+      destructive: true,
+    });
+
+    if (accepted) onDelete();
   }
 
   const label = set.type === 'warmup' ? 'C' : String(index + 1);
   const labelColor = set.type === 'warmup' ? theme.accent : theme.text;
-
-  const previousText = previous
-    ? previous.weight != null && previous.reps != null
-      ? `${formatNumber(previous.weight)} x ${previous.reps}`
-      : previous.reps != null
-        ? `${previous.reps} reps`
-        : previous.durationS != null
-          ? `${previous.durationS}s`
-          : '-'
-    : '-';
 
   return (
     <View
@@ -150,16 +143,12 @@ export function SetRow({
       ]}>
       <Pressable
         onPress={editable ? onCycleType : undefined}
-        onLongPress={editable ? confirmDelete : undefined}
+        onLongPress={editable ? () => void confirmDelete() : undefined}
         style={styles.indexCell}>
         <ThemedText type="smallBold" style={{ color: labelColor }}>
           {label}
         </ThemedText>
       </Pressable>
-
-      <ThemedText type="small" themeColor="textSecondary" style={styles.previousCell}>
-        {previousText}
-      </ThemedText>
 
       {fields.map((field) => (
         <TextInput
@@ -220,8 +209,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
   },
-  indexCell: { width: 36, alignItems: 'center' },
-  previousCell: { flex: 1.4, textAlign: 'center' },
+  // Wide enough for the "SERIE" header to fit on one line.
+  indexCell: { width: 48, alignItems: 'center' },
   inputCell: { flex: 1, textAlign: 'center' },
   input: { borderRadius: 8, paddingVertical: 8, fontSize: 16, fontWeight: '600' },
   checkCell: { width: 40, alignItems: 'center' },

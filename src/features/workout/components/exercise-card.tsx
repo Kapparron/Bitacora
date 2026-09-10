@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { useConfirm } from '@/components/confirm-dialog';
 import { ThemedText } from '@/components/themed-text';
 import type { WorkoutSet } from '@/db/schema';
 import { useTheme } from '@/hooks/use-theme';
@@ -17,14 +18,8 @@ import {
 import { getLastPerformance, type WorkoutEntry } from '../queries';
 import { SetRow, SetRowHeader } from './set-row';
 
+/** Tapping the set number cycles through these. */
 const SET_TYPE_ORDER = ['normal', 'warmup', 'drop', 'failure'] as const;
-
-const SET_TYPE_HINT: Record<(typeof SET_TYPE_ORDER)[number], string> = {
-  normal: 'Serie normal',
-  warmup: 'Calentamiento',
-  drop: 'Drop set',
-  failure: 'Al fallo',
-};
 
 export function ExerciseCard({
   entry,
@@ -36,6 +31,7 @@ export function ExerciseCard({
   editable: boolean;
 }) {
   const theme = useTheme();
+  const confirm = useConfirm();
 
   // Last time this exercise was trained, used only for the greyed-out hints.
   const { data: previousSets = [] } = useQuery({
@@ -49,15 +45,15 @@ export function ExerciseCard({
     return previousSets[index] ?? null;
   }
 
-  function confirmRemove() {
-    Alert.alert('Quitar ejercicio', `Se quita "${entry.exercise.name}" y sus series.`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Quitar',
-        style: 'destructive',
-        onPress: () => void removeWorkoutExercise(entry.workoutExerciseId),
-      },
-    ]);
+  async function confirmRemove() {
+    const accepted = await confirm({
+      title: 'Quitar ejercicio',
+      message: `Se quita "${entry.exercise.name}" y sus series.`,
+      confirmLabel: 'Quitar',
+      destructive: true,
+    });
+
+    if (accepted) await removeWorkoutExercise(entry.workoutExerciseId);
   }
 
   function cycleType(setId: string, current: (typeof SET_TYPE_ORDER)[number]) {
@@ -78,7 +74,7 @@ export function ExerciseCard({
         </View>
 
         {editable ? (
-          <Pressable onPress={confirmRemove} hitSlop={8} accessibilityLabel="Quitar ejercicio">
+          <Pressable onPress={() => void confirmRemove()} hitSlop={8} accessibilityLabel="Quitar ejercicio">
             <Ionicons name="trash-outline" size={20} color={theme.textSecondary} />
           </Pressable>
         ) : null}
@@ -110,18 +106,12 @@ export function ExerciseCard({
       ))}
 
       {editable ? (
-        <>
-          <Button
-            title="Anadir serie"
-            variant="secondary"
-            style={styles.addSet}
-            onPress={() => void addSet(entry.workoutExerciseId)}
-          />
-          <ThemedText type="small" themeColor="textSecondary" style={styles.hint}>
-            Toca el numero de serie para cambiar su tipo ({Object.values(SET_TYPE_HINT).join(', ')}).
-            Manten pulsado para borrarla.
-          </ThemedText>
-        </>
+        <Button
+          title="Anadir serie"
+          variant="secondary"
+          style={styles.addSet}
+          onPress={() => void addSet(entry.workoutExerciseId)}
+        />
       ) : null}
     </View>
   );
@@ -140,5 +130,4 @@ const styles = StyleSheet.create({
   headerText: { flex: 1, gap: 2 },
   title: { fontWeight: '700' },
   addSet: { marginHorizontal: 12, marginTop: 8, paddingVertical: 10 },
-  hint: { paddingHorizontal: 12, paddingTop: 6 },
 });

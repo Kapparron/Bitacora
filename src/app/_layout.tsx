@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { ConfirmProvider } from '@/components/confirm-dialog';
 import { DatabaseProvider } from '@/db/provider';
 import { ActiveWorkoutBar } from '@/features/workout/components/active-workout-bar';
 
@@ -25,12 +26,14 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <DatabaseProvider>
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="workout" options={{ headerShown: false }} />
-            </Stack>
-            <ActiveWorkoutBar />
-            <StatusBar style="auto" />
+            <ConfirmProvider>
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="workout" options={{ headerShown: false }} />
+              </Stack>
+              <ActiveWorkoutBar />
+              <StatusBar style="auto" />
+            </ConfirmProvider>
           </ThemeProvider>
         </DatabaseProvider>
       </QueryClientProvider>

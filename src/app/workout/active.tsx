@@ -1,7 +1,8 @@
 import { Stack, useRouter } from 'expo-router';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { useConfirm } from '@/components/confirm-dialog';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDuration, formatNumber } from '@/lib/format';
@@ -14,6 +15,7 @@ import { completedSetCount, totalVolume } from '@/features/workout/volume';
 export default function ActiveWorkoutScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const confirm = useConfirm();
   const { contents, loading } = useActiveWorkout();
   const elapsed = useElapsed(contents?.workout.startedAt ?? null);
 
@@ -35,40 +37,44 @@ export default function ActiveWorkoutScreen() {
   const volume = totalVolume(allSets);
   const done = completedSetCount(allSets);
 
-  async function finish() {
+  async function confirmFinish() {
+    const pending = allSets.length - done;
+    const accepted = await confirm({
+      title: 'Terminar entreno',
+      message:
+        pending > 0
+          ? `Se guardan ${done} series. Las ${pending} sin marcar se descartan.`
+          : `Se guardan ${done} series.`,
+      confirmLabel: 'Terminar',
+    });
+
+    if (!accepted) return;
+
     const result = await finishWorkout(workout.id);
     router.replace('/');
 
     if (result.status === 'discarded') {
-      Alert.alert('Entreno descartado', 'No habia ninguna serie marcada como completada.');
+      await confirm({
+        title: 'Entreno descartado',
+        message: 'No habia ninguna serie marcada como completada.',
+        confirmLabel: 'Entendido',
+        cancelLabel: null,
+      });
     }
   }
 
-  function confirmFinish() {
-    const pending = allSets.length - done;
-    const message =
-      pending > 0
-        ? `Se guardan ${done} series. Las ${pending} sin marcar se descartan.`
-        : `Se guardan ${done} series.`;
+  async function confirmDiscard() {
+    const accepted = await confirm({
+      title: 'Descartar entreno',
+      message: 'Se pierde todo lo registrado en esta sesion.',
+      confirmLabel: 'Descartar',
+      destructive: true,
+    });
 
-    Alert.alert('Terminar entreno', message, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Terminar', onPress: () => void finish() },
-    ]);
-  }
+    if (!accepted) return;
 
-  function confirmDiscard() {
-    Alert.alert('Descartar entreno', 'Se pierde todo lo registrado en esta sesion.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Descartar',
-        style: 'destructive',
-        onPress: async () => {
-          await discardWorkout(workout.id);
-          router.replace('/');
-        },
-      },
-    ]);
+    await discardWorkout(workout.id);
+    router.replace('/');
   }
 
   return (
@@ -79,7 +85,7 @@ export default function ActiveWorkoutScreen() {
         options={{
           title: workout.name,
           headerRight: () => (
-            <Pressable onPress={confirmFinish} hitSlop={8}>
+            <Pressable onPress={() => void confirmFinish()} hitSlop={8}>
               <ThemedText type="default" style={{ color: theme.accent, fontWeight: '700' }}>
                 Terminar
               </ThemedText>
@@ -115,7 +121,7 @@ export default function ActiveWorkoutScreen() {
             title="Anadir ejercicio"
             onPress={() => router.push({ pathname: '/workout/pick-exercise', params: { workoutId: workout.id } })}
           />
-          <Button title="Descartar entreno" variant="danger" onPress={confirmDiscard} />
+          <Button title="Descartar entreno" variant="danger" onPress={() => void confirmDiscard()} />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
