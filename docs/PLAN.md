@@ -95,7 +95,7 @@ coincidir con un nombre del dataset.
 | 1 | Registrar una sesión vacía, editar series, historial | Hecha |
 | 2 | Rutinas, superseries, temporizador de descanso, récords, calendario y programación | Hecha |
 | 3 | Nutrición: escáner de códigos, Open Food Facts, diario, objetivos | Hecha |
-| 4 | Gráficas, medidas corporales, exportar e importar datos | Pendiente |
+| 4 | Gráficas, medidas corporales, exportar e importar datos | Hecha |
 | 5 | Sincronización y autenticación (opcional) | Pendiente |
 
 ## Riesgos conocidos
