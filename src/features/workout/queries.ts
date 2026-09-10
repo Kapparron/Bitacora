@@ -21,6 +21,9 @@ export type WorkoutEntry = {
   workoutExerciseId: string;
   position: number;
   exercise: Exercise;
+  /** Exercises sharing a group are performed as a superset. */
+  supersetGroup: number | null;
+  restSeconds: number | null;
   notes: string | null;
   sets: WorkoutSet[];
 };
@@ -65,6 +68,8 @@ async function loadContents(where: SQL | undefined): Promise<WorkoutContents | n
         workoutExerciseId: row.workoutExercise.id,
         position: row.workoutExercise.position,
         exercise: row.exercise,
+        supersetGroup: row.workoutExercise.supersetGroup,
+        restSeconds: row.workoutExercise.restSeconds,
         notes: row.workoutExercise.notes,
         sets: [],
       };

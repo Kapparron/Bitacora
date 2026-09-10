@@ -5,18 +5,19 @@ import { StyleSheet, View } from 'react-native';
 import { Button } from '@/components/button';
 import type { Exercise } from '@/db/schema';
 import { ExerciseList } from '@/features/exercises/exercise-list';
+import { addExercisesToRoutine } from '@/features/routines/mutations';
 import { addExercisesToWorkout } from '@/features/workout/mutations';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
- * Multi-select picker. Selection order is preserved so the exercises land in the
- * session in the order they were tapped.
+ * Multi-select picker shared by the active session and the routine editor.
+ * `target` says where the chosen exercises are appended; selection order is
+ * preserved so they land in the order they were tapped.
  */
 export default function PickExerciseScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
-  /** An array, not a Set, because the tap order decides the order they land in. */
+  const { target, id } = useLocalSearchParams<{ target: 'workout' | 'routine'; id: string }>();
   const [selected, setSelected] = useState<string[]>([]);
 
   // Rebuilt only when the selection changes, so the list rows keep a stable prop.
@@ -25,13 +26,15 @@ export default function PickExerciseScreen() {
   const toggle = useCallback((exercise: Exercise) => {
     setSelected((current) =>
       current.includes(exercise.id)
-        ? current.filter((id) => id !== exercise.id)
+        ? current.filter((one) => one !== exercise.id)
         : [...current, exercise.id]
     );
   }, []);
 
   async function add() {
-    await addExercisesToWorkout(workoutId, selected);
+    if (target === 'routine') await addExercisesToRoutine(id, selected);
+    else await addExercisesToWorkout(id, selected);
+
     router.back();
   }
 

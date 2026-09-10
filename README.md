@@ -61,10 +61,12 @@ están en [`docs/PLAN.md`](docs/PLAN.md).
 src/
   app/            rutas de expo-router
     (tabs)/       Entreno, Rutinas, Ejercicios, Nutrición, Perfil
-    workout/      sesión en curso, detalle y selector de ejercicios
+    workout/      sesión en curso y detalle de un entreno
     exercise/     ficha de un ejercicio
+    routine/      editor de una rutina
+    pick-exercise selector de ejercicios (sesión y rutina)
   components/     componentes compartidos
-  features/       logica por dominio (workout, exercises)
+  features/       logica por dominio (workout, routines, exercises)
   db/             cliente SQLite, esquema, migraciones y semilla
   constants/      tema y tipografías
   hooks/

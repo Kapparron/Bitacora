@@ -2,7 +2,15 @@ import { and, asc, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { newId } from '@/db/ids';
-import { sets, workoutExercises, workouts, type WorkoutSet } from '@/db/schema';
+import {
+  routineExercises,
+  routines,
+  sets,
+  workoutExercises,
+  workouts,
+  type WorkoutSet,
+} from '@/db/schema';
+import { updatePersonalRecords, type NewRecord } from './records';
 
 const touch = () => ({ updatedAt: Date.now() });
 
@@ -196,7 +204,7 @@ export async function updateWorkoutExerciseNotes(
 }
 
 export type FinishResult =
-  | { status: 'finished'; durationMs: number }
+  | { status: 'finished'; durationMs: number; records: NewRecord[] }
   | { status: 'discarded'; reason: 'empty' };
 
 /**
@@ -265,7 +273,83 @@ export async function finishWorkout(workoutId: string): Promise<FinishResult> {
       .run();
   });
 
-  return { status: 'finished', durationMs: finishedAt - (workout?.startedAt ?? finishedAt) };
+  // Records are derived from the sets, so they are computed once the session is
+  // closed and its sets can no longer change.
+  const records = await updatePersonalRecords(workoutId, finishedAt);
+
+  if (workout?.routineId) {
+    await db
+      .update(routines)
+      .set({ lastPerformedAt: finishedAt, ...touch() })
+      .where(eq(routines.id, workout.routineId));
+  }
+
+  return {
+    status: 'finished',
+    durationMs: finishedAt - (workout?.startedAt ?? finishedAt),
+    records,
+  };
+}
+
+/**
+ * Starts a session from a routine, copying its exercises with their rest times
+ * and superset groups, and creating the planned number of empty sets.
+ *
+ * The copy is deliberate: editing the routine afterwards must not rewrite a
+ * session that was already performed.
+ */
+export async function startWorkoutFromRoutine(routineId: string): Promise<string> {
+  const existing = await getActiveWorkoutId();
+  if (existing) return existing;
+
+  const [routine] = await db.select().from(routines).where(eq(routines.id, routineId));
+  if (!routine) throw new Error('La rutina ya no existe');
+
+  const planned = await db
+    .select()
+    .from(routineExercises)
+    .where(eq(routineExercises.routineId, routineId))
+    .orderBy(asc(routineExercises.position));
+
+  const workoutId = newId();
+  const startedAt = Date.now();
+
+  db.transaction((tx) => {
+    tx.insert(workouts).values({ id: workoutId, routineId, name: routine.name, startedAt }).run();
+
+    for (const item of planned) {
+      const workoutExerciseId = newId();
+
+      tx.insert(workoutExercises)
+        .values({
+          id: workoutExerciseId,
+          workoutId,
+          exerciseId: item.exerciseId,
+          position: item.position,
+          supersetGroup: item.supersetGroup,
+          restSeconds: item.restSeconds,
+        })
+        .run();
+
+      const plannedSets = Math.max(1, item.targetSets ?? 1);
+      for (let position = 0; position < plannedSets; position += 1) {
+        tx.insert(sets).values({ id: newId(), workoutExerciseId, position }).run();
+      }
+    }
+  });
+
+  return workoutId;
+}
+
+/** Rest between sets, in seconds. Null turns the timer off for that exercise. */
+export async function updateWorkoutExerciseRest(
+  workoutExerciseId: string,
+  restSeconds: number | null
+): Promise<void> {
+  await db
+    .update(workoutExercises)
+    .set({ restSeconds, ...touch() })
+    .where(eq(workoutExercises.id, workoutExerciseId));
 }
 
 /**

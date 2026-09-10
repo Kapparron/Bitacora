@@ -7,8 +7,11 @@ import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDuration, formatNumber } from '@/lib/format';
 import { ExerciseCard } from '@/features/workout/components/exercise-card';
+import { RestTimerBar } from '@/features/workout/components/rest-timer-bar';
 import { discardWorkout, finishWorkout } from '@/features/workout/mutations';
 import { useActiveWorkout } from '@/features/workout/queries';
+import { RECORD_LABEL } from '@/features/workout/records';
+import { useRestTimer } from '@/features/workout/rest-timer';
 import { useElapsed } from '@/features/workout/use-elapsed';
 import { completedSetCount, totalVolume } from '@/features/workout/volume';
 
@@ -16,6 +19,7 @@ export default function ActiveWorkoutScreen() {
   const theme = useTheme();
   const router = useRouter();
   const confirm = useConfirm();
+  const stopRest = useRestTimer((state) => state.stop);
   const { contents, loading } = useActiveWorkout();
   const elapsed = useElapsed(contents?.workout.startedAt ?? null);
 
@@ -51,6 +55,7 @@ export default function ActiveWorkoutScreen() {
     if (!accepted) return;
 
     const result = await finishWorkout(workout.id);
+    stopRest();
     router.replace('/');
 
     if (result.status === 'discarded') {
@@ -58,6 +63,18 @@ export default function ActiveWorkoutScreen() {
         title: 'Entreno descartado',
         message: 'No habia ninguna serie marcada como completada.',
         confirmLabel: 'Entendido',
+        cancelLabel: null,
+      });
+      return;
+    }
+
+    if (result.records.length > 0) {
+      const names = [...new Set(result.records.map((record) => RECORD_LABEL[record.type]))];
+
+      await confirm({
+        title: `${result.records.length} records nuevos`,
+        message: names.join(', '),
+        confirmLabel: 'Bien',
         cancelLabel: null,
       });
     }
@@ -74,6 +91,7 @@ export default function ActiveWorkoutScreen() {
     if (!accepted) return;
 
     await discardWorkout(workout.id);
+    stopRest();
     router.replace('/');
   }
 
@@ -95,6 +113,8 @@ export default function ActiveWorkoutScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <RestTimerBar />
+
         <View style={[styles.stats, { borderColor: theme.border }]}>
           <Stat label="Duracion" value={formatDuration(elapsed)} />
           <Stat label="Volumen" value={`${formatNumber(volume, 0)} kg`} />
@@ -119,7 +139,12 @@ export default function ActiveWorkoutScreen() {
         <View style={styles.actions}>
           <Button
             title="Anadir ejercicio"
-            onPress={() => router.push({ pathname: '/workout/pick-exercise', params: { workoutId: workout.id } })}
+            onPress={() =>
+              router.push({
+                pathname: '/pick-exercise',
+                params: { target: 'workout', id: workout.id },
+              })
+            }
           />
           <Button title="Descartar entreno" variant="danger" onPress={() => void confirmDiscard()} />
         </View>

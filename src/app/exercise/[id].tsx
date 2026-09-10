@@ -6,9 +6,11 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { db } from '@/db/client';
-import { exercises } from '@/db/schema';
+import { exercises, personalRecords } from '@/db/schema';
 import { MEDIA_ATTRIBUTION, exerciseMediaUrl } from '@/features/exercises/media';
+import { RECORD_LABEL } from '@/features/workout/records';
 import { useTheme } from '@/hooks/use-theme';
+import { formatDay, formatNumber, formatWeight } from '@/lib/format';
 
 export default function ExerciseDetailScreen() {
   const theme = useTheme();
@@ -67,6 +69,8 @@ export default function ExerciseDetailScreen() {
         </View>
       </View>
 
+      <ExerciseRecords exerciseId={exercise.id} />
+
       {steps.length > 0 ? (
         <View style={styles.steps}>
           <ThemedText type="smallBold" themeColor="textSecondary">
@@ -86,6 +90,41 @@ export default function ExerciseDetailScreen() {
         </View>
       ) : null}
     </ScrollView>
+  );
+}
+
+/** Best marks for this exercise, written when a session is finished. */
+function ExerciseRecords({ exerciseId }: { exerciseId: string }) {
+  const { data } = useLiveQuery(
+    db.select().from(personalRecords).where(eq(personalRecords.exerciseId, exerciseId)),
+    [exerciseId]
+  );
+
+  if (data.length === 0) return null;
+
+  return (
+    <View style={styles.records}>
+      <ThemedText type="smallBold" themeColor="textSecondary">
+        RECORDS
+      </ThemedText>
+
+      {data.map((record) => (
+        <View key={record.id} style={styles.record}>
+          <ThemedText type="default" style={styles.recordLabel}>
+            {RECORD_LABEL[record.type]}
+          </ThemedText>
+          <ThemedText type="default" style={styles.recordValue}>
+            {record.type === 'heaviest_weight' || record.type === 'estimated_1rm'
+              ? formatWeight(record.value)
+              : `${formatNumber(record.value, 0)} kg`}
+          </ThemedText>
+        </View>
+      ))}
+
+      <ThemedText type="small" themeColor="textSecondary">
+        Ultimo el {formatDay(Math.max(...data.map((record) => record.achievedAt)))}
+      </ThemedText>
+    </View>
   );
 }
 
@@ -109,6 +148,10 @@ const styles = StyleSheet.create({
   title: { fontWeight: '700', fontSize: 20 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4 },
   tag: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  records: { paddingHorizontal: 16, paddingTop: 24, gap: 6 },
+  record: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  recordLabel: { flex: 1 },
+  recordValue: { fontWeight: '700' },
   steps: { paddingHorizontal: 16, paddingTop: 24, gap: 10 },
   step: { flexDirection: 'row', gap: 10 },
   stepNumber: { width: 18, textAlign: 'center' },

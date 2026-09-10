@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -16,9 +16,12 @@ import {
   deleteSet,
   removeWorkoutExercise,
   updateSet,
+  updateWorkoutExerciseRest,
   type SetPatch,
 } from '../mutations';
 import { getLastPerformance, type WorkoutEntry } from '../queries';
+import { useRestTimer } from '../rest-timer';
+import { RestSheet, formatRest } from './rest-sheet';
 import { SetRow, SetRowHeader } from './set-row';
 import type { SetType } from './set-type-sheet';
 
@@ -33,6 +36,8 @@ function ExerciseCardComponent({
 }) {
   const theme = useTheme();
   const confirm = useConfirm();
+  const startRest = useRestTimer((state) => state.start);
+  const [restSheetOpen, setRestSheetOpen] = useState(false);
 
   // Last time this exercise was trained, used only for the greyed-out hints.
   const { data: previousSets = [] } = useQuery({
@@ -48,14 +53,23 @@ function ExerciseCardComponent({
     void updateSet(setId, patch);
   }, []);
 
-  const handleToggleCompleted = useCallback((set: WorkoutSet, previous: WorkoutSet | null) => {
-    void completeSet(set.id, {
-      weight: previous?.weight ?? null,
-      reps: previous?.reps ?? null,
-      durationS: previous?.durationS ?? null,
-      distanceM: previous?.distanceM ?? null,
-    });
-  }, []);
+  const restSeconds = entry.restSeconds;
+
+  const handleToggleCompleted = useCallback(
+    (set: WorkoutSet, previous: WorkoutSet | null) => {
+      void completeSet(set.id, {
+        weight: previous?.weight ?? null,
+        reps: previous?.reps ?? null,
+        durationS: previous?.durationS ?? null,
+        distanceM: previous?.distanceM ?? null,
+      });
+
+      // Checking a set starts the rest; unchecking one is a correction and must
+      // not, so the rest only starts on the transition into "done".
+      if (!set.completed && restSeconds) startRest(restSeconds);
+    },
+    [restSeconds, startRest]
+  );
 
   const handleChangeType = useCallback((setId: string, type: SetType) => {
     void updateSet(setId, { type });
@@ -77,7 +91,19 @@ function ExerciseCardComponent({
   }
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.background, borderColor: theme.border }]}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: theme.background, borderColor: theme.border },
+        // A superset is drawn as one block: its members share an accent edge.
+        entry.supersetGroup !== null && { borderLeftWidth: 3, borderLeftColor: theme.accent },
+      ]}>
+      {entry.supersetGroup !== null ? (
+        <ThemedText type="smallBold" style={[styles.superset, { color: theme.accent }]}>
+          SUPERSERIE {String.fromCharCode(64 + entry.supersetGroup)}
+        </ThemedText>
+      ) : null}
+
       <View style={styles.header}>
         <Image
           source={exerciseMediaUrl(entry.exercise.imagePath)}
@@ -106,6 +132,28 @@ function ExerciseCardComponent({
           </Pressable>
         ) : null}
       </View>
+
+      {editable ? (
+        <Pressable
+          onPress={() => setRestSheetOpen(true)}
+          style={({ pressed }) => [styles.rest, pressed && { opacity: 0.6 }]}>
+          <Ionicons name="timer-outline" size={16} color={theme.accent} />
+          <ThemedText type="small" style={{ color: theme.accent }}>
+            Descanso: {formatRest(entry.restSeconds)}
+          </ThemedText>
+        </Pressable>
+      ) : null}
+
+      {restSheetOpen ? (
+        <RestSheet
+          current={entry.restSeconds}
+          onSelect={(seconds) => {
+            setRestSheetOpen(false);
+            void updateWorkoutExerciseRest(entry.workoutExerciseId, seconds);
+          }}
+          onClose={() => setRestSheetOpen(false)}
+        />
+      ) : null}
 
       <SetRowHeader trackingType={entry.exercise.trackingType} />
 
@@ -147,6 +195,8 @@ export const ExerciseCard = memo(ExerciseCardComponent, (before, after) => {
     before.entry.workoutExerciseId !== after.entry.workoutExerciseId ||
     before.entry.exercise.id !== after.entry.exercise.id ||
     before.entry.notes !== after.entry.notes ||
+    before.entry.supersetGroup !== after.entry.supersetGroup ||
+    before.entry.restSeconds !== after.entry.restSeconds ||
     before.entry.sets.length !== after.entry.sets.length
   ) {
     return false;
@@ -176,6 +226,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 4,
   },
+  superset: { paddingHorizontal: 12, paddingBottom: 2 },
+  rest: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingTop: 6 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 12 },
   thumbnail: { width: 44, height: 44, borderRadius: 8 },
   headerText: { flex: 1, gap: 2 },

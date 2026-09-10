@@ -30,6 +30,11 @@ export default function RootLayout() {
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="workout" options={{ headerShown: false }} />
                 <Stack.Screen name="exercise" options={{ headerShown: false }} />
+                <Stack.Screen name="routine" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="pick-exercise"
+                  options={{ title: 'Anadir ejercicio', presentation: 'modal' }}
+                />
               </Stack>
               <StatusBar style="auto" />
             </ConfirmProvider>
