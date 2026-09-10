@@ -12,6 +12,9 @@ export default function TabsLayout() {
     <View style={styles.container}>
       <Tabs
         screenOptions={{
+          // The tab bar already names the tab; its header only repeated that
+          // above the content, with a background of its own.
+          headerShown: false,
           tabBarActiveTintColor: theme.text,
           tabBarInactiveTintColor: theme.textSecondary,
         }}>
