@@ -10,7 +10,6 @@ import { toIsoDay } from '@/lib/format';
 /** Monday first, as the week is read in Spain. */
 const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
-/** Days of `month`, padded with nulls so the first one lands on its weekday. */
 /** Side of the square a day mark is drawn in. */
 const MARK_SIZE = 5;
 
@@ -30,6 +29,7 @@ function FoodMark({ color }: { color: string }) {
   );
 }
 
+/** Days of `month`, padded with nulls so the first one lands on its weekday. */
 function buildGrid(month: Date): (Date | null)[] {
   const first = new Date(month.getFullYear(), month.getMonth(), 1);
   const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
