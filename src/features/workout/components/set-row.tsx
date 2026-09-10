@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { useConfirm } from '@/components/confirm-dialog';
@@ -9,6 +9,9 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatNumber } from '@/lib/format';
 import type { SetPatch } from '../mutations';
 import { SetTypeSheet, badgeFor, type SetType } from './set-type-sheet';
+
+/** How long typing pauses before the value reaches the database. */
+const WRITE_DELAY_MS = 400;
 
 /** Accepts both "62.5" and "62,5"; returns null for anything not a number. */
 function parseDecimal(text: string): number | null {
@@ -23,7 +26,9 @@ function toText(value: number | null): string {
 }
 
 /** Which numeric fields a set shows, decided by how the exercise is measured. */
-function fieldsFor(trackingType: Exercise['trackingType']): ('weight' | 'reps' | 'duration' | 'distance')[] {
+function fieldsFor(
+  trackingType: Exercise['trackingType']
+): ('weight' | 'reps' | 'duration' | 'distance')[] {
   switch (trackingType) {
     case 'reps':
       return ['reps'];
@@ -65,13 +70,14 @@ export type SetRowProps = {
   previous: WorkoutSet | null;
   trackingType: Exercise['trackingType'];
   editable: boolean;
-  onChange: (patch: SetPatch) => void;
-  onToggleCompleted: () => void;
-  onChangeType: (type: SetType) => void;
-  onDelete: () => void;
+  /** Callbacks take the set id so the parent can keep them stable across renders. */
+  onChange: (setId: string, patch: SetPatch) => void;
+  onToggleCompleted: (set: WorkoutSet, previous: WorkoutSet | null) => void;
+  onChangeType: (setId: string, type: SetType) => void;
+  onDelete: (setId: string) => void;
 };
 
-export function SetRow({
+function SetRowComponent({
   set,
   index,
   previous,
@@ -87,8 +93,7 @@ export function SetRow({
   const fields = fieldsFor(trackingType);
   const [typeSheetOpen, setTypeSheetOpen] = useState(false);
 
-  // Local state keeps the caret stable while typing; the database is written on
-  // every keystroke because a local SQLite write costs well under a frame.
+  // Local state keeps the caret stable while typing.
   const [draft, setDraft] = useState(() => ({
     weight: toText(set.weight),
     reps: toText(set.reps),
@@ -107,20 +112,49 @@ export function SetRow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [set.id]);
 
+  /**
+   * Writes are debounced because every write wakes the session's change listener,
+   * which reloads the whole session. Typing "62,5" wrote four times and reloaded
+   * four times. The pending patch is flushed before anything that reads the row
+   * back from the database, and on unmount so a half-typed value is not lost.
+   */
+  const pendingPatch = useRef<SetPatch>({});
+  const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flush = useCallback(() => {
+    if (writeTimer.current) {
+      clearTimeout(writeTimer.current);
+      writeTimer.current = null;
+    }
+
+    const patch = pendingPatch.current;
+    pendingPatch.current = {};
+
+    if (Object.keys(patch).length > 0) onChange(set.id, patch);
+  }, [onChange, set.id]);
+
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
+
+  useEffect(() => () => flushRef.current(), []);
+
   function edit(field: (typeof fields)[number], text: string) {
     setDraft((current) => ({ ...current, [field]: text }));
-    const value = parseDecimal(text);
 
-    switch (field) {
-      case 'weight':
-        return onChange({ weight: value });
-      case 'reps':
-        return onChange({ reps: value === null ? null : Math.round(value) });
-      case 'duration':
-        return onChange({ durationS: value === null ? null : Math.round(value) });
-      case 'distance':
-        return onChange({ distanceM: value });
-    }
+    const value = parseDecimal(text);
+    const patch: SetPatch =
+      field === 'weight'
+        ? { weight: value }
+        : field === 'reps'
+          ? { reps: value === null ? null : Math.round(value) }
+          : field === 'duration'
+            ? { durationS: value === null ? null : Math.round(value) }
+            : { distanceM: value };
+
+    pendingPatch.current = { ...pendingPatch.current, ...patch };
+
+    if (writeTimer.current) clearTimeout(writeTimer.current);
+    writeTimer.current = setTimeout(() => flushRef.current(), WRITE_DELAY_MS);
   }
 
   async function confirmDelete() {
@@ -131,18 +165,14 @@ export function SetRow({
       destructive: true,
     });
 
-    if (accepted) onDelete();
+    if (accepted) onDelete(set.id);
   }
 
   const label = badgeFor(set.type, index);
   const labelColor = set.type === 'normal' ? theme.text : theme.accent;
 
   return (
-    <View
-      style={[
-        styles.row,
-        set.completed && { backgroundColor: theme.backgroundSelected },
-      ]}>
+    <View style={[styles.row, set.completed && { backgroundColor: theme.backgroundSelected }]}>
       <Pressable
         onPress={editable ? () => setTypeSheetOpen(true) : undefined}
         onLongPress={editable ? () => void confirmDelete() : undefined}
@@ -159,7 +189,7 @@ export function SetRow({
           current={set.type}
           onSelect={(type) => {
             setTypeSheetOpen(false);
-            onChangeType(type);
+            onChangeType(set.id, type);
           }}
           onClose={() => setTypeSheetOpen(false)}
         />
@@ -170,6 +200,7 @@ export function SetRow({
           key={field}
           value={draft[field]}
           onChangeText={(text) => edit(field, text)}
+          onBlur={() => flush()}
           editable={editable}
           keyboardType="decimal-pad"
           selectTextOnFocus
@@ -184,7 +215,15 @@ export function SetRow({
       ))}
 
       <Pressable
-        onPress={editable ? onToggleCompleted : undefined}
+        onPress={
+          editable
+            ? () => {
+                // completeSet reads the row back, so pending edits must land first.
+                flush();
+                onToggleCompleted(set, previous);
+              }
+            : undefined
+        }
         style={styles.checkCell}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: set.completed }}>
@@ -197,6 +236,33 @@ export function SetRow({
     </View>
   );
 }
+
+/**
+ * Every session reload builds new row objects, so identity comparison would
+ * never skip a render. Only the fields this row draws are compared.
+ */
+export const SetRow = memo(SetRowComponent, (before, after) => {
+  const a = before.set;
+  const b = after.set;
+
+  return (
+    a.id === b.id &&
+    a.type === b.type &&
+    a.completed === b.completed &&
+    a.weight === b.weight &&
+    a.reps === b.reps &&
+    a.durationS === b.durationS &&
+    a.distanceM === b.distanceM &&
+    before.index === after.index &&
+    before.previous === after.previous &&
+    before.trackingType === after.trackingType &&
+    before.editable === after.editable &&
+    before.onChange === after.onChange &&
+    before.onToggleCompleted === after.onToggleCompleted &&
+    before.onChangeType === after.onChangeType &&
+    before.onDelete === after.onDelete
+  );
+});
 
 /** Last session's value, shown greyed out so one tap on the check reuses it. */
 function previousPlaceholder(field: string, previous: WorkoutSet | null): string {

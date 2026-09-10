@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
+import { memo, useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -19,8 +20,9 @@ import {
 } from '../mutations';
 import { getLastPerformance, type WorkoutEntry } from '../queries';
 import { SetRow, SetRowHeader } from './set-row';
+import type { SetType } from './set-type-sheet';
 
-export function ExerciseCard({
+function ExerciseCardComponent({
   entry,
   workoutId,
   editable,
@@ -40,9 +42,28 @@ export function ExerciseCard({
     staleTime: Infinity,
   });
 
-  function previousFor(index: number): WorkoutSet | null {
-    return previousSets[index] ?? null;
-  }
+  // Stable across renders, so a memoised row is never invalidated by its own
+  // callbacks. That is why they take the set id instead of closing over it.
+  const handleChange = useCallback((setId: string, patch: SetPatch) => {
+    void updateSet(setId, patch);
+  }, []);
+
+  const handleToggleCompleted = useCallback((set: WorkoutSet, previous: WorkoutSet | null) => {
+    void completeSet(set.id, {
+      weight: previous?.weight ?? null,
+      reps: previous?.reps ?? null,
+      durationS: previous?.durationS ?? null,
+      distanceM: previous?.distanceM ?? null,
+    });
+  }, []);
+
+  const handleChangeType = useCallback((setId: string, type: SetType) => {
+    void updateSet(setId, { type });
+  }, []);
+
+  const handleDelete = useCallback((setId: string) => {
+    void deleteSet(setId);
+  }, []);
 
   async function confirmRemove() {
     const accepted = await confirm({
@@ -60,6 +81,8 @@ export function ExerciseCard({
       <View style={styles.header}>
         <Image
           source={exerciseMediaUrl(entry.exercise.imagePath)}
+          recyclingKey={entry.exercise.id}
+          cachePolicy="memory-disk"
           style={[styles.thumbnail, { backgroundColor: theme.backgroundElement }]}
           contentFit="cover"
           transition={120}
@@ -75,7 +98,10 @@ export function ExerciseCard({
         </View>
 
         {editable ? (
-          <Pressable onPress={() => void confirmRemove()} hitSlop={8} accessibilityLabel="Quitar ejercicio">
+          <Pressable
+            onPress={() => void confirmRemove()}
+            hitSlop={8}
+            accessibilityLabel="Quitar ejercicio">
             <Ionicons name="trash-outline" size={20} color={theme.textSecondary} />
           </Pressable>
         ) : null}
@@ -88,21 +114,13 @@ export function ExerciseCard({
           key={set.id}
           set={set}
           index={index}
-          previous={previousFor(index)}
+          previous={previousSets[index] ?? null}
           trackingType={entry.exercise.trackingType}
           editable={editable}
-          onChange={(patch: SetPatch) => void updateSet(set.id, patch)}
-          onToggleCompleted={() => {
-            const previous = previousFor(index);
-            void completeSet(set.id, {
-              weight: previous?.weight ?? null,
-              reps: previous?.reps ?? null,
-              durationS: previous?.durationS ?? null,
-              distanceM: previous?.distanceM ?? null,
-            });
-          }}
-          onChangeType={(type) => void updateSet(set.id, { type })}
-          onDelete={() => void deleteSet(set.id)}
+          onChange={handleChange}
+          onToggleCompleted={handleToggleCompleted}
+          onChangeType={handleChangeType}
+          onDelete={handleDelete}
         />
       ))}
 
@@ -117,6 +135,37 @@ export function ExerciseCard({
     </View>
   );
 }
+
+/**
+ * A session reload rebuilds every entry object, so the sets are compared by the
+ * values this card draws. Without it, editing one exercise re-renders them all.
+ */
+export const ExerciseCard = memo(ExerciseCardComponent, (before, after) => {
+  if (
+    before.workoutId !== after.workoutId ||
+    before.editable !== after.editable ||
+    before.entry.workoutExerciseId !== after.entry.workoutExerciseId ||
+    before.entry.exercise.id !== after.entry.exercise.id ||
+    before.entry.notes !== after.entry.notes ||
+    before.entry.sets.length !== after.entry.sets.length
+  ) {
+    return false;
+  }
+
+  return before.entry.sets.every((set, index) => {
+    const other = after.entry.sets[index];
+
+    return (
+      set.id === other.id &&
+      set.type === other.type &&
+      set.completed === other.completed &&
+      set.weight === other.weight &&
+      set.reps === other.reps &&
+      set.durationS === other.durationS &&
+      set.distanceM === other.distanceM
+    );
+  });
+});
 
 const styles = StyleSheet.create({
   card: {
