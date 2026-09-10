@@ -3,8 +3,9 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { OptionSheet, type SheetOption } from '@/components/option-sheet';
 import { ThemedText } from '@/components/themed-text';
+import { MonthCalendar } from '@/features/calendar/month-calendar';
 import { useTheme } from '@/hooks/use-theme';
-import { toIsoDay } from '@/lib/format';
+import { formatDay, toIsoDay } from '@/lib/format';
 import { WEEKDAY_INITIALS, type Schedule } from '../schedule';
 
 const INTERVAL_OPTIONS: SheetOption<number>[] = [1, 2, 3, 4, 5, 6, 7, 8, 10, 14].map((value) => ({
@@ -31,6 +32,7 @@ export function ScheduleEditor({
   const theme = useTheme();
   const [draft, setDraft] = useState<Schedule>(schedule);
   const [intervalSheet, setIntervalSheet] = useState(false);
+  const [anchorPicker, setAnchorPicker] = useState(false);
 
   function toggleWeekday(day: number) {
     setDraft((current) => {
@@ -112,16 +114,29 @@ export function ScheduleEditor({
           />
 
           {draft.type === 'interval' ? (
-            <Pressable
-              onPress={() => setIntervalSheet(true)}
-              style={[styles.interval, { backgroundColor: theme.backgroundElement }]}>
-              <ThemedText type="default">
-                {draft.everyDays === 1 ? 'Todos los dias' : `Cada ${draft.everyDays} dias`}
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                Empieza el {draft.anchor}
-              </ThemedText>
-            </Pressable>
+            <View style={styles.intervalRow}>
+              <Pressable
+                onPress={() => setIntervalSheet(true)}
+                style={[styles.interval, { backgroundColor: theme.backgroundElement }]}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  CADA
+                </ThemedText>
+                <ThemedText type="default">
+                  {draft.everyDays === 1 ? '1 dia' : `${draft.everyDays} dias`}
+                </ThemedText>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setAnchorPicker(true)}
+                style={[styles.interval, { backgroundColor: theme.backgroundElement }]}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  EMPIEZA EL
+                </ThemedText>
+                <ThemedText type="default">
+                  {formatDay(new Date(`${draft.anchor}T12:00:00`).getTime())}
+                </ThemedText>
+              </Pressable>
+            </View>
           ) : null}
 
           <View style={styles.actions}>
@@ -162,11 +177,68 @@ export function ScheduleEditor({
               onClose={() => setIntervalSheet(false)}
             />
           ) : null}
+
+          {anchorPicker && draft.type === 'interval' ? (
+            <AnchorPicker
+              anchor={draft.anchor}
+              onSelect={(anchor) => {
+                setAnchorPicker(false);
+                setDraft({ ...draft, anchor });
+              }}
+              onClose={() => setAnchorPicker(false)}
+            />
+          ) : null}
         </Pressable>
       </Pressable>
     </Modal>
   );
 }
+
+/**
+ * Picks the day the rotation counts from, using the same month grid the workout
+ * tab draws. A dedicated date-picker dependency would look nothing like it.
+ */
+function AnchorPicker({
+  anchor,
+  onSelect,
+  onClose,
+}: {
+  anchor: string;
+  onSelect: (day: string) => void;
+  onClose: () => void;
+}) {
+  const theme = useTheme();
+  const [month, setMonth] = useState(() => {
+    const [year, monthNumber] = anchor.split('-').map(Number);
+    return new Date(year, monthNumber - 1, 1);
+  });
+
+  return (
+    <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <Pressable
+          style={[styles.card, { backgroundColor: theme.background, borderColor: theme.border }]}
+          onPress={() => {}}>
+          <ThemedText type="default" style={styles.title}>
+            Primer dia de la rotacion
+          </ThemedText>
+
+          <MonthCalendar
+            month={month}
+            onMonthChange={setMonth}
+            markedDays={EMPTY_DAYS}
+            selectedDay={anchor}
+            // The grid clears the selection when the chosen day is tapped again;
+            // here there is always an anchor, so that tap just confirms it.
+            onSelectDay={(day) => onSelect(day ?? anchor)}
+          />
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+const EMPTY_DAYS: ReadonlySet<string> = new Set();
 
 function Mode({
   label,
@@ -237,7 +309,8 @@ const styles = StyleSheet.create({
   radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2 },
   weekdays: { flexDirection: 'row', gap: 6, justifyContent: 'space-between' },
   weekday: { flex: 1, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  interval: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, gap: 2 },
+  intervalRow: { flexDirection: 'row', gap: 8 },
+  interval: { flex: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, gap: 2 },
   actions: { flexDirection: 'row', gap: 8, paddingTop: 6 },
   action: { flex: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
   actionLabel: { fontWeight: '600' },
