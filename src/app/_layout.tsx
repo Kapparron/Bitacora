@@ -6,7 +6,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ConfirmProvider } from '@/components/confirm-dialog';
 import { DatabaseProvider } from '@/db/provider';
-import { ActiveWorkoutBar } from '@/features/workout/components/active-workout-bar';
 
 /**
  * Nothing is fetched from the network on a schedule: Open Food Facts lookups are
@@ -32,7 +31,6 @@ export default function RootLayout() {
                 <Stack.Screen name="workout" options={{ headerShown: false }} />
                 <Stack.Screen name="exercise" options={{ headerShown: false }} />
               </Stack>
-              <ActiveWorkoutBar />
               <StatusBar style="auto" />
             </ConfirmProvider>
           </ThemeProvider>

@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Link, usePathname } from 'expo-router';
+import { Link } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -11,16 +11,19 @@ import { useElapsed } from '../use-elapsed';
 
 /**
  * Floating reminder that a session is in progress, so leaving the workout screen
- * to look something up never loses the way back. Hidden on the session screen
- * itself, where it would be redundant.
+ * to look something up never loses the way back.
+ *
+ * It belongs to the tab navigator rather than the root: as part of the tab
+ * screens it sits underneath the session screen, and is revealed as that screen
+ * slides away. Rendered at the root it would instead pop in the moment the route
+ * changed, on top of a session screen still animating out.
  */
 export function ActiveWorkoutBar() {
   const theme = useTheme();
-  const pathname = usePathname();
   const { contents } = useActiveWorkout();
   const elapsed = useElapsed(contents?.workout.startedAt ?? null);
 
-  if (!contents || pathname === '/workout/active') return null;
+  if (!contents) return null;
 
   const setCount = contents.entries.reduce(
     (total, entry) => total + entry.sets.filter((set) => set.completed).length,
