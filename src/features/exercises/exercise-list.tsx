@@ -11,14 +11,7 @@ import { db } from '@/db/client';
 import { exercises, type Exercise } from '@/db/schema';
 import { exerciseMediaUrl } from '@/features/exercises/media';
 import { useTheme } from '@/hooks/use-theme';
-
-/** Strips accents so "biceps" matches "bíceps" and vice versa. */
-function normalize(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-}
+import { normalizeText } from '@/lib/text';
 
 /** Fixed so the list can skip measuring 1.324 rows while scrolling. */
 const ROW_HEIGHT = 69;
@@ -61,7 +54,7 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
     () =>
       data.map((exercise) => ({
         exercise,
-        haystack: normalize(
+        haystack: normalizeText(
           `${exercise.name} ${exercise.nameEn ?? ''} ${exercise.muscleGroup} ${exercise.equipment}`
         ),
       })),
@@ -79,7 +72,7 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
   }, [data]);
 
   const sections = useMemo(() => {
-    const needle = normalize(query.trim());
+    const needle = normalizeText(query.trim());
     let matches = needle
       ? searchIndex.filter((entry) => entry.haystack.includes(needle)).map((entry) => entry.exercise)
       : data;

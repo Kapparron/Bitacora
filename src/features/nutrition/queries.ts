@@ -164,6 +164,25 @@ export function useDailyKcal(): Map<string, number> {
   return new Map((data ?? []).map((row) => [row.date, row.kcal]));
 }
 
+/**
+ * Every food already known locally: cached Open Food Facts products and the
+ * user's own. The search box looks here before it goes near the network.
+ */
+export function useLocalFoods(): Food[] {
+  const { data } = useLiveTables(
+    ['foods'],
+    async () =>
+      db
+        .select()
+        .from(foods)
+        .where(isNull(foods.deletedAt))
+        .orderBy(desc(foods.isFavorite), asc(foods.name)),
+    []
+  );
+
+  return data ?? [];
+}
+
 export function useCustomFoods(): Food[] {
   const { data } = useLiveTables(
     ['foods'],

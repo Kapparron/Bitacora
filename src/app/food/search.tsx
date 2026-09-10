@@ -2,46 +2,64 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import { Button } from '@/components/button';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import type { Food } from '@/db/schema';
 import { cacheProduct } from '@/features/nutrition/mutations';
 import { searchProducts, type OffProduct } from '@/features/nutrition/openfoodfacts';
-import { useSuggestedFoods, type Meal } from '@/features/nutrition/queries';
+import { useLocalFoods, useSuggestedFoods, type Meal } from '@/features/nutrition/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatNumber } from '@/lib/format';
+import { normalizeText } from '@/lib/text';
 
-/** Long enough that typing a word does not fire three searches at the API. */
-const SEARCH_DELAY_MS = 500;
+type Row =
+  | { kind: 'local'; food: Food }
+  | { kind: 'remote'; product: OffProduct };
 
+/**
+ * Finding a food to log.
+ *
+ * The box searches what is already stored first, and never calls Open Food Facts
+ * on its own: their search endpoint allows about ten requests a minute, and
+ * typing a word would spend several of them. The network is only used when the
+ * user asks for it, by which point they have seen that nothing local matches.
+ */
 export default function FoodSearchScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { date, meal } = useLocalSearchParams<{ date: string; meal: Meal }>();
 
   const [query, setQuery] = useState('');
-  const [debounced, setDebounced] = useState('');
+  /** The term the user sent to the network, if any. */
+  const [webQuery, setWebQuery] = useState<string | null>(null);
+
+  const localFoods = useLocalFoods();
   const { favorites, recents } = useSuggestedFoods();
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(query.trim()), SEARCH_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [query]);
+  const trimmed = query.trim();
 
-  // TanStack Query keeps one request in flight per term and caches the result,
-  // which matters against an API that rate-limits searches to about ten a minute.
+  const localMatches = useMemo(() => {
+    const needle = normalizeText(trimmed);
+    if (needle.length === 0) return [];
+
+    return localFoods.filter((food) =>
+      normalizeText(`${food.name} ${food.brand ?? ''}`).includes(needle)
+    );
+  }, [localFoods, trimmed]);
+
   const {
-    data: results = [],
+    data: webResults = [],
     isFetching,
     error,
   } = useQuery({
-    queryKey: ['off-search', debounced],
-    queryFn: ({ signal }) => searchProducts(debounced, signal),
-    enabled: debounced.length >= 3,
-    staleTime: 10 * 60 * 1000,
+    queryKey: ['off-search', webQuery],
+    queryFn: ({ signal }) => searchProducts(webQuery as string, signal),
+    enabled: webQuery !== null,
+    staleTime: 30 * 60 * 1000,
   });
 
   function openAmount(foodId: string) {
@@ -53,8 +71,22 @@ export default function FoodSearchScreen() {
     openAmount(food.id);
   }
 
-  const searching = debounced.length >= 3;
-  const suggestions = [...favorites, ...recents.filter((food) => !favorites.some((f) => f.id === food.id))];
+  const suggestions = useMemo(
+    () => [...favorites, ...recents.filter((food) => !favorites.some((f) => f.id === food.id))],
+    [favorites, recents]
+  );
+
+  // Before typing: what the user already uses. While typing: local matches, and
+  // the web results underneath once they have been asked for.
+  const rows: Row[] =
+    trimmed.length === 0
+      ? suggestions.map((food) => ({ kind: 'local', food }))
+      : [
+          ...localMatches.map((food): Row => ({ kind: 'local', food })),
+          ...webResults.map((product): Row => ({ kind: 'remote', product })),
+        ];
+
+  const searchedWeb = webQuery !== null && webQuery === trimmed;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -63,8 +95,12 @@ export default function FoodSearchScreen() {
       <View style={styles.tools}>
         <TextInput
           value={query}
-          onChangeText={setQuery}
-          placeholder="Buscar un alimento"
+          onChangeText={(text) => {
+            setQuery(text);
+            // A new term means the web results on screen are stale.
+            setWebQuery(null);
+          }}
+          placeholder="Buscar en tus alimentos"
           placeholderTextColor={theme.textSecondary}
           autoCorrect={false}
           autoFocus
@@ -85,66 +121,96 @@ export default function FoodSearchScreen() {
         </View>
       </View>
 
-      {searching ? (
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.barcode}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.list}
-          renderItem={({ item }) => (
-            <ProductRow
-              name={item.name}
-              brand={item.brand}
-              kcal={item.kcalPer100g}
-              imageUrl={item.imageUrl}
-              onPress={() => void chooseProduct(item)}
+      <FlatList
+        data={rows}
+        keyExtractor={(item) => (item.kind === 'local' ? item.food.id : `off-${item.product.barcode}`)}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.list}
+        ListHeaderComponent={
+          <ListHeader
+            typing={trimmed.length > 0}
+            localCount={localMatches.length}
+            suggestionCount={suggestions.length}
+          />
+        }
+        renderItem={({ item }) =>
+          item.kind === 'local' ? (
+            <FoodRow
+              name={item.food.name}
+              brand={item.food.brand}
+              kcal={item.food.kcalPer100g}
+              imageUrl={item.food.imageUrl}
+              favorite={item.food.isFavorite}
+              onPress={() => openAmount(item.food.id)}
             />
-          )}
-          ListHeaderComponent={
-            isFetching ? <ActivityIndicator style={styles.spinner} /> : null
-          }
-          ListEmptyComponent={
-            isFetching ? null : (
-              <ThemedText type="default" themeColor="textSecondary" style={styles.empty}>
-                {error
-                  ? 'No se pudo consultar Open Food Facts. Comprueba la conexion.'
-                  : 'Ningun producto con ese nombre. Puedes crearlo a mano.'}
-              </ThemedText>
-            )
-          }
-        />
-      ) : (
-        <FlatList
-          data={suggestions}
-          keyExtractor={(item) => item.id}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.list}
-          ListHeaderComponent={
-            suggestions.length > 0 ? (
-              <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionTitle}>
-                TUS ALIMENTOS
-              </ThemedText>
-            ) : null
-          }
-          renderItem={({ item }: { item: Food }) => (
-            <ProductRow
-              name={item.name}
-              brand={item.brand}
-              kcal={item.kcalPer100g}
-              imageUrl={item.imageUrl}
-              favorite={item.isFavorite}
-              onPress={() => openAmount(item.id)}
+          ) : (
+            <FoodRow
+              name={item.product.name}
+              brand={item.product.brand}
+              kcal={item.product.kcalPer100g}
+              imageUrl={item.product.imageUrl}
+              remote
+              onPress={() => void chooseProduct(item.product)}
             />
-          )}
-          ListEmptyComponent={
-            <ThemedText type="default" themeColor="textSecondary" style={styles.empty}>
-              Escribe al menos tres letras para buscar en Open Food Facts, escanea un codigo de
-              barras o crea el alimento a mano.
-            </ThemedText>
-          }
-        />
-      )}
+          )
+        }
+        ListFooterComponent={
+          trimmed.length === 0 ? null : (
+            <View style={styles.footer}>
+              {isFetching ? <ActivityIndicator /> : null}
+
+              {!isFetching && searchedWeb && webResults.length === 0 ? (
+                <ThemedText type="small" themeColor="textSecondary" style={styles.centered}>
+                  {error
+                    ? 'No se pudo consultar Open Food Facts. Comprueba la conexion.'
+                    : 'Open Food Facts tampoco tiene nada con ese nombre.'}
+                </ThemedText>
+              ) : null}
+
+              {!searchedWeb && !isFetching ? (
+                <Button
+                  title="Buscar en Open Food Facts"
+                  variant={localMatches.length === 0 ? 'primary' : 'secondary'}
+                  onPress={() => setWebQuery(trimmed)}
+                />
+              ) : null}
+            </View>
+          )
+        }
+      />
     </View>
+  );
+}
+
+function ListHeader({
+  typing,
+  localCount,
+  suggestionCount,
+}: {
+  typing: boolean;
+  localCount: number;
+  suggestionCount: number;
+}) {
+  if (!typing) {
+    return suggestionCount > 0 ? (
+      <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionTitle}>
+        TUS ALIMENTOS
+      </ThemedText>
+    ) : (
+      <ThemedText type="default" themeColor="textSecondary" style={styles.empty}>
+        Escribe para buscar entre tus alimentos, escanea un codigo de barras o crea uno a mano.
+      </ThemedText>
+    );
+  }
+
+  return localCount > 0 ? (
+    <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionTitle}>
+      TUS ALIMENTOS
+    </ThemedText>
+  ) : (
+    <ThemedText type="default" themeColor="textSecondary" style={styles.empty}>
+      Ningun alimento tuyo coincide.
+    </ThemedText>
   );
 }
 
@@ -175,12 +241,13 @@ function Action({
   );
 }
 
-function ProductRow({
+function FoodRow({
   name,
   brand,
   kcal,
   imageUrl,
   favorite,
+  remote,
   onPress,
 }: {
   name: string;
@@ -188,6 +255,7 @@ function ProductRow({
   kcal: number;
   imageUrl: string | null;
   favorite?: boolean;
+  remote?: boolean;
   onPress: () => void;
 }) {
   const theme = useTheme();
@@ -219,6 +287,7 @@ function ProductRow({
       </View>
 
       {favorite ? <Ionicons name="star" size={16} color={theme.accentText} /> : null}
+      {remote ? <Ionicons name="cloud-download-outline" size={16} color={theme.textSecondary} /> : null}
     </Pressable>
   );
 }
@@ -239,7 +308,8 @@ const styles = StyleSheet.create({
   },
   list: { paddingBottom: 32 },
   sectionTitle: { paddingHorizontal: 16, paddingVertical: 8 },
-  spinner: { paddingVertical: 16 },
+  footer: { padding: 16, gap: 12 },
+  centered: { textAlign: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -250,5 +320,5 @@ const styles = StyleSheet.create({
   },
   thumbnail: { width: 44, height: 44, borderRadius: 8 },
   rowText: { flex: 1, gap: 2 },
-  empty: { textAlign: 'center', paddingHorizontal: 32, paddingTop: 32 },
+  empty: { textAlign: 'center', paddingHorizontal: 32, paddingTop: 24, paddingBottom: 8 },
 });
