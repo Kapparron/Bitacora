@@ -4,7 +4,14 @@ import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { useConfirm } from '@/components/confirm-dialog';
 import { ThemedText } from '@/components/themed-text';
+import {
+  BackupFormatError,
+  exportBackup,
+  pickBackup,
+  restoreBackup,
+} from '@/features/backup/backup';
 import { setGoal } from '@/features/nutrition/mutations';
 import { useGoalFor } from '@/features/nutrition/queries';
 import { useTheme } from '@/hooks/use-theme';
@@ -22,6 +29,59 @@ export default function ProfileScreen() {
   const goal = useGoalFor(today);
 
   const [editing, setEditing] = useState(false);
+  /** Result or error of the last backup action, shown under the buttons. */
+  const [backupNote, setBackupNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const confirm = useConfirm();
+
+  async function runExport() {
+    setBusy(true);
+    setBackupNote(null);
+
+    try {
+      const result = await exportBackup();
+      setBackupNote(
+        result.shared
+          ? `Copia de ${result.rows} registros lista: ${result.fileName}`
+          : `Copia guardada en la cache como ${result.fileName}; este dispositivo no puede compartirla.`
+      );
+    } catch (cause) {
+      setBackupNote(`No se pudo exportar: ${String(cause)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runImport() {
+    setBackupNote(null);
+
+    try {
+      const backup = await pickBackup();
+      if (!backup) return;
+
+      const rows = Object.values(backup.tables).reduce((sum, table) => sum + table.length, 0);
+      const accepted = await confirm({
+        title: 'Restaurar copia',
+        message: `Se borran TODOS los datos de la app y se sustituyen por los ${rows} registros de la copia. Esto no se puede deshacer.`,
+        confirmLabel: 'Restaurar',
+        destructive: true,
+      });
+
+      if (!accepted) return;
+
+      setBusy(true);
+      const result = await restoreBackup(backup);
+      setBackupNote(`Restaurados ${result.rows} registros.`);
+    } catch (cause) {
+      setBackupNote(
+        cause instanceof BackupFormatError
+          ? cause.message
+          : `No se pudo restaurar: ${String(cause)}`
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
@@ -67,6 +127,24 @@ export default function ProfileScreen() {
             variant="secondary"
             onPress={() => router.push('/body')}
           />
+          <Button
+            title="Exportar copia"
+            variant="secondary"
+            disabled={busy}
+            onPress={() => void runExport()}
+          />
+          <Button
+            title="Restaurar copia"
+            variant="secondary"
+            disabled={busy}
+            onPress={() => void runImport()}
+          />
+
+          {backupNote ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              {backupNote}
+            </ThemedText>
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>
