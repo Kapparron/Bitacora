@@ -12,6 +12,7 @@ import {
   pickBackup,
   restoreBackup,
 } from '@/features/backup/backup';
+import { GoalCalculator } from '@/features/nutrition/components/goal-calculator';
 import { setGoal } from '@/features/nutrition/mutations';
 import { ProgressPanel } from '@/features/progress/progress-panel';
 import { useGoalFor } from '@/features/nutrition/queries';
@@ -29,6 +30,7 @@ export default function ProfileScreen() {
   const goal = useGoalFor(today);
 
   const [editing, setEditing] = useState(false);
+  const [calculating, setCalculating] = useState(false);
   /** Result or error of the last backup action, shown under the buttons. */
   const [backupNote, setBackupNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -91,7 +93,12 @@ export default function ProfileScreen() {
             OBJETIVO DIARIO
           </ThemedText>
 
-          {goal && !editing ? (
+          {calculating ? (
+            <GoalCalculator
+              onDone={() => setCalculating(false)}
+              onCancel={() => setCalculating(false)}
+            />
+          ) : goal && !editing ? (
             <>
               <ThemedText type="subtitle" style={styles.kcal}>
                 {formatNumber(goal.kcal, 0)} kcal
@@ -101,7 +108,16 @@ export default function ProfileScreen() {
                 {goal.carbs ? `Carbos ${formatNumber(goal.carbs, 0)} g` : 'sin carbos'} ·{' '}
                 {goal.fat ? `Grasa ${formatNumber(goal.fat, 0)} g` : 'sin grasa'}
               </ThemedText>
-              <Button title="Cambiar objetivo" variant="secondary" onPress={() => setEditing(true)} />
+              <Button
+                title="Cambiar objetivo"
+                variant="secondary"
+                onPress={() => setEditing(true)}
+              />
+              <Button
+                title="Calcular objetivo"
+                variant="secondary"
+                onPress={() => setCalculating(true)}
+              />
             </>
           ) : (
             <GoalForm
@@ -114,6 +130,14 @@ export default function ProfileScreen() {
               }}
             />
           )}
+
+          {!calculating && !goal ? (
+            <Button
+              title="Calcular objetivo"
+              variant="secondary"
+              onPress={() => setCalculating(true)}
+            />
+          ) : null}
         </View>
 
         <BodyPanel />

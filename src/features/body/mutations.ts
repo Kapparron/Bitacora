@@ -41,3 +41,24 @@ export async function saveBodyMetric(input: BodyMetricInput): Promise<void> {
 export async function deleteBodyMetric(id: string): Promise<void> {
   await db.delete(bodyMetrics).where(eq(bodyMetrics.id, id));
 }
+
+/**
+ * Records a weight without touching whatever else was measured that day. Used
+ * by the calorie calculator, which asks for a weight anyway and would otherwise
+ * wipe the body fat and the notes of a day already logged.
+ */
+export async function recordWeight(date: string, weight: number): Promise<void> {
+  const [existing] = await db.select().from(bodyMetrics).where(eq(bodyMetrics.date, date));
+
+  if (existing) {
+    await db
+      .update(bodyMetrics)
+      .set({ weight, ...touch() })
+      .where(eq(bodyMetrics.id, existing.id));
+    return;
+  }
+
+  await db
+    .insert(bodyMetrics)
+    .values({ id: newId(), date, weight, bodyFatPct: null, notes: null });
+}
