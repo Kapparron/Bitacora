@@ -5,19 +5,14 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
-import { useConfirm } from '@/components/confirm-dialog';
-import { OptionSheet, type SheetOption } from '@/components/option-sheet';
 import { ThemedText } from '@/components/themed-text';
 import { MonthCalendar } from '@/features/calendar/month-calendar';
 import { MacroSummary } from '@/features/nutrition/components/macro-summary';
 import { useDailyKcal, useDayDiary, useGoalFor } from '@/features/nutrition/queries';
 import { useRoutines, type RoutineSummary } from '@/features/routines/queries';
 import { isScheduledOn, scheduleOf } from '@/features/routines/schedule';
-import {
-  deleteWorkout,
-  startEmptyWorkout,
-  startWorkoutFromRoutine,
-} from '@/features/workout/mutations';
+import { WorkoutActionsSheet } from '@/features/workout/components/workout-actions-sheet';
+import { startEmptyWorkout, startWorkoutFromRoutine } from '@/features/workout/mutations';
 import {
   useActiveWorkout,
   useDayWorkoutPreviews,
@@ -31,7 +26,6 @@ import { formatDay, formatDuration, formatNumber, formatTime, toIsoDay } from '@
 export default function WorkoutScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const confirm = useConfirm();
   const { contents: active } = useActiveWorkout();
   const { workouts } = useWorkoutHistory();
   const { routines } = useRoutines();
@@ -104,17 +98,6 @@ export default function WorkoutScreen() {
   // Only worth showing when the day produced nothing: otherwise the preview of
   // what was actually done says more than what was planned.
   const plannedForSelected = selectedDay && listed.length === 0 ? scheduledFor(selectedDay) : [];
-
-  async function removeWorkout(summary: WorkoutSummary) {
-    const accepted = await confirm({
-      title: 'Eliminar entreno',
-      message: 'Se quita del historial. Los records que consiguio se mantienen.',
-      confirmLabel: 'Eliminar',
-      destructive: true,
-    });
-
-    if (accepted) await deleteWorkout(summary.id);
-  }
 
   async function startEmpty() {
     if (starting) return;
@@ -252,32 +235,11 @@ export default function WorkoutScreen() {
       />
 
       {menuWorkout ? (
-        <OptionSheet
-          title={menuWorkout.name}
-          options={WORKOUT_ACTIONS}
-          current={null}
-          onSelect={(action) => {
-            const summary = menuWorkout;
-            setMenuWorkout(null);
-            if (!summary) return;
-
-            if (action === 'edit') {
-              router.push({ pathname: '/workout/[id]', params: { id: summary.id, edit: '1' } });
-            } else {
-              void removeWorkout(summary);
-            }
-          }}
-          onClose={() => setMenuWorkout(null)}
-        />
+        <WorkoutActionsSheet workout={menuWorkout} onClose={() => setMenuWorkout(null)} />
       ) : null}
     </SafeAreaView>
   );
 }
-
-const WORKOUT_ACTIONS: SheetOption<'edit' | 'delete'>[] = [
-  { value: 'edit', label: 'Editar', description: 'Corregir series, ejercicios o el nombre' },
-  { value: 'delete', label: 'Eliminar', description: 'Quitar del historial' },
-];
 
 function WorkoutPreviewCard({
   summary,

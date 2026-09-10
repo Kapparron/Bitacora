@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -6,6 +7,7 @@ import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { ExerciseThumbnail } from '@/features/exercises/components/exercise-thumbnail';
 import { badgeFor } from '@/features/workout/components/set-type-sheet';
+import { WorkoutActionsSheet } from '@/features/workout/components/workout-actions-sheet';
 import {
   useHistorySessions,
   type HistoryExercise,
@@ -31,6 +33,8 @@ export default function RoutinesScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { sessions, loading } = useHistorySessions();
+  /** Session whose long-press menu is open. */
+  const [menuSession, setMenuSession] = useState<HistorySession | null>(null);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
@@ -60,7 +64,11 @@ export default function RoutinesScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <SessionCard session={item} onPress={() => router.push(`/workout/${item.id}`)} />
+          <SessionCard
+            session={item}
+            onPress={() => router.push(`/workout/${item.id}`)}
+            onLongPress={() => setMenuSession(item)}
+          />
         )}
         ListEmptyComponent={
           <ThemedText type="default" themeColor="textSecondary" style={styles.empty}>
@@ -68,11 +76,23 @@ export default function RoutinesScreen() {
           </ThemedText>
         }
       />
+
+      {menuSession ? (
+        <WorkoutActionsSheet workout={menuSession} onClose={() => setMenuSession(null)} />
+      ) : null}
     </SafeAreaView>
   );
 }
 
-function SessionCard({ session, onPress }: { session: HistorySession; onPress: () => void }) {
+function SessionCard({
+  session,
+  onPress,
+  onLongPress,
+}: {
+  session: HistorySession;
+  onPress: () => void;
+  onLongPress: () => void;
+}) {
   const theme = useTheme();
   const duration =
     session.finishedAt === null ? null : formatDuration(session.finishedAt - session.startedAt);
@@ -80,6 +100,7 @@ function SessionCard({ session, onPress }: { session: HistorySession; onPress: (
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       style={({ pressed }) => [
         styles.card,
         { borderColor: theme.border },
