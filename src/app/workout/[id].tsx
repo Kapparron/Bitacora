@@ -1,19 +1,34 @@
-import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { Button } from '@/components/button';
 import { ScreenHeader } from '@/components/screen-header';
+import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
 import { ExerciseCard } from '@/features/workout/components/exercise-card';
+import { updateWorkout } from '@/features/workout/mutations';
 import { useWorkoutContents } from '@/features/workout/queries';
 import { completedSetCount, totalVolume } from '@/features/workout/volume';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDay, formatDuration, formatNumber, formatTime } from '@/lib/format';
 
-/** Read-only view of a finished session. Editing past sessions comes in phase 4. */
+/**
+ * A finished session. Read-only by default; `edit=1` opens it for correcting
+ * what was logged, which is how the history list's Editar action arrives.
+ *
+ * Editing changes the session only. Records already earned are left alone: they
+ * are a high-water mark, and lowering one because a set was corrected would
+ * quietly rewrite a personal best.
+ */
 export default function WorkoutDetailScreen() {
   const theme = useTheme();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
   const { contents, loading } = useWorkoutContents(id);
+
+  const [editing, setEditing] = useState(edit === '1');
+  const [renaming, setRenaming] = useState(false);
 
   if (!contents) {
     return (
@@ -34,25 +49,60 @@ export default function WorkoutDetailScreen() {
       <ScreenHeader
         title={workout.name}
         subtitle={`${formatDay(workout.startedAt)} · ${formatTime(workout.startedAt)}`}
+        right={
+          <Pressable onPress={() => setEditing(!editing)} hitSlop={8}>
+            <ThemedText type="default" style={{ color: theme.accentText, fontWeight: '700' }}>
+              {editing ? 'Hecho' : 'Editar'}
+            </ThemedText>
+          </Pressable>
+        }
       />
 
       <ScrollView contentContainerStyle={styles.content}>
+        <View style={[styles.stats, { borderColor: theme.border }]}>
+          <Stat label="Duracion" value={duration === null ? '-' : formatDuration(duration)} />
+          <Stat label="Volumen" value={`${formatNumber(totalVolume(allSets), 0)} kg`} />
+          <Stat label="Series" value={String(completedSetCount(allSets))} />
+        </View>
 
-      <View style={[styles.stats, { borderColor: theme.border }]}>
-        <Stat label="Duracion" value={duration === null ? '-' : formatDuration(duration)} />
-        <Stat label="Volumen" value={`${formatNumber(totalVolume(allSets), 0)} kg`} />
-        <Stat label="Series" value={String(completedSetCount(allSets))} />
-      </View>
+        {entries.map((entry) => (
+          <ExerciseCard
+            key={entry.workoutExerciseId}
+            entry={entry}
+            workoutId={workout.id}
+            editable={editing}
+          />
+        ))}
 
-      {entries.map((entry) => (
-        <ExerciseCard
-          key={entry.workoutExerciseId}
-          entry={entry}
-          workoutId={workout.id}
-          editable={false}
-        />
-      ))}
+        {editing ? (
+          <View style={styles.actions}>
+            <Button
+              title="Anadir ejercicio"
+              variant="secondary"
+              onPress={() =>
+                router.push({
+                  pathname: '/pick-exercise',
+                  params: { target: 'workout', id: workout.id },
+                })
+              }
+            />
+            <Button title="Renombrar entreno" variant="secondary" onPress={() => setRenaming(true)} />
+          </View>
+        ) : null}
       </ScrollView>
+
+      {renaming ? (
+        <TextPrompt
+          title="Renombrar entreno"
+          initialValue={workout.name}
+          confirmLabel="Guardar"
+          onCancel={() => setRenaming(false)}
+          onSubmit={(name) => {
+            setRenaming(false);
+            void updateWorkout(workout.id, { name });
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -83,4 +133,5 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   stat: { flex: 1, alignItems: 'center', gap: 2 },
+  actions: { paddingHorizontal: 12, gap: 8 },
 });

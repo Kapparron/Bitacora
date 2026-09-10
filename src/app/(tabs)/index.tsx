@@ -5,13 +5,19 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { useConfirm } from '@/components/confirm-dialog';
+import { OptionSheet, type SheetOption } from '@/components/option-sheet';
 import { ThemedText } from '@/components/themed-text';
 import { MonthCalendar } from '@/features/calendar/month-calendar';
 import { MacroSummary } from '@/features/nutrition/components/macro-summary';
 import { useDailyKcal, useDayDiary, useGoalFor } from '@/features/nutrition/queries';
 import { useRoutines, type RoutineSummary } from '@/features/routines/queries';
 import { isScheduledOn, scheduleOf } from '@/features/routines/schedule';
-import { startEmptyWorkout, startWorkoutFromRoutine } from '@/features/workout/mutations';
+import {
+  deleteWorkout,
+  startEmptyWorkout,
+  startWorkoutFromRoutine,
+} from '@/features/workout/mutations';
 import {
   useActiveWorkout,
   useDayWorkoutPreviews,
@@ -25,12 +31,15 @@ import { formatDay, formatDuration, formatNumber, formatTime, toIsoDay } from '@
 export default function WorkoutScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const confirm = useConfirm();
   const { contents: active } = useActiveWorkout();
   const { workouts } = useWorkoutHistory();
   const { routines } = useRoutines();
   const kcalByDay = useDailyKcal();
 
   const [starting, setStarting] = useState(false);
+  /** Session whose long-press menu is open. */
+  const [menuWorkout, setMenuWorkout] = useState<WorkoutSummary | null>(null);
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -95,6 +104,17 @@ export default function WorkoutScreen() {
   // Only worth showing when the day produced nothing: otherwise the preview of
   // what was actually done says more than what was planned.
   const plannedForSelected = selectedDay && listed.length === 0 ? scheduledFor(selectedDay) : [];
+
+  async function removeWorkout(summary: WorkoutSummary) {
+    const accepted = await confirm({
+      title: 'Eliminar entreno',
+      message: 'Se quita del historial. Los records que consiguio se mantienen.',
+      confirmLabel: 'Eliminar',
+      destructive: true,
+    });
+
+    if (accepted) await deleteWorkout(summary.id);
+  }
 
   async function startEmpty() {
     if (starting) return;
@@ -212,9 +232,14 @@ export default function WorkoutScreen() {
               summary={item}
               exercises={previews.get(item.id) ?? []}
               onPress={() => router.push(`/workout/${item.id}`)}
+              onLongPress={() => setMenuWorkout(item)}
             />
           ) : (
-            <HistoryRow summary={item} onPress={() => router.push(`/workout/${item.id}`)} />
+            <HistoryRow
+              summary={item}
+              onPress={() => router.push(`/workout/${item.id}`)}
+              onLongPress={() => setMenuWorkout(item)}
+            />
           )
         }
         ListEmptyComponent={
@@ -225,18 +250,45 @@ export default function WorkoutScreen() {
           </ThemedText>
         }
       />
+
+      {menuWorkout ? (
+        <OptionSheet
+          title={menuWorkout.name}
+          options={WORKOUT_ACTIONS}
+          current={null}
+          onSelect={(action) => {
+            const summary = menuWorkout;
+            setMenuWorkout(null);
+            if (!summary) return;
+
+            if (action === 'edit') {
+              router.push({ pathname: '/workout/[id]', params: { id: summary.id, edit: '1' } });
+            } else {
+              void removeWorkout(summary);
+            }
+          }}
+          onClose={() => setMenuWorkout(null)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
+
+const WORKOUT_ACTIONS: SheetOption<'edit' | 'delete'>[] = [
+  { value: 'edit', label: 'Editar', description: 'Corregir series, ejercicios o el nombre' },
+  { value: 'delete', label: 'Eliminar', description: 'Quitar del historial' },
+];
 
 function WorkoutPreviewCard({
   summary,
   exercises,
   onPress,
+  onLongPress,
 }: {
   summary: WorkoutSummary;
   exercises: ExercisePreview[];
   onPress: () => void;
+  onLongPress: () => void;
 }) {
   const theme = useTheme();
   const duration =
@@ -245,6 +297,7 @@ function WorkoutPreviewCard({
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       style={({ pressed }) => [
         styles.row,
         { borderColor: theme.border },
@@ -275,7 +328,15 @@ function WorkoutPreviewCard({
   );
 }
 
-function HistoryRow({ summary, onPress }: { summary: WorkoutSummary; onPress: () => void }) {
+function HistoryRow({
+  summary,
+  onPress,
+  onLongPress,
+}: {
+  summary: WorkoutSummary;
+  onPress: () => void;
+  onLongPress: () => void;
+}) {
   const theme = useTheme();
   const duration =
     summary.finishedAt === null ? null : formatDuration(summary.finishedAt - summary.startedAt);
@@ -283,6 +344,7 @@ function HistoryRow({ summary, onPress }: { summary: WorkoutSummary; onPress: ()
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       style={({ pressed }) => [
         styles.row,
         { borderColor: theme.border },

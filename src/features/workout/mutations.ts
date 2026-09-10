@@ -360,6 +360,18 @@ export async function discardWorkout(workoutId: string): Promise<void> {
   await db.delete(workouts).where(eq(workouts.id, workoutId));
 }
 
+/**
+ * Removes a finished session from the history. Soft delete: personal records
+ * point at the session that set them, and a hard delete would take those with
+ * it. Records already earned are not recalculated, so they never drop.
+ */
+export async function deleteWorkout(workoutId: string): Promise<void> {
+  await db
+    .update(workouts)
+    .set({ deletedAt: Date.now(), ...touch() })
+    .where(eq(workouts.id, workoutId));
+}
+
 /** Exercise ids already in the session, so the picker can mark them as added. */
 export async function getWorkoutExerciseIds(workoutId: string): Promise<string[]> {
   const rows = await db
