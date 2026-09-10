@@ -184,7 +184,16 @@ const styles = StyleSheet.create({
   weekday: { flex: 1, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: `${100 / 7}%`, alignItems: 'center', paddingVertical: 3, gap: 3 },
-  day: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  day: {
+    width: 32,
+    height: 32,
+    // 999 rather than half the side: some Android builds round a small explicit
+    // radius down and draw the fill as a square.
+    borderRadius: 999,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dots: {
     flexDirection: 'row',
     alignItems: 'center',
