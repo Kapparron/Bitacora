@@ -16,9 +16,9 @@ function dayTimestamp(day: string): number {
 }
 
 /**
- * Training volume and calories over time, as a block of cards for the profile
- * screen. Both read from the same tables the rest of the app writes, so there is
- * nothing to keep in sync.
+ * Calories over time and the training totals, as a block of cards for the
+ * profile screen. Both read from the same tables the rest of the app writes, so
+ * there is nothing to keep in sync.
  */
 export function ProgressPanel() {
   const theme = useTheme();
@@ -30,42 +30,10 @@ export function ProgressPanel() {
     .slice(-KCAL_DAYS)
     .map(([day, kcal]) => ({ x: dayTimestamp(day), y: kcal }));
 
-  const thisWeek = weeks.at(-1);
-  const previousWeek = weeks.at(-2);
-  const weekChange =
-    thisWeek && previousWeek && previousWeek.volume > 0
-      ? ((thisWeek.volume - previousWeek.volume) / previousWeek.volume) * 100
-      : null;
-
   const totalSessions = weeks.reduce((sum, week) => sum + week.workouts, 0);
 
   return (
     <>
-      <View style={[styles.card, { borderColor: theme.border }]}>
-        <ThemedText type="small" themeColor="textSecondary">
-          VOLUMEN POR SEMANA
-        </ThemedText>
-
-        <ThemedText type="subtitle" style={styles.headline}>
-          {thisWeek ? `${formatNumber(thisWeek.volume, 0)} kg` : '-'}
-        </ThemedText>
-
-        <ThemedText type="small" themeColor="textSecondary">
-          {thisWeek
-            ? `${thisWeek.workouts} ${thisWeek.workouts === 1 ? 'entreno' : 'entrenos'} esta semana`
-            : 'Sin entrenos registrados.'}
-          {weekChange !== null
-            ? ` · ${weekChange >= 0 ? '+' : ''}${formatNumber(weekChange, 0)} % respecto a la anterior`
-            : ''}
-        </ThemedText>
-
-        <LineChart
-          points={weeks.map((week) => ({ x: dayTimestamp(week.week), y: week.volume }))}
-          formatValue={(value) => `${formatNumber(value, 0)} kg`}
-          formatX={(x) => formatDay(x)}
-        />
-      </View>
-
       <View style={[styles.card, { borderColor: theme.border }]}>
         <ThemedText type="small" themeColor="textSecondary">
           CALORIAS POR DIA
