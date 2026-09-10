@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -28,8 +28,7 @@ function parseClock(value: string): { hours: number; minutes: number } | null {
 }
 
 /**
- * Themed date and time picker, drawn from the month grid the app already owns.
- * The platform pickers would need a native module and would ignore the theme.
+ * Themed date and time picker: the day grid plus the time of day.
  */
 export function DatePrompt({
   title,
@@ -47,10 +46,6 @@ export function DatePrompt({
 }) {
   const theme = useTheme();
   const [day, setDay] = useState(() => toIsoDay(new Date(initialValue)));
-  const [month, setMonth] = useState(() => {
-    const date = new Date(initialValue);
-    return new Date(date.getFullYear(), date.getMonth(), 1);
-  });
   const [clock, setClock] = useState(() => toClock(initialValue));
 
   const time = parseClock(clock);
@@ -61,6 +56,96 @@ export function DatePrompt({
     const [year, monthNumber, date] = day.split('-').map(Number);
     onSubmit(new Date(year, monthNumber - 1, date, time.hours, time.minutes).getTime());
   }
+
+  return (
+    <PromptShell
+      title={title}
+      day={day}
+      onDayChange={setDay}
+      confirmLabel={confirmLabel}
+      confirmDisabled={!time}
+      onConfirm={submit}
+      onCancel={onCancel}>
+      <View style={styles.timeRow}>
+        <ThemedText type="small" themeColor="textSecondary">
+          HORA
+        </ThemedText>
+
+        <TextInput
+          value={clock}
+          onChangeText={setClock}
+          keyboardType="numbers-and-punctuation"
+          placeholder="18:30"
+          placeholderTextColor={theme.textSecondary}
+          selectTextOnFocus
+          maxLength={5}
+          style={[styles.time, { backgroundColor: theme.backgroundElement, color: theme.text }]}
+        />
+      </View>
+    </PromptShell>
+  );
+}
+
+/**
+ * Themed day picker, drawn from the month grid the app already owns. The
+ * platform pickers would need a native module and would ignore the theme.
+ */
+export function DayPrompt({
+  title,
+  initialDay,
+  confirmLabel = 'Guardar',
+  onSubmit,
+  onCancel,
+}: {
+  title: string;
+  /** Local calendar day as `YYYY-MM-DD`. */
+  initialDay: string;
+  confirmLabel?: string;
+  onSubmit: (day: string) => void;
+  onCancel: () => void;
+}) {
+  const [day, setDay] = useState(initialDay);
+
+  return (
+    <PromptShell
+      title={title}
+      day={day}
+      onDayChange={setDay}
+      confirmLabel={confirmLabel}
+      onConfirm={() => onSubmit(day)}
+      onCancel={onCancel}
+    />
+  );
+}
+
+/**
+ * The shared dialog: month grid, an optional extra field, and the two actions.
+ * Both prompts render the same card so a date reads the same everywhere.
+ */
+function PromptShell({
+  title,
+  day,
+  onDayChange,
+  confirmLabel,
+  confirmDisabled = false,
+  onConfirm,
+  onCancel,
+  children,
+}: {
+  title: string;
+  day: string;
+  onDayChange: (day: string) => void;
+  confirmLabel: string;
+  confirmDisabled?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+  children?: ReactNode;
+}) {
+  const theme = useTheme();
+  const [month, setMonth] = useState(() => {
+    const [year, monthNumber] = day.split('-').map(Number);
+    return new Date(year, monthNumber - 1, 1);
+  });
 
   return (
     <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={onCancel}>
@@ -80,25 +165,10 @@ export function DatePrompt({
             selectedDay={day}
             // Tapping the selected day again clears it in the calendar's own
             // filter sense; here a day must always stay chosen.
-            onSelectDay={(next) => setDay(next ?? day)}
+            onSelectDay={(next) => onDayChange(next ?? day)}
           />
 
-          <View style={styles.timeRow}>
-            <ThemedText type="small" themeColor="textSecondary">
-              HORA
-            </ThemedText>
-
-            <TextInput
-              value={clock}
-              onChangeText={setClock}
-              keyboardType="numbers-and-punctuation"
-              placeholder="18:30"
-              placeholderTextColor={theme.textSecondary}
-              selectTextOnFocus
-              maxLength={5}
-              style={[styles.time, { backgroundColor: theme.backgroundElement, color: theme.text }]}
-            />
-          </View>
+          {children}
 
           <View style={styles.actions}>
             <Pressable
@@ -114,12 +184,12 @@ export function DatePrompt({
             </Pressable>
 
             <Pressable
-              disabled={!time}
-              onPress={submit}
+              disabled={confirmDisabled}
+              onPress={onConfirm}
               style={({ pressed }) => [
                 styles.action,
                 { backgroundColor: theme.accent },
-                (pressed || !time) && styles.pressed,
+                (pressed || confirmDisabled) && styles.pressed,
               ]}>
               <ThemedText type="default" style={[styles.actionLabel, { color: theme.onAccent }]}>
                 {confirmLabel}
@@ -131,6 +201,7 @@ export function DatePrompt({
     </Modal>
   );
 }
+
 
 const styles = StyleSheet.create({
   backdrop: {

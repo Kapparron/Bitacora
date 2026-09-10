@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useConfirm } from '@/components/confirm-dialog';
 import { OptionSheet, type SheetOption } from '@/components/option-sheet';
 import { ThemedText } from '@/components/themed-text';
+import { DayPrompt } from '@/features/calendar/date-prompt';
 import { MacroSummary } from '@/features/nutrition/components/macro-summary';
 import { deleteEntry } from '@/features/nutrition/mutations';
 import { MEALS, useDayDiary, useGoalFor, type Meal } from '@/features/nutrition/queries';
@@ -27,6 +28,7 @@ export default function NutritionScreen() {
   const [date, setDate] = useState(() => toIsoDay());
   /** Entry whose long-press menu is open. */
   const [menuEntry, setMenuEntry] = useState<FoodEntry | null>(null);
+  const [pickingDay, setPickingDay] = useState(false);
 
   const { diary } = useDayDiary(date);
   const goal = useGoalFor(date);
@@ -50,7 +52,7 @@ export default function NutritionScreen() {
           <Ionicons name="chevron-back" size={22} color={theme.text} />
         </Pressable>
 
-        <Pressable onPress={() => setDate(today)} style={styles.dayLabel}>
+        <Pressable onPress={() => setPickingDay(true)} style={styles.dayLabel}>
           <ThemedText type="default" style={styles.dayText}>
             {date === today ? 'Hoy' : formatDay(new Date(`${date}T12:00:00`).getTime())}
           </ThemedText>
@@ -77,6 +79,19 @@ export default function NutritionScreen() {
           />
         ))}
       </ScrollView>
+
+      {pickingDay ? (
+        <DayPrompt
+          title="Ir a un dia"
+          initialDay={date}
+          confirmLabel="Ver"
+          onCancel={() => setPickingDay(false)}
+          onSubmit={(day) => {
+            setPickingDay(false);
+            setDate(day);
+          }}
+        />
+      ) : null}
 
       {menuEntry ? (
         <OptionSheet
