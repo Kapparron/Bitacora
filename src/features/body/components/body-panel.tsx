@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { useConfirm } from '@/components/confirm-dialog';
 import { OptionSheet, type SheetOption } from '@/components/option-sheet';
-import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import type { BodyMetric } from '@/db/schema';
 import { deleteBodyMetric, saveBodyMetric } from '@/features/body/mutations';
@@ -25,10 +24,11 @@ function parse(value: string): number | null {
 }
 
 /**
- * Body weight and fat percentage over time. One measurement per day, so logging
- * the same day twice corrects it instead of adding a second point.
+ * Body weight and fat percentage over time, as a block of cards for the profile
+ * screen. One measurement per day, so logging the same day twice corrects it
+ * instead of adding a second point.
  */
-export default function BodyScreen() {
+export function BodyPanel() {
   const theme = useTheme();
   const confirm = useConfirm();
   const { metrics } = useBodyMetrics();
@@ -58,80 +58,75 @@ export default function BodyScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
-      <ScreenHeader title="Peso corporal" />
+    <>
+      <View style={[styles.card, { borderColor: theme.border }]}>
+        <ThemedText type="small" themeColor="textSecondary">
+          PESO ACTUAL
+        </ThemedText>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ThemedText type="subtitle" style={styles.weight}>
+          {latest?.weight != null ? `${formatNumber(latest.weight, 1)} kg` : '-'}
+        </ThemedText>
+
+        <ThemedText type="small" themeColor="textSecondary">
+          {latest === null ? 'Sin medidas todavia.' : formatDay(dayTimestamp(latest.date))}
+          {change !== null && weightPoints.length > 1
+            ? ` · ${change >= 0 ? '+' : ''}${formatNumber(change, 1)} kg desde el primer registro`
+            : ''}
+        </ThemedText>
+
+        <LineChart
+          points={weightPoints}
+          formatValue={(value) => `${formatNumber(value, 1)} kg`}
+          formatX={(x) => formatDay(x)}
+        />
+      </View>
+
+      {draft ? (
+        <MetricForm
+          metric={draft === 'new' ? null : draft}
+          onCancel={() => setDraft(null)}
+          onSave={async (values) => {
+            await saveBodyMetric(values);
+            setDraft(null);
+          }}
+        />
+      ) : (
+        <Button title="Anadir medida" onPress={() => setDraft('new')} />
+      )}
+
+      {metrics.length > 0 ? (
         <View style={[styles.card, { borderColor: theme.border }]}>
           <ThemedText type="small" themeColor="textSecondary">
-            PESO ACTUAL
+            HISTORIAL
           </ThemedText>
 
-          <ThemedText type="subtitle" style={styles.weight}>
-            {latest?.weight != null ? `${formatNumber(latest.weight, 1)} kg` : '-'}
-          </ThemedText>
+          {[...metrics].reverse().map((metric) => (
+            <Pressable
+              key={metric.id}
+              onLongPress={() => setMenuMetric(metric)}
+              style={({ pressed }) => [
+                styles.row,
+                { borderTopColor: theme.border },
+                pressed && { backgroundColor: theme.backgroundElement },
+              ]}>
+              <View style={styles.rowText}>
+                <ThemedText type="default">{formatDay(dayTimestamp(metric.date))}</ThemedText>
+                {metric.notes ? (
+                  <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                    {metric.notes}
+                  </ThemedText>
+                ) : null}
+              </View>
 
-          <ThemedText type="small" themeColor="textSecondary">
-            {latest === null ? 'Sin medidas todavia.' : formatDay(dayTimestamp(latest.date))}
-            {change !== null && weightPoints.length > 1
-              ? ` · ${change >= 0 ? '+' : ''}${formatNumber(change, 1)} kg desde el primer registro`
-              : ''}
-          </ThemedText>
-
-          <LineChart
-            points={weightPoints}
-            formatValue={(value) => `${formatNumber(value, 1)} kg`}
-            formatX={(x) => formatDay(x)}
-          />
+              <ThemedText type="default" style={styles.rowValue}>
+                {metric.weight != null ? `${formatNumber(metric.weight, 1)} kg` : '-'}
+                {metric.bodyFatPct != null ? ` · ${formatNumber(metric.bodyFatPct, 1)} %` : ''}
+              </ThemedText>
+            </Pressable>
+          ))}
         </View>
-
-        {draft ? (
-          <MetricForm
-            metric={draft === 'new' ? null : draft}
-            onCancel={() => setDraft(null)}
-            onSave={async (values) => {
-              await saveBodyMetric(values);
-              setDraft(null);
-            }}
-          />
-        ) : (
-          <Button title="Anadir medida" onPress={() => setDraft('new')} />
-        )}
-
-        {metrics.length > 0 ? (
-          <View style={[styles.card, { borderColor: theme.border }]}>
-            <ThemedText type="small" themeColor="textSecondary">
-              HISTORIAL
-            </ThemedText>
-
-            {[...metrics].reverse().map((metric) => (
-              <Pressable
-                key={metric.id}
-                onLongPress={() => setMenuMetric(metric)}
-                style={({ pressed }) => [
-                  styles.row,
-                  { borderTopColor: theme.border },
-                  pressed && { backgroundColor: theme.backgroundElement },
-                ]}>
-                <View style={styles.rowText}>
-                  <ThemedText type="default">{formatDay(dayTimestamp(metric.date))}</ThemedText>
-                  {metric.notes ? (
-                    <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-                      {metric.notes}
-                    </ThemedText>
-                  ) : null}
-                </View>
-
-                <ThemedText type="default" style={styles.rowValue}>
-                  {metric.weight != null ? `${formatNumber(metric.weight, 1)} kg` : '-'}
-                  {metric.bodyFatPct != null ? ` · ${formatNumber(metric.bodyFatPct, 1)} %` : ''}
-                </ThemedText>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-      </ScrollView>
-
+      ) : null}
       {menuMetric ? (
         <OptionSheet
           title={formatDay(dayTimestamp(menuMetric.date))}
@@ -148,7 +143,7 @@ export default function BodyScreen() {
           onClose={() => setMenuMetric(null)}
         />
       ) : null}
-    </View>
+    </>
   );
 }
 
@@ -267,8 +262,6 @@ function Field({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  content: { padding: 12, gap: 12, paddingBottom: 48 },
   card: { padding: 14, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, gap: 8 },
   weight: { fontSize: 30, lineHeight: 36 },
   field: { gap: 4 },

@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/button';
 import { useConfirm } from '@/components/confirm-dialog';
 import { ThemedText } from '@/components/themed-text';
+import { BodyPanel } from '@/features/body/components/body-panel';
 import {
   BackupFormatError,
   exportBackup,
@@ -13,6 +13,7 @@ import {
   restoreBackup,
 } from '@/features/backup/backup';
 import { setGoal } from '@/features/nutrition/mutations';
+import { ProgressPanel } from '@/features/progress/progress-panel';
 import { useGoalFor } from '@/features/nutrition/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatNumber, toIsoDay } from '@/lib/format';
@@ -24,7 +25,6 @@ function parse(value: string): number | null {
 
 export default function ProfileScreen() {
   const theme = useTheme();
-  const router = useRouter();
   const today = toIsoDay();
   const goal = useGoalFor(today);
 
@@ -116,17 +116,15 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        <BodyPanel />
+
+        <ProgressPanel />
+
         <View style={[styles.card, { borderColor: theme.border }]}>
           <ThemedText type="small" themeColor="textSecondary">
-            DATOS
+            COPIA DE SEGURIDAD
           </ThemedText>
 
-          <Button title="Progreso" variant="secondary" onPress={() => router.push('/progress')} />
-          <Button
-            title="Peso corporal"
-            variant="secondary"
-            onPress={() => router.push('/body')}
-          />
           <Button
             title="Exportar copia"
             variant="secondary"
