@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Svg, { Polygon } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
@@ -10,6 +11,25 @@ import { toIsoDay } from '@/lib/format';
 const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 /** Days of `month`, padded with nulls so the first one lands on its weekday. */
+/** Side of the square a day mark is drawn in. */
+const MARK_SIZE = 5;
+
+/**
+ * The food mark. A triangle rather than a second dot, so the two marks stay
+ * apart at this size without relying on colour alone.
+ */
+function FoodMark({ color }: { color: string }) {
+  // A hair wider than it is tall: a triangle of equal sides reads smaller than
+  // the dot beside it.
+  const width = MARK_SIZE + 1;
+
+  return (
+    <Svg width={width} height={MARK_SIZE}>
+      <Polygon points={`${width / 2},0 ${width},${MARK_SIZE} 0,${MARK_SIZE}`} fill={color} />
+    </Svg>
+  );
+}
+
 function buildGrid(month: Date): (Date | null)[] {
   const first = new Date(month.getFullYear(), month.getMonth(), 1);
   const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
@@ -88,11 +108,7 @@ export function MonthCalendar({
 
       <View style={styles.week}>
         {WEEKDAYS.map((day, index) => (
-          <ThemedText
-            key={index}
-            type="small"
-            themeColor="textSecondary"
-            style={styles.weekday}>
+          <ThemedText key={index} type="small" themeColor="textSecondary" style={styles.weekday}>
             {day}
           </ThemedText>
         ))}
@@ -131,7 +147,7 @@ export function MonthCalendar({
               </View>
 
               {/* Training: filled dot when done, hollow when only planned.
-                  Food logged that day adds a second dot beside it. Marks are
+                  Food logged that day adds a triangle beside it. Marks are
                   only rendered when they apply, so a single one stays centred
                   under the day instead of holding the other one's place. */}
               <View style={styles.dots}>
@@ -144,7 +160,7 @@ export function MonthCalendar({
                     ]}
                   />
                 ) : null}
-                {logged ? <View style={[styles.dot, { backgroundColor: theme.accentText }]} /> : null}
+                {logged ? <FoodMark color={theme.accentText} /> : null}
               </View>
             </Pressable>
           );
@@ -169,6 +185,17 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: `${100 / 7}%`, alignItems: 'center', paddingVertical: 3, gap: 3 },
   day: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 3, height: 5 },
-  dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: 'transparent' },
+  dots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    height: MARK_SIZE,
+  },
+  dot: {
+    width: MARK_SIZE,
+    height: MARK_SIZE,
+    borderRadius: MARK_SIZE,
+    backgroundColor: 'transparent',
+  },
 });
