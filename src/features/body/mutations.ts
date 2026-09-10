@@ -11,7 +11,6 @@ export type BodyMetricInput = {
   date: string;
   /** Kilograms. */
   weight: number | null;
-  bodyFatPct: number | null;
   notes: string | null;
 };
 
@@ -58,7 +57,5 @@ export async function recordWeight(date: string, weight: number): Promise<void> 
     return;
   }
 
-  await db
-    .insert(bodyMetrics)
-    .values({ id: newId(), date, weight, bodyFatPct: null, notes: null });
+  await db.insert(bodyMetrics).values({ id: newId(), date, weight });
 }

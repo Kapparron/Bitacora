@@ -254,6 +254,11 @@ export const bodyMetrics = sqliteTable(
     date: text('date').notNull(),
     /** Kilograms. */
     weight: real('weight'),
+    /**
+     * No longer asked for or shown. The column stays so the measurements taken
+     * while it was still offered are not thrown away, and so backups written
+     * before it went keep restoring.
+     */
     bodyFatPct: real('body_fat_pct'),
     notes: text('notes'),
     ...auditColumns,

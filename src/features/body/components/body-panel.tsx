@@ -121,7 +121,6 @@ export function BodyPanel() {
 
               <ThemedText type="default" style={styles.rowValue}>
                 {metric.weight != null ? `${formatNumber(metric.weight, 1)} kg` : '-'}
-                {metric.bodyFatPct != null ? ` · ${formatNumber(metric.bodyFatPct, 1)} %` : ''}
               </ThemedText>
             </Pressable>
           ))}
@@ -158,23 +157,16 @@ function MetricForm({
   onCancel,
 }: {
   metric: BodyMetric | null;
-  onSave: (values: {
-    date: string;
-    weight: number | null;
-    bodyFatPct: number | null;
-    notes: string | null;
-  }) => void;
+  onSave: (values: { date: string; weight: number | null; notes: string | null }) => void;
   onCancel: () => void;
 }) {
   const theme = useTheme();
   const [date, setDate] = useState(metric?.date ?? toIsoDay());
   const [pickingDay, setPickingDay] = useState(false);
   const [weight, setWeight] = useState(metric?.weight != null ? String(metric.weight) : '');
-  const [fat, setFat] = useState(metric?.bodyFatPct != null ? String(metric.bodyFatPct) : '');
   const [notes, setNotes] = useState(metric?.notes ?? '');
 
   const kilograms = parse(weight);
-  const bodyFat = parse(fat);
 
   return (
     <View style={[styles.card, { borderColor: theme.border }]}>
@@ -193,7 +185,6 @@ function MetricForm({
       </Pressable>
 
       <Field label="Peso (kg)" value={weight} onChange={setWeight} />
-      <Field label="Grasa corporal (%)" value={fat} onChange={setFat} />
 
       <View style={styles.field}>
         <ThemedText type="small" themeColor="textSecondary">
@@ -208,14 +199,9 @@ function MetricForm({
 
       <Button
         title="Guardar medida"
-        disabled={kilograms === null && bodyFat === null}
+        disabled={kilograms === null}
         onPress={() =>
-          onSave({
-            date,
-            weight: kilograms,
-            bodyFatPct: bodyFat,
-            notes: notes.trim() === '' ? null : notes.trim(),
-          })
+          onSave({ date, weight: kilograms, notes: notes.trim() === '' ? null : notes.trim() })
         }
       />
       <Button title="Cancelar" variant="secondary" onPress={onCancel} />
