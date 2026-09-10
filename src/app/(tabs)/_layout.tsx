@@ -1,6 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
-import type { ReactNode } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -14,57 +13,32 @@ import { ActiveWorkoutBar } from '@/features/workout/components/active-workout-b
 import { useTheme } from '@/hooks/use-theme';
 
 /**
- * A tab, drawn whole: the icon and its name inside one pill. The selected tab's
- * pill is filled with the accent colour and lifted above the bar, which is what
- * says where you are — the label alone reads much the same either way.
- */
-function TabItem({
-  name,
-  label,
-  focused,
-}: {
-  name: keyof typeof Ionicons.glyphMap;
-  label: string;
-  focused: boolean;
-}) {
-  const theme = useTheme();
-
-  return (
-    <View
-      style={[
-        styles.pill,
-        focused && [styles.pillFocused, { backgroundColor: theme.accent, shadowColor: theme.text }],
-      ]}>
-      <Ionicons
-        name={name}
-        color={focused ? theme.onAccent : theme.textSecondary}
-        size={focused ? 18 : 22}
-      />
-      <ThemedText
-        type="small"
-        style={[styles.label, { color: focused ? theme.onAccent : theme.textSecondary }]}>
-        {label}
-      </ThemedText>
-    </View>
-  );
-}
-
-/**
- * The pressable behind a tab. React Navigation's own draws a ripple on Android
- * and fades the item on press; both fight with the pill, so this one reports the
- * press and nothing else.
+ * A whole tab: the pressable, the icon and the name, drawn as one pill.
+ *
+ * It replaces the bar's own button rather than filling its icon slot, which is
+ * sized for an icon alone and so overlapped the name. Replacing the button also
+ * drops the Android ripple and the press fade, both of which fought with the
+ * pill.
+ *
+ * The selected tab is filled with the accent colour and lifted above the bar,
+ * which is what says where you are: the name reads much the same either way.
  */
 function TabButton({
-  children,
+  name,
+  label,
   onPress,
   onLongPress,
   accessibilityState,
 }: {
-  children?: ReactNode;
+  name: keyof typeof Ionicons.glyphMap;
+  label: string;
   onPress?: ((event: GestureResponderEvent) => void) | null;
   onLongPress?: ((event: GestureResponderEvent) => void) | null;
   accessibilityState?: AccessibilityState;
 }) {
+  const theme = useTheme();
+  const focused = accessibilityState?.selected ?? false;
+
   return (
     <Pressable
       onPress={onPress}
@@ -73,7 +47,23 @@ function TabButton({
       accessibilityState={accessibilityState}
       android_ripple={null}
       style={styles.button}>
-      {children}
+      <View
+        style={[
+          styles.pill,
+          focused && [
+            styles.pillFocused,
+            { backgroundColor: theme.accent, shadowColor: theme.text },
+          ],
+        ]}>
+        <Ionicons name={name} color={focused ? theme.onAccent : theme.textSecondary} size={20} />
+
+        <ThemedText
+          type="small"
+          numberOfLines={1}
+          style={[styles.label, { color: focused ? theme.onAccent : theme.textSecondary }]}>
+          {label}
+        </ThemedText>
+      </View>
     </Pressable>
   );
 }
@@ -88,41 +78,41 @@ export default function TabsLayout() {
           // The tab bar already names the tab; its header only repeated that
           // above the content, with a background of its own.
           headerShown: false,
-          // The name is drawn inside the pill instead.
+          // The icon and the name are both drawn by the button above.
           tabBarShowLabel: false,
-          tabBarButton: (props) => <TabButton {...props} />,
-          tabBarStyle: { backgroundColor: theme.background, borderTopColor: theme.border },
+          tabBarStyle: {
+            height: 68,
+            paddingTop: 6,
+            backgroundColor: theme.background,
+            borderTopColor: theme.border,
+          },
         }}>
         <Tabs.Screen
           name="index"
           options={{
             title: 'Inicio',
-            tabBarIcon: ({ focused }) => <TabItem name="home" label="Inicio" focused={focused} />,
+            tabBarButton: (props) => <TabButton {...props} name="home" label="Inicio" />,
           }}
         />
         <Tabs.Screen
           name="routines"
           options={{
             title: 'Entrenos',
-            tabBarIcon: ({ focused }) => (
-              <TabItem name="barbell" label="Entrenos" focused={focused} />
-            ),
+            tabBarButton: (props) => <TabButton {...props} name="barbell" label="Entrenos" />,
           }}
         />
         <Tabs.Screen
           name="nutrition"
           options={{
             title: 'Nutricion',
-            tabBarIcon: ({ focused }) => (
-              <TabItem name="restaurant" label="Nutricion" focused={focused} />
-            ),
+            tabBarButton: (props) => <TabButton {...props} name="restaurant" label="Nutricion" />,
           }}
         />
         <Tabs.Screen
           name="profile"
           options={{
             title: 'Perfil',
-            tabBarIcon: ({ focused }) => <TabItem name="person" label="Perfil" focused={focused} />,
+            tabBarButton: (props) => <TabButton {...props} name="person" label="Perfil" />,
           }}
         />
       </Tabs>
@@ -138,12 +128,11 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   button: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   pill: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
+    gap: 2,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: 18,
   },
   pillFocused: {
     // Lifted clear of the bar, with a shadow under it, so the selected tab reads
@@ -154,5 +143,5 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
   },
-  label: { fontWeight: '700' },
+  label: { fontSize: 11, lineHeight: 14, fontWeight: '700' },
 });
