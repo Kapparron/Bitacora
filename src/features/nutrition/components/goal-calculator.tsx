@@ -43,6 +43,8 @@ export function GoalCalculator({ onDone, onCancel }: { onDone: () => void; onCan
   const [weight, setWeight] = useState(latest?.weight != null ? String(latest.weight) : '');
   const [activity, setActivity] = useState<ActivityLevel>('moderate');
   const [weeklyChange, setWeeklyChange] = useState(0);
+  /** Why the last save failed, if it did. Silence here would look like success. */
+  const [error, setError] = useState<string | null>(null);
 
   const years = parse(age);
   const heightCm = parse(height);
@@ -57,16 +59,22 @@ export function GoalCalculator({ onDone, onCancel }: { onDone: () => void; onCan
     if (!estimate || weightKg === null) return;
 
     const today = toIsoDay();
-    // Dated today, so past days keep the goal they were judged against.
-    await setGoal({
-      effectiveFrom: today,
-      kcal: estimate.kcal,
-      protein: estimate.protein,
-      carbs: estimate.carbs,
-      fat: estimate.fat,
-    });
-    await recordWeight(today, weightKg);
-    onDone();
+    setError(null);
+
+    try {
+      // Dated today, so past days keep the goal they were judged against.
+      await setGoal({
+        effectiveFrom: today,
+        kcal: estimate.kcal,
+        protein: estimate.protein,
+        carbs: estimate.carbs,
+        fat: estimate.fat,
+      });
+      await recordWeight(today, weightKg);
+      onDone();
+    } catch (cause) {
+      setError(String(cause));
+    }
   }
 
   return (
@@ -138,6 +146,12 @@ export function GoalCalculator({ onDone, onCancel }: { onDone: () => void; onCan
             semanas.
           </ThemedText>
         </View>
+      ) : null}
+
+      {error ? (
+        <ThemedText type="small" style={{ color: theme.danger }}>
+          No se pudo guardar: {error}
+        </ThemedText>
       ) : null}
 
       <Button title="Guardar objetivo" disabled={estimate === null} onPress={() => void save()} />
