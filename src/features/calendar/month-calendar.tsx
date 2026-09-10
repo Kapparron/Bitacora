@@ -131,15 +131,19 @@ export function MonthCalendar({
               </View>
 
               {/* Training: filled dot when done, hollow when only planned.
-                  Food logged that day adds a second dot beside it. */}
+                  Food logged that day adds a second dot beside it. Marks are
+                  only rendered when they apply, so a single one stays centred
+                  under the day instead of holding the other one's place. */}
               <View style={styles.dots}>
-                <View
-                  style={[
-                    styles.dot,
-                    marked && { backgroundColor: selected ? theme.accent : theme.success },
-                    planned && { borderWidth: 1, borderColor: theme.textSecondary },
-                  ]}
-                />
+                {marked || planned ? (
+                  <View
+                    style={[
+                      styles.dot,
+                      marked && { backgroundColor: selected ? theme.accent : theme.success },
+                      planned && { borderWidth: 1, borderColor: theme.textSecondary },
+                    ]}
+                  />
+                ) : null}
                 {logged ? <View style={[styles.dot, { backgroundColor: theme.accentText }]} /> : null}
               </View>
             </Pressable>
@@ -165,6 +169,6 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: `${100 / 7}%`, alignItems: 'center', paddingVertical: 3, gap: 3 },
   day: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  dots: { flexDirection: 'row', gap: 3, height: 5 },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 3, height: 5 },
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: 'transparent' },
 });
