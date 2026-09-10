@@ -134,7 +134,7 @@ export function MonthCalendar({
                 style={[
                   styles.day,
                   selected && { backgroundColor: theme.accent },
-                  !selected && iso === today && { borderWidth: 1, borderColor: theme.accent },
+                  !selected && iso === today && { borderColor: theme.accent },
                 ]}>
                 <ThemedText
                   type="small"
@@ -187,10 +187,13 @@ const styles = StyleSheet.create({
   day: {
     width: 32,
     height: 32,
-    // 999 rather than half the side, which some Android builds rounded down and
-    // drew as a square. No overflow clipping: with a radius past half the side
-    // the clip path swallowed the number.
     borderRadius: 999,
+    // Every day carries a border, transparent unless it is today. Android draws
+    // the rounded background reliably once a view has a border; without one the
+    // fill of a day came out square. No overflow clipping either: with a radius
+    // past half the side the clip path swallowed the number.
+    borderWidth: 1,
+    borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
