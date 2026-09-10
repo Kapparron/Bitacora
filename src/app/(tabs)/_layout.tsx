@@ -1,12 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
-import {
-  Pressable,
-  StyleSheet,
-  View,
-  type AccessibilityState,
-  type GestureResponderEvent,
-} from 'react-native';
+import { Pressable, StyleSheet, View, type GestureResponderEvent } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ActiveWorkoutBar } from '@/features/workout/components/active-workout-bar';
@@ -28,23 +22,23 @@ function TabButton({
   label,
   onPress,
   onLongPress,
-  accessibilityState,
+  'aria-selected': focused = false,
 }: {
   name: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress?: ((event: GestureResponderEvent) => void) | null;
   onLongPress?: ((event: GestureResponderEvent) => void) | null;
-  accessibilityState?: AccessibilityState;
+  /** How the bar reports which tab is showing. */
+  'aria-selected'?: boolean;
 }) {
   const theme = useTheme();
-  const focused = accessibilityState?.selected ?? false;
 
   return (
     <Pressable
       onPress={onPress}
       onLongPress={onLongPress}
       accessibilityRole="button"
-      accessibilityState={accessibilityState}
+      accessibilityState={{ selected: focused }}
       android_ripple={null}
       style={styles.button}>
       <View
