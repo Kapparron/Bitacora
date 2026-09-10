@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { memo, useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -35,6 +36,7 @@ function ExerciseCardComponent({
   editable: boolean;
 }) {
   const theme = useTheme();
+  const router = useRouter();
   const confirm = useConfirm();
   const startRest = useRestTimer((state) => state.start);
   const [restSheetOpen, setRestSheetOpen] = useState(false);
@@ -124,12 +126,26 @@ function ExerciseCardComponent({
         </View>
 
         {editable ? (
-          <Pressable
-            onPress={() => void confirmRemove()}
-            hitSlop={8}
-            accessibilityLabel="Quitar ejercicio">
-            <Ionicons name="trash-outline" size={20} color={theme.textSecondary} />
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: '/pick-exercise',
+                  params: { target: 'replace', id: entry.workoutExerciseId },
+                })
+              }
+              hitSlop={8}
+              accessibilityLabel="Cambiar ejercicio">
+              <Ionicons name="swap-horizontal" size={20} color={theme.textSecondary} />
+            </Pressable>
+
+            <Pressable
+              onPress={() => void confirmRemove()}
+              hitSlop={8}
+              accessibilityLabel="Quitar ejercicio">
+              <Ionicons name="trash-outline" size={20} color={theme.textSecondary} />
+            </Pressable>
+          </View>
         ) : null}
       </View>
 
@@ -230,6 +246,7 @@ const styles = StyleSheet.create({
   rest: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingTop: 6 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 12 },
   thumbnail: { width: 44, height: 44, borderRadius: 8 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   headerText: { flex: 1, gap: 2 },
   title: { fontWeight: '700' },
   addSet: { marginHorizontal: 12, marginTop: 8, paddingVertical: 10 },

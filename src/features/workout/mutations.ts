@@ -183,6 +183,22 @@ export async function removeWorkoutExercise(workoutExerciseId: string): Promise<
   });
 }
 
+/**
+ * Swaps which exercise a slot holds, keeping its sets, rest and superset group.
+ * Changing your mind about the movement mid-session is common; the sets already
+ * logged under it are kept because they were performed, whatever the slot now
+ * says. Delete the ones that no longer apply.
+ */
+export async function replaceWorkoutExercise(
+  workoutExerciseId: string,
+  exerciseId: string
+): Promise<void> {
+  await db
+    .update(workoutExercises)
+    .set({ exerciseId, ...touch() })
+    .where(eq(workoutExercises.id, workoutExerciseId));
+}
+
 export async function updateWorkout(
   workoutId: string,
   patch: Partial<{ name: string; notes: string | null }>
