@@ -23,7 +23,14 @@ export async function createRoutine(name: string): Promise<string> {
 
 export async function updateRoutine(
   routineId: string,
-  patch: Partial<{ name: string; notes: string | null }>
+  patch: Partial<{
+    name: string;
+    notes: string | null;
+    scheduleType: 'none' | 'weekdays' | 'interval';
+    scheduleWeekdays: number[] | null;
+    scheduleIntervalDays: number | null;
+    scheduleAnchor: string | null;
+  }>
 ): Promise<void> {
   await db
     .update(routines)

@@ -10,6 +10,7 @@ import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
 import { createRoutine, deleteRoutine } from '@/features/routines/mutations';
 import { useRoutines, type RoutineSummary } from '@/features/routines/queries';
+import { describeSchedule, scheduleOf } from '@/features/routines/schedule';
 import { startWorkoutFromRoutine } from '@/features/workout/mutations';
 import { useActiveWorkout } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
@@ -136,11 +137,10 @@ function RoutineRow({
             : (routine.preview ?? `${routine.exerciseCount} ejercicios`)}
         </ThemedText>
 
-        {routine.lastPerformedAt ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            Ultima vez: {formatDay(routine.lastPerformedAt)}
-          </ThemedText>
-        ) : null}
+        <ThemedText type="small" themeColor="textSecondary">
+          {describeSchedule(scheduleOf(routine))}
+          {routine.lastPerformedAt ? ` · ultima vez ${formatDay(routine.lastPerformedAt)}` : ''}
+        </ThemedText>
       </View>
 
       <Pressable

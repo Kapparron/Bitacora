@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
@@ -6,7 +7,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { MonthCalendar } from '@/features/calendar/month-calendar';
-import { startEmptyWorkout } from '@/features/workout/mutations';
+import { useRoutines, type RoutineSummary } from '@/features/routines/queries';
+import { isScheduledOn, scheduleOf } from '@/features/routines/schedule';
+import { startEmptyWorkout, startWorkoutFromRoutine } from '@/features/workout/mutations';
 import {
   useActiveWorkout,
   useWorkoutHistory,
@@ -20,6 +23,7 @@ export default function WorkoutScreen() {
   const router = useRouter();
   const { contents: active } = useActiveWorkout();
   const { workouts } = useWorkoutHistory();
+  const { routines } = useRoutines();
 
   const [starting, setStarting] = useState(false);
   const [month, setMonth] = useState(() => {
@@ -27,6 +31,8 @@ export default function WorkoutScreen() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  const today = toIsoDay();
 
   /**
    * Sessions grouped by the local day they started on. The calendar marks those
@@ -47,14 +53,54 @@ export default function WorkoutScreen() {
   }, [workouts]);
 
   const markedDays = useMemo(() => new Set(byDay.keys()), [byDay]);
-  const listed = selectedDay ? (byDay.get(selectedDay) ?? []) : workouts;
 
-  async function start() {
+  /**
+   * Days of the shown month a routine falls on. Only the visible month is
+   * computed: a schedule is a rule, so the days it produces are derived on
+   * demand rather than stored.
+   */
+  const plannedDays = useMemo(() => {
+    const days = new Set<string>();
+    const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+    const schedules = routines.map(scheduleOf);
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const iso = toIsoDay(new Date(month.getFullYear(), month.getMonth(), day));
+      if (schedules.some((schedule) => isScheduledOn(schedule, iso))) days.add(iso);
+    }
+
+    return days;
+  }, [routines, month]);
+
+  const scheduledFor = useMemo(
+    () =>
+      (day: string): RoutineSummary[] =>
+        routines.filter((routine) => isScheduledOn(scheduleOf(routine), day)),
+    [routines]
+  );
+
+  const todaysRoutines = useMemo(() => scheduledFor(today), [scheduledFor, today]);
+  const listed = selectedDay ? (byDay.get(selectedDay) ?? []) : workouts;
+  const plannedForSelected = selectedDay ? scheduledFor(selectedDay) : [];
+
+  async function startEmpty() {
     if (starting) return;
     setStarting(true);
 
     try {
       await startEmptyWorkout();
+      router.navigate('/workout/active');
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  async function startRoutine(routineId: string) {
+    if (starting) return;
+    setStarting(true);
+
+    try {
+      await startWorkoutFromRoutine(routineId);
       router.navigate('/workout/active');
     } finally {
       setStarting(false);
@@ -73,19 +119,38 @@ export default function WorkoutScreen() {
               month={month}
               onMonthChange={setMonth}
               markedDays={markedDays}
+              plannedDays={plannedDays}
               selectedDay={selectedDay}
               onSelectDay={setSelectedDay}
             />
 
             <View style={styles.actions}>
-              <Button
-                title={active ? 'Volver al entreno en curso' : 'Empezar entreno vacio'}
-                // navigate, not push: the session is a single destination, so a
-                // second tap must return to the open screen instead of stacking a
-                // duplicate of it.
-                onPress={active ? () => router.navigate('/workout/active') : () => void start()}
-                disabled={starting}
-              />
+              {active ? (
+                <Button
+                  title="Volver al entreno en curso"
+                  onPress={() => router.navigate('/workout/active')}
+                />
+              ) : (
+                <>
+                  {todaysRoutines.map((routine) => (
+                    <Button
+                      key={routine.id}
+                      title={`Empezar ${routine.name}`}
+                      disabled={starting || routine.exerciseCount === 0}
+                      onPress={() => void startRoutine(routine.id)}
+                    />
+                  ))}
+
+                  <Button
+                    title="Empezar entreno vacio"
+                    // Secondary once a routine is on today, so the planned one reads
+                    // as the obvious choice.
+                    variant={todaysRoutines.length > 0 ? 'secondary' : 'primary'}
+                    disabled={starting}
+                    onPress={() => void startEmpty()}
+                  />
+                </>
+              )}
             </View>
 
             <View style={styles.sectionTitle}>
@@ -103,6 +168,22 @@ export default function WorkoutScreen() {
                 </Pressable>
               ) : null}
             </View>
+
+            {plannedForSelected.map((routine) => (
+              <Pressable
+                key={routine.id}
+                onPress={() => router.push(`/routine/${routine.id}`)}
+                style={({ pressed }) => [
+                  styles.planned,
+                  { borderColor: theme.border },
+                  pressed && { backgroundColor: theme.backgroundElement },
+                ]}>
+                <Ionicons name="calendar-outline" size={18} color={theme.accentText} />
+                <ThemedText type="small" style={styles.plannedText}>
+                  Tocaba {routine.name}
+                </ThemedText>
+              </Pressable>
+            ))}
           </View>
         }
         renderItem={({ item }) => (
@@ -152,13 +233,24 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   list: { paddingBottom: 120 },
   header: { paddingTop: 8, gap: 12 },
-  actions: { paddingHorizontal: 12 },
+  actions: { paddingHorizontal: 12, gap: 8 },
   sectionTitle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
   },
+  planned: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderStyle: 'dashed',
+  },
+  plannedText: { flex: 1 },
   row: {
     marginHorizontal: 12,
     marginBottom: 8,

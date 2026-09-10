@@ -19,7 +19,9 @@ import {
   updateRoutine,
   updateRoutineExercise,
 } from '@/features/routines/mutations';
+import { ScheduleEditor } from '@/features/routines/components/schedule-editor';
 import { useRoutineContents, type RoutineEntry } from '@/features/routines/queries';
+import { describeSchedule, scheduleOf } from '@/features/routines/schedule';
 import { RestSheet, formatRest } from '@/features/workout/components/rest-sheet';
 import { startWorkoutFromRoutine } from '@/features/workout/mutations';
 import { useActiveWorkout } from '@/features/workout/queries';
@@ -38,6 +40,7 @@ export default function RoutineEditorScreen() {
   const { contents, loading } = useRoutineContents(id);
   const { contents: active } = useActiveWorkout();
   const [renaming, setRenaming] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState(false);
 
   if (!contents) {
     return (
@@ -83,6 +86,23 @@ export default function RoutineEditorScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
 
+      <Pressable
+        onPress={() => setEditingSchedule(true)}
+        style={({ pressed }) => [
+          styles.schedule,
+          { borderColor: theme.border },
+          pressed && { backgroundColor: theme.backgroundElement },
+        ]}>
+        <Ionicons name="calendar-outline" size={20} color={theme.accentText} />
+        <View style={styles.scheduleText}>
+          <ThemedText type="small" themeColor="textSecondary">
+            CUANDO TOCA
+          </ThemedText>
+          <ThemedText type="default">{describeSchedule(scheduleOf(routine))}</ThemedText>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+      </Pressable>
+
       {entries.map((entry, index) => (
         <RoutineExerciseCard
           key={entry.routineExerciseId}
@@ -125,6 +145,22 @@ export default function RoutineEditorScreen() {
           onSubmit={(name) => {
             setRenaming(false);
             void updateRoutine(routine.id, { name });
+          }}
+        />
+      ) : null}
+
+      {editingSchedule ? (
+        <ScheduleEditor
+          schedule={scheduleOf(routine)}
+          onClose={() => setEditingSchedule(false)}
+          onSave={(schedule) => {
+            setEditingSchedule(false);
+            void updateRoutine(routine.id, {
+              scheduleType: schedule.type,
+              scheduleWeekdays: schedule.type === 'weekdays' ? schedule.weekdays : null,
+              scheduleIntervalDays: schedule.type === 'interval' ? schedule.everyDays : null,
+              scheduleAnchor: schedule.type === 'interval' ? schedule.anchor : null,
+            });
           }}
         />
       ) : null}
@@ -320,6 +356,17 @@ function Tool({
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   screen: { flex: 1 },
+  schedule: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: 12,
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  scheduleText: { flex: 1, gap: 2 },
   content: { paddingVertical: 12, paddingBottom: 48 },
   card: {
     borderWidth: StyleSheet.hairlineWidth,

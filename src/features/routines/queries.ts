@@ -17,6 +17,10 @@ export type RoutineSummary = {
   name: string;
   position: number;
   lastPerformedAt: number | null;
+  scheduleType: Routine['scheduleType'];
+  scheduleWeekdays: number[] | null;
+  scheduleIntervalDays: number | null;
+  scheduleAnchor: string | null;
   exerciseCount: number;
   /** Comma-separated exercise names, for the one-line preview in the list. */
   preview: string | null;
@@ -52,6 +56,10 @@ export function useRoutines(): { routines: RoutineSummary[]; loading: boolean } 
           name: routines.name,
           position: routines.position,
           lastPerformedAt: routines.lastPerformedAt,
+          scheduleType: routines.scheduleType,
+          scheduleWeekdays: routines.scheduleWeekdays,
+          scheduleIntervalDays: routines.scheduleIntervalDays,
+          scheduleAnchor: routines.scheduleAnchor,
           exerciseCount: sql<number>`count(${routineExercises.id})`,
           preview: sql<string | null>`group_concat(${exercises.name}, ', ')`,
         })

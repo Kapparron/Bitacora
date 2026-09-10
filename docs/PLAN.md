@@ -90,7 +90,7 @@ coincidir con un nombre del dataset.
 | --- | --- | --- |
 | 0 | Andamiaje Expo, esquema Drizzle, migraciones, catálogo de ejercicios, navegación | Hecha |
 | 1 | Registrar una sesión vacía, editar series, historial | Hecha |
-| 2 | Rutinas, superseries, temporizador de descanso, récords | Hecha |
+| 2 | Rutinas, superseries, temporizador de descanso, récords, calendario y programación | Hecha |
 | 3 | Nutrición: escáner de códigos, Open Food Facts, diario, objetivos | Pendiente |
 | 4 | Gráficas, medidas corporales, exportar e importar datos | Pendiente |
 | 5 | Sincronización y autenticación (opcional) | Pendiente |

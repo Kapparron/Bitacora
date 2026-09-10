@@ -60,6 +60,17 @@ export const routines = sqliteTable(
     notes: text('notes'),
     position: integer('position').notNull().default(0),
     lastPerformedAt: integer('last_performed_at'),
+    /** How the routine repeats. See src/features/routines/schedule.ts. */
+    scheduleType: text('schedule_type')
+      .$type<'none' | 'weekdays' | 'interval'>()
+      .notNull()
+      .default('none'),
+    /** Days of the week it falls on, 0 = Monday, as JSON. Only for `weekdays`. */
+    scheduleWeekdays: text('schedule_weekdays', { mode: 'json' }).$type<number[]>(),
+    /** Only for `interval`: repeat every N days from `scheduleAnchor`. */
+    scheduleIntervalDays: integer('schedule_interval_days'),
+    /** `YYYY-MM-DD` the interval counts from. */
+    scheduleAnchor: text('schedule_anchor'),
     ...auditColumns,
   },
   (t) => [index('routines_position_idx').on(t.position)]

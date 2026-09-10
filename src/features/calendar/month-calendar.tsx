@@ -36,8 +36,10 @@ function monthLabel(month: Date): string {
 export type MonthCalendarProps = {
   month: Date;
   onMonthChange: (month: Date) => void;
-  /** Days that have something to show, as `YYYY-MM-DD`. */
+  /** Days with a session already recorded, as `YYYY-MM-DD`. */
   markedDays: ReadonlySet<string>;
+  /** Days a routine is scheduled on but that have no session yet. */
+  plannedDays?: ReadonlySet<string>;
   selectedDay: string | null;
   onSelectDay: (day: string | null) => void;
 };
@@ -53,6 +55,7 @@ export function MonthCalendar({
   month,
   onMonthChange,
   markedDays,
+  plannedDays,
   selectedDay,
   onSelectDay,
 }: MonthCalendarProps) {
@@ -98,6 +101,7 @@ export function MonthCalendar({
 
           const iso = toIsoDay(date);
           const marked = markedDays.has(iso);
+          const planned = !marked && (plannedDays?.has(iso) ?? false);
           const selected = iso === selectedDay;
 
           return (
@@ -122,10 +126,12 @@ export function MonthCalendar({
                 </ThemedText>
               </View>
 
+              {/* Done days get a filled dot, planned ones a hollow one. */}
               <View
                 style={[
                   styles.dot,
                   marked && { backgroundColor: selected ? theme.accent : theme.success },
+                  planned && { borderWidth: 1, borderColor: theme.textSecondary },
                 ]}
               />
             </Pressable>
