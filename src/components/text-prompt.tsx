@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+  type KeyboardTypeOptions,
+} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
@@ -17,6 +24,7 @@ export function TextPrompt({
   placeholder,
   initialValue = '',
   confirmLabel = 'Guardar',
+  keyboardType,
   onSubmit,
   onCancel,
 }: {
@@ -25,6 +33,7 @@ export function TextPrompt({
   placeholder?: string;
   initialValue?: string;
   confirmLabel?: string;
+  keyboardType?: KeyboardTypeOptions;
   onSubmit: (value: string) => void;
   onCancel: () => void;
 }) {
@@ -54,6 +63,7 @@ export function TextPrompt({
             onChangeText={setValue}
             placeholder={placeholder}
             placeholderTextColor={theme.textSecondary}
+            keyboardType={keyboardType}
             autoFocus
             returnKeyType="done"
             onSubmitEditing={() => {

@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ScreenHeader } from '@/components/screen-header';
+import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
 import { cacheProduct } from '@/features/nutrition/mutations';
 import { lookupBarcode } from '@/features/nutrition/openfoodfacts';
@@ -19,6 +20,7 @@ export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [status, setStatus] = useState<'scanning' | 'looking-up' | 'error'>('scanning');
   const [message, setMessage] = useState<string | null>(null);
+  const [typing, setTyping] = useState(false);
 
   // The camera fires this repeatedly while a barcode is in view; the ref stops
   // the same code being looked up a dozen times.
@@ -59,6 +61,21 @@ export default function ScanScreen() {
     }
   }
 
+  /**
+   * A typed code takes the same path as a scanned one. The guard that stops the
+   * camera looking the same code up twice is cleared first, so retyping a code
+   * that failed works.
+   */
+  function submitTyped(value: string) {
+    setTyping(false);
+
+    const barcode = value.replace(/D/g, '');
+    if (barcode.length === 0) return;
+
+    handled.current = null;
+    void onScanned(barcode);
+  }
+
   function retry() {
     handled.current = null;
     setMessage(null);
@@ -79,6 +96,11 @@ export default function ScanScreen() {
             Bitacora necesita la camara para leer el codigo de barras.
           </ThemedText>
           <Button title="Dar permiso" onPress={() => void requestPermission()} />
+          <Button
+            title="Introducir codigo de barras manual"
+            variant="secondary"
+            onPress={() => setTyping(true)}
+          />
         </View>
       ) : status === 'error' ? (
         <View style={styles.centered}>
@@ -86,6 +108,11 @@ export default function ScanScreen() {
             {message}
           </ThemedText>
           <Button title="Escanear otro" onPress={retry} />
+          <Button
+            title="Introducir codigo de barras manual"
+            variant="secondary"
+            onPress={() => setTyping(true)}
+          />
           <Button
             title="Crear a mano"
             variant="secondary"
@@ -110,13 +137,27 @@ export default function ScanScreen() {
                 </ThemedText>
               </>
             ) : (
-              <ThemedText type="small" themeColor="textSecondary" style={styles.text}>
-                Apunta al codigo de barras del envase.
-              </ThemedText>
+              <Button
+                title="Introducir codigo de barras manual"
+                variant="secondary"
+                onPress={() => setTyping(true)}
+              />
             )}
           </View>
         </View>
       )}
+
+      {typing ? (
+        <TextPrompt
+          title="Codigo de barras"
+          message="Los digitos que hay bajo las barras del envase."
+          placeholder="8410076472632"
+          confirmLabel="Buscar"
+          keyboardType="number-pad"
+          onCancel={() => setTyping(false)}
+          onSubmit={submitTyped}
+        />
+      ) : null}
     </View>
   );
 }
@@ -127,5 +168,5 @@ const styles = StyleSheet.create({
   text: { textAlign: 'center' },
   cameraBlock: { flex: 1 },
   camera: { flex: 1 },
-  hint: { alignItems: 'center', gap: 8, padding: 20 },
+  hint: { alignItems: 'stretch', gap: 8, padding: 20 },
 });
