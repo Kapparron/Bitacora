@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
@@ -178,6 +179,36 @@ export async function restoreBackup(backup: Backup): Promise<RestoreResult> {
         rows += chunk.length;
       }
     }
+  });
+
+  return { rows };
+}
+
+export type WipeResult = { rows: number };
+
+/**
+ * Deletes everything the user has recorded, leaving the app as it was on first
+ * launch.
+ *
+ * The catalogue exercises stay: they are seeded data, not something the user
+ * entered, and the seed only refills them at launch. Exercises the user created
+ * go with the rest.
+ *
+ * One transaction, so an interrupted wipe leaves the data untouched rather than
+ * half gone.
+ */
+export async function wipeData(): Promise<WipeResult> {
+  let rows = 0;
+
+  db.transaction((tx) => {
+    for (const [name, table] of [...TABLES].reverse()) {
+      if (name === 'exercises') continue;
+
+      rows += tx.delete(table).run().changes;
+    }
+
+    // Last, so the sessions and routines that referenced them are already gone.
+    rows += tx.delete(exercises).where(eq(exercises.isCustom, true)).run().changes;
   });
 
   return { rows };

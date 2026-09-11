@@ -11,10 +11,10 @@ import {
   exportBackup,
   pickBackup,
   restoreBackup,
+  wipeData,
 } from '@/features/backup/backup';
 import { GoalCalculator } from '@/features/nutrition/components/goal-calculator';
 import { setGoal } from '@/features/nutrition/mutations';
-import { ProgressPanel } from '@/features/progress/progress-panel';
 import { useGoalFor } from '@/features/nutrition/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatNumber, toIsoDay } from '@/lib/format';
@@ -49,6 +49,43 @@ export default function ProfileScreen() {
       );
     } catch (cause) {
       setBackupNote(`No se pudo exportar: ${String(cause)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * Empties the app. Worth two questions rather than one: it is the only action
+   * here that destroys data, and the backup sitting above it is the only way
+   * back.
+   */
+  async function runWipe() {
+    setBackupNote(null);
+
+    const accepted = await confirm({
+      title: 'Eliminar datos',
+      message:
+        'Se borran los entrenos, rutinas, alimentos, medidas y objetivos. El catalogo de ejercicios se mantiene. Esto no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+    });
+
+    if (!accepted) return;
+
+    const sure = await confirm({
+      title: 'Seguro?',
+      message: 'Exporta una copia antes si quieres poder volver.',
+      confirmLabel: 'Borrar todo',
+    });
+
+    if (!sure) return;
+
+    setBusy(true);
+
+    try {
+      const result = await wipeData();
+      setBackupNote(`Borrados ${result.rows} registros.`);
+    } catch (cause) {
+      setBackupNote(`No se pudo borrar: ${String(cause)}`);
     } finally {
       setBusy(false);
     }
@@ -141,8 +178,6 @@ export default function ProfileScreen() {
 
         <BodyPanel />
 
-        <ProgressPanel />
-
         <View style={[styles.card, { borderColor: theme.border }]}>
           <ThemedText type="small" themeColor="textSecondary">
             COPIA DE SEGURIDAD
@@ -159,6 +194,12 @@ export default function ProfileScreen() {
             variant="secondary"
             disabled={busy}
             onPress={() => void runImport()}
+          />
+          <Button
+            title="Eliminar datos"
+            variant="danger"
+            disabled={busy}
+            onPress={() => void runWipe()}
           />
 
           {backupNote ? (
