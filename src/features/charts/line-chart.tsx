@@ -27,12 +27,15 @@ export function LineChart({
   formatValue,
   formatX,
   color,
+  reference,
 }: {
   points: ChartPoint[];
   formatValue: (value: number) => string;
   /** Labels under the first and last point. */
   formatX: (x: number) => string;
   color?: string;
+  /** A value to mark with a dashed line across the plot, such as a target. */
+  reference?: number;
 }) {
   const theme = useTheme();
   const [width, setWidth] = useState(0);
@@ -48,9 +51,12 @@ export function LineChart({
     );
   }
 
+  // The reference joins the domain: a target off the top of the plot would be
+  // marked by a line nobody can see.
   const values = points.map((point) => point.y);
-  const minY = Math.min(...values);
-  const maxY = Math.max(...values);
+  const domain = reference === undefined ? values : [...values, reference];
+  const minY = Math.min(...domain);
+  const maxY = Math.max(...domain);
   // A flat series would divide by zero; spread it around its own value instead.
   const spanY = maxY - minY || Math.abs(maxY) || 1;
 
@@ -91,6 +97,17 @@ export function LineChart({
             stroke={theme.border}
             strokeWidth={StyleSheet.hairlineWidth}
           />
+          {reference !== undefined ? (
+            <Line
+              x1={PADDING}
+              y1={toY(reference)}
+              x2={width - PADDING}
+              y2={toY(reference)}
+              stroke={theme.textSecondary}
+              strokeWidth={1}
+              strokeDasharray="4 4"
+            />
+          ) : null}
           <Path d={path} stroke={stroke} strokeWidth={2} fill="none" />
           <Circle cx={toX(last.x)} cy={toY(last.y)} r={4} fill={stroke} />
         </Svg>

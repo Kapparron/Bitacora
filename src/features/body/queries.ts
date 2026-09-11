@@ -1,8 +1,8 @@
-import { asc, desc } from 'drizzle-orm';
+import { asc, desc, eq } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { useLiveTables } from '@/db/live';
-import { bodyMetrics, type BodyMetric } from '@/db/schema';
+import { bodyMetrics, settings, type BodyMetric } from '@/db/schema';
 
 /** Every measurement, oldest first, which is the order a chart plots them in. */
 export function useBodyMetrics(): { metrics: BodyMetric[]; loading: boolean } {
@@ -24,4 +24,19 @@ export function useLatestWeight(): BodyMetric | null {
   );
 
   return (data ?? []).find((metric) => metric.weight !== null) ?? null;
+}
+
+/** Weight the user is aiming for, or null when none is set. */
+export function useTargetWeight(): number | null {
+  const { data } = useLiveTables(
+    ['settings'],
+    () => db.select().from(settings).where(eq(settings.key, 'target_weight')),
+    []
+  );
+
+  const raw = (data ?? []).at(0)?.value;
+  if (raw === undefined) return null;
+
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
 }

@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { newId } from '@/db/ids';
-import { bodyMetrics } from '@/db/schema';
+import { bodyMetrics, settings } from '@/db/schema';
 
 const touch = () => ({ updatedAt: Date.now() });
 
@@ -58,4 +58,31 @@ export async function recordWeight(date: string, weight: number): Promise<void> 
   }
 
   await db.insert(bodyMetrics).values({ id: newId(), date, weight });
+}
+
+/** Key the target weight is stored under in `settings`. */
+const TARGET_WEIGHT = 'target_weight';
+
+/**
+ * Sets the weight being aimed for, or clears it with null. Stored as text like
+ * every setting; the reader parses it.
+ */
+export async function setTargetWeight(weight: number | null): Promise<void> {
+  if (weight === null) {
+    await db.delete(settings).where(eq(settings.key, TARGET_WEIGHT));
+    return;
+  }
+
+  const [existing] = await db.select().from(settings).where(eq(settings.key, TARGET_WEIGHT));
+  const value = String(weight);
+
+  if (existing) {
+    await db
+      .update(settings)
+      .set({ value, ...touch() })
+      .where(eq(settings.key, TARGET_WEIGHT));
+    return;
+  }
+
+  await db.insert(settings).values({ key: TARGET_WEIGHT, value });
 }

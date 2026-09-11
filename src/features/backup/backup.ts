@@ -12,6 +12,7 @@ import {
   routineExercises,
   routines,
   sets,
+  settings,
   workoutExercises,
   workouts,
 } from '@/db/schema';
@@ -41,6 +42,7 @@ const TABLES = [
   ['foodEntries', foodEntries],
   ['nutritionGoals', nutritionGoals],
   ['bodyMetrics', bodyMetrics],
+  ['settings', settings],
 ] as const;
 
 type TableName = (typeof TABLES)[number][0];
@@ -48,8 +50,11 @@ type TableName = (typeof TABLES)[number][0];
 export type Backup = {
   version: number;
   exportedAt: number;
-  /** Every row of every table, keyed by the names above. */
-  tables: Record<TableName, Record<string, unknown>[]>;
+  /**
+   * Every row of every table, keyed by the names above. A table added after a
+   * backup was written is absent from it, so reading one is optional.
+   */
+  tables: Partial<Record<TableName, Record<string, unknown>[]>>;
 };
 
 /** How many rows go into one insert. SQLite caps the variables per statement. */
@@ -123,8 +128,11 @@ function parseBackup(contents: string): Backup {
   }
 
   for (const [name] of TABLES) {
-    if (!Array.isArray(backup.tables[name])) {
-      throw new BackupFormatError(`A la copia le falta la tabla ${name}.`);
+    const table = backup.tables[name];
+    // A table this build knows and the backup does not is read as empty: a
+    // backup written before that table existed is still a valid backup.
+    if (table !== undefined && !Array.isArray(table)) {
+      throw new BackupFormatError(`La tabla ${name} de la copia no se entiende.`);
     }
   }
 
@@ -161,7 +169,7 @@ export async function restoreBackup(backup: Backup): Promise<RestoreResult> {
     }
 
     for (const [name, table] of TABLES) {
-      const contents = backup.tables[name];
+      const contents = backup.tables[name] ?? [];
 
       for (let index = 0; index < contents.length; index += CHUNK) {
         const chunk = contents.slice(index, index + CHUNK);

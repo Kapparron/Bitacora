@@ -4,10 +4,11 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Button } from '@/components/button';
 import { useConfirm } from '@/components/confirm-dialog';
 import { OptionSheet, type SheetOption } from '@/components/option-sheet';
+import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
 import type { BodyMetric } from '@/db/schema';
-import { deleteBodyMetric, saveBodyMetric } from '@/features/body/mutations';
-import { useBodyMetrics } from '@/features/body/queries';
+import { deleteBodyMetric, saveBodyMetric, setTargetWeight } from '@/features/body/mutations';
+import { useBodyMetrics, useTargetWeight } from '@/features/body/queries';
 import { DayPrompt } from '@/features/calendar/date-prompt';
 import { LineChart } from '@/features/charts/line-chart';
 import { useTheme } from '@/hooks/use-theme';
@@ -32,10 +33,12 @@ export function BodyPanel() {
   const theme = useTheme();
   const confirm = useConfirm();
   const { metrics } = useBodyMetrics();
+  const target = useTargetWeight();
 
   /** The measurement being written, `new` for a fresh one, null while closed. */
   const [draft, setDraft] = useState<BodyMetric | 'new' | null>(null);
   const [menuMetric, setMenuMetric] = useState<BodyMetric | null>(null);
+  const [editingTarget, setEditingTarget] = useState(false);
 
   const weightPoints = metrics
     .filter((metric) => metric.weight !== null)
@@ -57,29 +60,37 @@ export function BodyPanel() {
   }
 
   return (
-    <>
-      <View style={[styles.card, { borderColor: theme.border }]}>
-        <ThemedText type="small" themeColor="textSecondary">
-          PESO ACTUAL
-        </ThemedText>
+    <View style={[styles.card, { borderColor: theme.border }]}>
+      <ThemedText type="small" themeColor="textSecondary">
+        PESO ACTUAL
+      </ThemedText>
 
-        <ThemedText type="subtitle" style={styles.weight}>
-          {latest?.weight != null ? `${formatNumber(latest.weight, 1)} kg` : '-'}
-        </ThemedText>
+      <ThemedText type="subtitle" style={styles.weight}>
+        {latest?.weight != null ? `${formatNumber(latest.weight, 1)} kg` : '-'}
+      </ThemedText>
 
+      <ThemedText type="small" themeColor="textSecondary">
+        {latest === null ? 'Sin medidas todavia.' : formatDay(dayTimestamp(latest.date))}
+        {change !== null && weightPoints.length > 1
+          ? ` · ${change >= 0 ? '+' : ''}${formatNumber(change, 1)} kg desde el primer registro`
+          : ''}
+      </ThemedText>
+
+      {target !== null ? (
         <ThemedText type="small" themeColor="textSecondary">
-          {latest === null ? 'Sin medidas todavia.' : formatDay(dayTimestamp(latest.date))}
-          {change !== null && weightPoints.length > 1
-            ? ` · ${change >= 0 ? '+' : ''}${formatNumber(change, 1)} kg desde el primer registro`
+          Objetivo {formatNumber(target, 1)} kg
+          {latest?.weight != null
+            ? ` · faltan ${formatNumber(Math.abs(latest.weight - target), 1)} kg`
             : ''}
         </ThemedText>
+      ) : null}
 
-        <LineChart
-          points={weightPoints}
-          formatValue={(value) => `${formatNumber(value, 1)} kg`}
-          formatX={(x) => formatDay(x)}
-        />
-      </View>
+      <LineChart
+        points={weightPoints}
+        formatValue={(value) => `${formatNumber(value, 1)} kg`}
+        formatX={(x) => formatDay(x)}
+        reference={target ?? undefined}
+      />
 
       {draft ? (
         <MetricForm
@@ -91,12 +102,19 @@ export function BodyPanel() {
           }}
         />
       ) : (
-        <Button title="Anadir medida" onPress={() => setDraft('new')} />
+        <>
+          <Button title="Anadir medida" onPress={() => setDraft('new')} />
+          <Button
+            title={target === null ? 'Fijar objetivo' : 'Cambiar objetivo'}
+            variant="secondary"
+            onPress={() => setEditingTarget(true)}
+          />
+        </>
       )}
 
       {metrics.length > 0 ? (
-        <View style={[styles.card, { borderColor: theme.border }]}>
-          <ThemedText type="small" themeColor="textSecondary">
+        <>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.historyTitle}>
             HISTORIAL
           </ThemedText>
 
@@ -123,7 +141,23 @@ export function BodyPanel() {
               </ThemedText>
             </Pressable>
           ))}
-        </View>
+        </>
+      ) : null}
+
+      {editingTarget ? (
+        <TextPrompt
+          title="Peso objetivo"
+          message="En kilogramos. Deja 0 para quitarlo."
+          initialValue={target === null ? '' : String(target)}
+          placeholder="75"
+          onCancel={() => setEditingTarget(false)}
+          onSubmit={(value) => {
+            setEditingTarget(false);
+            const kilograms = parse(value);
+            // 0 and anything unreadable clear the target rather than storing it.
+            void setTargetWeight(kilograms !== null && kilograms > 0 ? kilograms : null);
+          }}
+        />
       ) : null}
       {menuMetric ? (
         <OptionSheet
@@ -141,7 +175,7 @@ export function BodyPanel() {
           onClose={() => setMenuMetric(null)}
         />
       ) : null}
-    </>
+    </View>
   );
 }
 
@@ -168,7 +202,8 @@ function MetricForm({
   const kilograms = parse(weight);
 
   return (
-    <View style={[styles.card, { borderColor: theme.border }]}>
+    // No card of its own: the form is written inside the weight card.
+    <View style={styles.form}>
       <ThemedText type="small" themeColor="textSecondary">
         {metric ? 'EDITAR MEDIDA' : 'NUEVA MEDIDA'}
       </ThemedText>
@@ -249,6 +284,8 @@ function Field({
 const styles = StyleSheet.create({
   card: { padding: 14, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, gap: 8 },
   weight: { fontSize: 30, lineHeight: 36 },
+  historyTitle: { paddingTop: 6 },
+  form: { gap: 8, paddingTop: 4 },
   field: { gap: 4 },
   input: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
   pressed: { opacity: 0.6 },

@@ -266,6 +266,17 @@ export const bodyMetrics = sqliteTable(
   (t) => [uniqueIndex('body_metrics_date_unique').on(t.date)]
 );
 
+/**
+ * Single values that belong to the app rather than to a day or a row: right now
+ * only the weight the user is aiming for. Keyed rather than columned so one more
+ * such value does not need a migration of its own.
+ */
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  ...auditColumns,
+});
+
 export type Exercise = typeof exercises.$inferSelect;
 export type NewExercise = typeof exercises.$inferInsert;
 export type Routine = typeof routines.$inferSelect;
