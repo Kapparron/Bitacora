@@ -8,6 +8,7 @@ import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { MonthCalendar } from '@/features/calendar/month-calendar';
 import { MacroSummary } from '@/features/nutrition/components/macro-summary';
+import { TotalsCard } from '@/features/progress/totals-card';
 import { useDailyKcal, useDayDiary, useGoalFor } from '@/features/nutrition/queries';
 import { useRoutines, type RoutineSummary } from '@/features/routines/queries';
 import { isScheduledOn, scheduleOf } from '@/features/routines/schedule';
@@ -94,7 +95,9 @@ export default function WorkoutScreen() {
   );
 
   const todaysRoutines = useMemo(() => scheduledFor(today), [scheduledFor, today]);
-  const listed = selectedDay ? (byDay.get(selectedDay) ?? []) : workouts;
+  // Sessions are listed for the day that was picked. With none picked the tab
+  // shows the totals instead: the whole history is the Entrenos tab's job.
+  const listed = selectedDay ? (byDay.get(selectedDay) ?? []) : [];
   // Only worth showing when the day produced nothing: otherwise the preview of
   // what was actually done says more than what was planned.
   const plannedForSelected = selectedDay && listed.length === 0 ? scheduledFor(selectedDay) : [];
@@ -174,21 +177,23 @@ export default function WorkoutScreen() {
               )}
             </View>
 
-            <View style={styles.sectionTitle}>
-              <ThemedText type="smallBold" themeColor="textSecondary">
-                {selectedDay
-                  ? formatDay(new Date(`${selectedDay}T12:00:00`).getTime()).toUpperCase()
-                  : 'HISTORIAL'}
-              </ThemedText>
+            {selectedDay ? (
+              <View style={styles.sectionTitle}>
+                <ThemedText type="smallBold" themeColor="textSecondary">
+                  {formatDay(new Date(`${selectedDay}T12:00:00`).getTime()).toUpperCase()}
+                </ThemedText>
 
-              {selectedDay ? (
                 <Pressable onPress={() => setSelectedDay(null)} hitSlop={8}>
                   <ThemedText type="small" style={{ color: theme.accentText, fontWeight: '700' }}>
-                    Ver todo
+                    Quitar filtro
                   </ThemedText>
                 </Pressable>
-              ) : null}
-            </View>
+              </View>
+            ) : (
+              <View style={styles.totals}>
+                <TotalsCard />
+              </View>
+            )}
 
             {plannedForSelected.map((routine) => (
               <Pressable
@@ -207,30 +212,20 @@ export default function WorkoutScreen() {
             ))}
           </View>
         }
-        renderItem={({ item }) =>
-          // A picked day shows what was performed, exercise by exercise; the
-          // full history only has room for the totals.
-          selectedDay ? (
-            <WorkoutPreviewCard
-              summary={item}
-              exercises={previews.get(item.id) ?? []}
-              onPress={() => router.push(`/workout/${item.id}`)}
-              onLongPress={() => setMenuWorkout(item)}
-            />
-          ) : (
-            <HistoryRow
-              summary={item}
-              onPress={() => router.push(`/workout/${item.id}`)}
-              onLongPress={() => setMenuWorkout(item)}
-            />
-          )
-        }
+        renderItem={({ item }) => (
+          <WorkoutPreviewCard
+            summary={item}
+            exercises={previews.get(item.id) ?? []}
+            onPress={() => router.push(`/workout/${item.id}`)}
+            onLongPress={() => setMenuWorkout(item)}
+          />
+        )}
         ListEmptyComponent={
-          <ThemedText type="default" themeColor="textSecondary" style={styles.empty}>
-            {selectedDay
-              ? 'Ese dia no se entreno.'
-              : 'Todavia no hay entrenos. El primero que registres aparece aqui.'}
-          </ThemedText>
+          selectedDay ? (
+            <ThemedText type="default" themeColor="textSecondary" style={styles.empty}>
+              Ese dia no se entreno.
+            </ThemedText>
+          ) : null
         }
       />
 
@@ -290,48 +285,12 @@ function WorkoutPreviewCard({
   );
 }
 
-function HistoryRow({
-  summary,
-  onPress,
-  onLongPress,
-}: {
-  summary: WorkoutSummary;
-  onPress: () => void;
-  onLongPress: () => void;
-}) {
-  const theme = useTheme();
-  const duration =
-    summary.finishedAt === null ? null : formatDuration(summary.finishedAt - summary.startedAt);
-
-  return (
-    <Pressable
-      onPress={onPress}
-      onLongPress={onLongPress}
-      style={({ pressed }) => [
-        styles.row,
-        { borderColor: theme.border },
-        pressed && { backgroundColor: theme.backgroundElement },
-      ]}>
-      <ThemedText type="default" style={styles.rowTitle}>
-        {summary.name}
-      </ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        {formatDay(summary.startedAt)} · {formatTime(summary.startedAt)}
-        {duration ? ` · ${duration}` : ''}
-      </ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        {summary.exerciseCount} ejercicios · {summary.setCount} series ·{' '}
-        {formatNumber(summary.volume, 0)} kg de volumen
-      </ThemedText>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   list: { paddingBottom: 120 },
   header: { paddingTop: 8, gap: 12 },
   actions: { paddingHorizontal: 12, gap: 8 },
+  totals: { paddingHorizontal: 12 },
   sectionTitle: {
     flexDirection: 'row',
     alignItems: 'center',

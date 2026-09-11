@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { LineChart } from '@/features/charts/line-chart';
 import { useDailyKcal } from '@/features/nutrition/queries';
-import { useWeeklyVolume } from '@/features/workout/queries';
+import { TotalsCard } from '@/features/progress/totals-card';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDay, formatNumber } from '@/lib/format';
 
@@ -16,21 +16,18 @@ function dayTimestamp(day: string): number {
 }
 
 /**
- * Calories over time and the training totals, as a block of cards for the
- * profile screen. Both read from the same tables the rest of the app writes, so
- * there is nothing to keep in sync.
+ * Calories over time, followed by the training totals, as a block of cards for
+ * the profile screen. Both read from the same tables the rest of the app writes,
+ * so there is nothing to keep in sync.
  */
 export function ProgressPanel() {
   const theme = useTheme();
-  const weeks = useWeeklyVolume();
   const kcalByDay = useDailyKcal();
 
   const kcalPoints = [...kcalByDay.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .slice(-KCAL_DAYS)
     .map(([day, kcal]) => ({ x: dayTimestamp(day), y: kcal }));
-
-  const totalSessions = weeks.reduce((sum, week) => sum + week.workouts, 0);
 
   return (
     <>
@@ -62,36 +59,7 @@ export function ProgressPanel() {
         />
       </View>
 
-      <View style={[styles.card, { borderColor: theme.border }]}>
-        <ThemedText type="small" themeColor="textSecondary">
-          TOTALES
-        </ThemedText>
-
-        <View style={styles.row}>
-          <ThemedText type="default">Entrenos</ThemedText>
-          <ThemedText type="default" style={styles.rowValue}>
-            {totalSessions}
-          </ThemedText>
-        </View>
-
-        <View style={styles.row}>
-          <ThemedText type="default">Volumen acumulado</ThemedText>
-          <ThemedText type="default" style={styles.rowValue}>
-            {formatNumber(
-              weeks.reduce((sum, week) => sum + week.volume, 0),
-              0,
-            )}{' '}
-            kg
-          </ThemedText>
-        </View>
-
-        <View style={styles.row}>
-          <ThemedText type="default">Semanas con entreno</ThemedText>
-          <ThemedText type="default" style={styles.rowValue}>
-            {weeks.filter((week) => week.workouts > 0).length}
-          </ThemedText>
-        </View>
-      </View>
+      <TotalsCard />
     </>
   );
 }
