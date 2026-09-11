@@ -104,3 +104,15 @@ coincidir con un nombre del dataset.
   build*; no funciona completo en Expo Go. Conviene probarlo pronto.
 - Desde Windows no se puede compilar para iOS en local. Android sí; para iOS hace
   falta EAS Build.
+
+## Comprobaciones
+
+`npm run check` ejecuta las comprobaciones de `scripts/checks` con el ejecutor de
+pruebas de Node: aplica las migraciones reales sobre una base en memoria y
+verifica lo que no se ve en la pantalla — el orden de tablas de las copias, el
+borrado de datos, el volumen sin calentamientos, el día local de una sesión
+nocturna, las rachas con días de descanso, el objetivo de calorías y la
+programación de rutinas al cambiar la hora.
+
+Conviene ejecutarlo junto a `npx tsc --noEmit` después de tocar el esquema o
+cualquier cálculo.

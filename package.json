@@ -38,6 +38,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@types/node": "^22.20.2",
     "@types/react": "~19.2.2",
     "babel-plugin-inline-import": "^3.0.0",
     "drizzle-kit": "^0.31.10",
@@ -49,6 +50,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "build:catalog": "node scripts/build-exercise-catalog.mjs"
+    "build:catalog": "node scripts/build-exercise-catalog.mjs",
+    "check": "node --import ./scripts/checks/register.mjs --test scripts/checks"
   }
 }
