@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version, por ejemplo v1.0.0
+        description: Version
         required: true
         type: string
       prerelease:
-        description: Publicar como version preliminar
+        description: Preliminar version
         required: false
         default: false
         type: boolean
