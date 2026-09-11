@@ -1,7 +1,7 @@
 import { asc, isNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -30,8 +30,22 @@ export default function NewExerciseScreen() {
   const theme = useTheme();
   const router = useRouter();
 
-  const { data } = useLiveQuery(
-    db.select().from(exercises).where(isNull(exercises.deletedAt)).orderBy(asc(exercises.name))
+  // Distinct values rather than the catalogue: the chips need some thirty rows,
+  // and reading all 1.324 to build them was the slowest thing on this screen.
+  const { data: groups } = useLiveQuery(
+    db
+      .selectDistinct({ value: exercises.muscleGroup })
+      .from(exercises)
+      .where(isNull(exercises.deletedAt))
+      .orderBy(asc(exercises.muscleGroup)),
+  );
+
+  const { data: equipmentOptions } = useLiveQuery(
+    db
+      .selectDistinct({ value: exercises.equipment })
+      .from(exercises)
+      .where(isNull(exercises.deletedAt))
+      .orderBy(asc(exercises.equipment)),
   );
 
   const [name, setName] = useState('');
@@ -39,9 +53,6 @@ export default function NewExerciseScreen() {
   const [equipment, setEquipment] = useState('');
   const [trackingType, setTrackingType] = useState<Exercise['trackingType']>('weight_reps');
   const [saving, setSaving] = useState(false);
-
-  const groups = useMemo(() => uniqueValues(data.map((item) => item.muscleGroup)), [data]);
-  const equipmentOptions = useMemo(() => uniqueValues(data.map((item) => item.equipment)), [data]);
 
   const ready = name.trim() !== '' && muscleGroup.trim() !== '' && equipment.trim() !== '';
 
@@ -74,10 +85,18 @@ export default function NewExerciseScreen() {
           onChange={setMuscleGroup}
           placeholder="pecho"
         />
-        <Chips values={groups} current={muscleGroup} onSelect={setMuscleGroup} />
+        <Chips
+          values={groups.map((row) => row.value)}
+          current={muscleGroup}
+          onSelect={setMuscleGroup}
+        />
 
         <Field label="Material" value={equipment} onChange={setEquipment} placeholder="banda" />
-        <Chips values={equipmentOptions} current={equipment} onSelect={setEquipment} />
+        <Chips
+          values={equipmentOptions.map((row) => row.value)}
+          current={equipment}
+          onSelect={setEquipment}
+        />
 
         <ThemedText type="small" themeColor="textSecondary">
           Como se mide
@@ -97,11 +116,6 @@ export default function NewExerciseScreen() {
       </ScrollView>
     </View>
   );
-}
-
-/** Values already in the catalogue, deduplicated and alphabetical. */
-function uniqueValues(values: string[]): string[] {
-  return [...new Set(values)].sort((a, b) => a.localeCompare(b, 'es'));
 }
 
 function Chips({
