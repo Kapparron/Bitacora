@@ -145,15 +145,11 @@ export default function ProfileScreen() {
                 {goal.carbs ? `Carbos ${formatNumber(goal.carbs, 0)} g` : 'sin carbos'} ·{' '}
                 {goal.fat ? `Grasa ${formatNumber(goal.fat, 0)} g` : 'sin grasa'}
               </ThemedText>
+              <Button title="Calcular objetivo" onPress={() => setCalculating(true)} />
               <Button
                 title="Cambiar objetivo"
                 variant="secondary"
                 onPress={() => setEditing(true)}
-              />
-              <Button
-                title="Calcular objetivo"
-                variant="secondary"
-                onPress={() => setCalculating(true)}
               />
             </>
           ) : (
@@ -169,17 +165,13 @@ export default function ProfileScreen() {
           )}
 
           {!calculating && !goal ? (
-            <Button
-              title="Calcular objetivo"
-              variant="secondary"
-              onPress={() => setCalculating(true)}
-            />
+            <Button title="Calcular objetivo" onPress={() => setCalculating(true)} />
           ) : null}
         </View>
 
-        <RestWeekdaysCard />
-
         <BodyPanel />
+
+        <RestWeekdaysCard />
 
         <View style={[styles.card, { borderColor: theme.border }]}>
           <ThemedText type="small" themeColor="textSecondary">
