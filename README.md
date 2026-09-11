@@ -4,188 +4,113 @@
 
 # Bitácora
 
-**Entrenamiento y nutrición en una sola app, sin cuenta y sin conexión.**
+**Tus entrenos y tus comidas, en una sola app.**
 
-Registra tus sesiones serie a serie, monta rutinas, lleva el diario de calorías
-y mira cómo evoluciona todo. Los datos son tuyos y viven en tu teléfono.
+Sin cuenta, sin anuncios y sin conexión. Todo lo que registras se queda en tu
+teléfono.
 
 </div>
 
 ---
 
-## Qué hace
+## La idea
 
-### 🏋️ Entrenamiento
+Llevar el gimnasio en una app y la comida en otra significa apuntar dos veces y
+no ver nunca el conjunto. Bitácora junta las dos mitades: lo que levantas y lo
+que comes, en el mismo calendario.
 
-- **Sesión en curso** con la serie como unidad: reps, kilos, marcar como hecha y
-  a la siguiente. La columna **Anterior** recuerda qué hiciste la última vez,
-  serie por serie, para repetirlo o superarlo sin salir de la pantalla.
-- **Tipos de serie**: normal, calentamiento, drop set y al fallo. El
-  calentamiento no cuenta para el volumen ni para los récords.
-- **Superseries** y **temporizador de descanso** por ejercicio, que arranca solo
-  al marcar una serie.
-- **Cambiar el ejercicio** de un hueco sin perder las series ya hechas.
-- **Récords automáticos**: peso máximo, 1RM estimado (Epley), mejor serie por
-  volumen y volumen de sesión. La serie que alcanza uno lleva **medalla** en la
-  lista y lo anuncia con una burbuja.
-- **Rutinas** con programación por días de la semana o cada N días desde una
-  fecha. La de hoy aparece en la pantalla de inicio.
-- **Historial** completo: cada entreno con su fecha, duración, volumen y todas
-  las series que se hicieron. Editable si algo se registró mal.
-- **Catálogo de 1.324 ejercicios** con animación, músculo, material e
-  instrucciones, buscable y filtrable por grupo muscular. Puedes añadir los
-  tuyos.
-
-### 🍎 Nutrición
-
-- **Diario** por desayuno, comida, cena y snacks, con el total del día frente a
-  tu objetivo.
-- **Open Food Facts**: busca primero en tus alimentos y solo consulta la red
-  cuando se lo pides, para no saturar su API.
-- **Código de barras** con la cámara, o tecleado a mano si prefieres.
-- **Alimentos propios** con sus macros, y **repetir la comida de ayer** de un
-  toque.
-- **Objetivo de calorías calculado** a partir de género, edad, altura, peso,
-  actividad y los kilos que quieras ganar o perder por semana. Se niega a
-  proponerte un déficit insostenible.
-
-### 📈 Progreso
-
-- **Calendario** con los días entrenados, los que tienen comida registrada, los
-  planificados y los de descanso.
-- **Rachas** de entreno y de diario, con una llama que crece por tramos y un
-  anillo que se llena hacia la siguiente marca.
-- **Días de descanso**, fijos por día de la semana o marcados a mano. Uno no
-  rompe la racha; dos seguidos sí.
-- **Peso corporal** con gráfica, objetivo marcado y evolución desde la primera
-  medida.
-- **Progreso por ejercicio**: peso máximo, 1RM estimado o volumen, sesión a
-  sesión.
-- **Copia de seguridad**: exporta todo a un JSON y restáuralo cuando quieras.
+Funciona sin internet, porque en el gimnasio casi nunca hay cobertura. Solo se
+conecta cuando buscas un alimento nuevo.
 
 ---
 
-## Cómo está hecho
+## 🏋️ Entrenar
 
-| Capa | Elección |
-| --- | --- |
-| Framework | React Native + Expo SDK 57, TypeScript |
-| Navegación | expo-router, rutas por ficheros |
-| Base de datos | SQLite (`expo-sqlite`) con Drizzle ORM y migraciones generadas |
-| Estado de red | TanStack Query |
-| Estado de UI | Zustand (temporizador de descanso) |
-| Gráficas | `react-native-svg`, dibujadas a mano |
+**Apunta la serie y sigue.** Reps, kilos, un toque para marcarla como hecha. Al
+lado de cada serie ves lo que hiciste **la última vez**, así sabes si estás
+repitiendo o mejorando sin salir de la pantalla.
 
-Tres ideas gobiernan el código:
+**El descanso se cuenta solo.** Marcas la serie y arranca el cronómetro con los
+segundos que hayas puesto para ese ejercicio.
 
-- **Offline-first.** El gimnasio no tiene cobertura. Todo se apoya en SQLite
-  local, incluida la sesión en curso: si se cierra la app a mitad de un entreno,
-  no se pierde nada. La red solo aparece al buscar alimentos.
-- **Sin backend.** Un usuario no necesita servidor, ni cuenta, ni registro.
-- **Lo registrado no se reescribe.** Los macros de una comida se congelan al
-  anotarla: Open Food Facts es colaborativo, y una corrección suya de hoy no debe
-  cambiar lo que comiste hace un mes.
+**Rutinas.** Monta tu día de pecho una vez y empiézalo con un botón. Puedes
+programarlas por días de la semana o cada X días, y la que toca hoy te espera en
+la pantalla de inicio.
 
-El plan completo y el estado de cada fase están en
-[`docs/PLAN.md`](docs/PLAN.md).
+**Récords.** La app se queda con tus mejores marcas de cada ejercicio: el peso
+más alto, la serie más dura y tu máximo estimado. Cuando una serie bate una de
+ellas, aparece una medalla y te lo dice en el momento.
 
----
+**1.324 ejercicios** con animación, músculo que trabajan, material que necesitan
+e instrucciones. Busca por nombre o filtra por grupo muscular. Y si haces algo
+que no está en la lista, lo añades tú.
 
-## Arrancar
-
-Hace falta **Node.js 20 o superior** y la app **Expo Go** en el móvil, o Android
-Studio para un emulador.
-
-```bash
-npm install
-npm start
-```
-
-Luego `a` para Android, `i` para iOS (solo desde macOS), o escanea el QR con
-Expo Go.
-
-> El escáner de códigos de barras, compartir la copia de seguridad y el selector
-> de archivos necesitan una *development build* (`npx expo run:android`): en Expo
-> Go pueden no funcionar.
-
-### Comandos
-
-| Comando | Qué hace |
-| --- | --- |
-| `npm start` | Servidor de desarrollo de Expo |
-| `npm run android` | Abre en un dispositivo o emulador Android |
-| `npm run check` | Comprobaciones sobre las migraciones reales y la lógica pura |
-| `npx tsc --noEmit` | Comprobación de tipos |
-| `npx expo export -p android` | Empaqueta para verificar que todo compila |
-| `npm run build:icons` | Regenera los iconos desde `assets/images/logo.png` |
-| `npm run build:catalog` | Regenera el catálogo de ejercicios |
+**Todo queda guardado.** Cada entreno con su fecha, su duración y todas las
+series que hiciste. Si un día apuntaste mal, se corrige.
 
 ---
 
-## Estructura
+## 🍎 Comer
 
-```
-src/
-  app/            rutas de expo-router
-    (tabs)/       Inicio, Entrenos, Nutrición, Perfil
-    workout/      sesión en curso y detalle de un entreno
-    exercise/     ficha de un ejercicio y alta de uno propio
-    food/         buscar, escanear, crear y registrar alimentos
-    routine/      lista y editor de rutinas
-  components/     componentes compartidos
-  features/       lógica por dominio: workout, routines, exercises, nutrition,
-                  calendar, body, rest, progress, charts, backup
-  db/             cliente SQLite, esquema, migraciones y semilla
-  constants/      tema y tipografías
-drizzle/          migraciones SQL generadas
-assets/data/      catálogo de ejercicios generado
-scripts/          generador del catálogo, iconos y comprobaciones
-docs/PLAN.md      plan de producto y fases
-```
+**Desayuno, comida, cena y snacks.** Cada comida con sus calorías y el total del
+día frente a tu objetivo.
 
-## Base de datos
+**Escanea el código de barras** del envase y listo. Los productos salen de
+**Open Food Facts**, una base de datos pública de alimentos con millones de
+referencias. Si no tiene código o la cámara no ayuda, lo tecleas.
 
-El esquema vive en `src/db/schema.ts`. Después de tocarlo hay que generar la
-migración:
+**Lo que repites está a un toque.** La app busca primero entre los alimentos que
+ya usas, guarda los que escaneas y te deja **repetir la comida de ayer** entera.
 
-```bash
-npx drizzle-kit generate
-npm run check
-```
-
-La migración se escribe en `drizzle/` y entra en el bundle; se aplica en el
-dispositivo al arrancar, desde `src/db/provider.tsx`. No hay base de datos
-remota, así que `drizzle-kit push` y `drizzle-kit studio` no se usan aquí.
-
-`npm run check` aplica las migraciones reales sobre una base en memoria y
-comprueba lo que no se ve en pantalla: el orden de tablas de las copias, el
-borrado de datos, el volumen sin calentamientos, el día local de una sesión
-nocturna, las rachas con descansos y el cálculo del objetivo de calorías.
+**No hace falta que sepas cuántas calorías comer.** Le dices tu género, edad,
+altura, peso y cuántos kilos quieres ganar o perder por semana, y te propone un
+objetivo con sus proteínas, carbohidratos y grasas. Si le pides un ritmo
+demasiado agresivo, te lo baja y te avisa.
 
 ---
 
-## Catálogo de ejercicios
+## 📈 Ver el progreso
 
-Los 1.324 ejercicios integrados provienen del dataset público
-[**hasaneyldrm/exercises-dataset**](https://github.com/hasaneyldrm/exercises-dataset),
-recortado y traducido a `assets/data/exercises.json` por
-`scripts/build-exercise-catalog.mjs`. Se insertan en el primer arranque y se
-identifican por el id del dataset, así que una versión posterior puede añadir
-entradas sin tocar las existentes ni los ejercicios que hayas creado tú.
+**Un calendario con tu mes.** Los días que entrenaste, los que apuntaste la
+comida, los que tenías rutina programada y los de descanso.
 
-Para regenerarlo tras actualizar el dataset o añadir nombres en español:
+**Rachas.** Una llama que crece cuantos más días seguidos llevas, y un anillo que
+se va llenando hacia la siguiente meta: 3 días, 7, 14, 30…
 
-```bash
-curl -L -o exercises.json https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/data/exercises.json
-npm run build:catalog -- exercises.json
-```
+**El descanso no te castiga.** Marcas qué días de la semana descansas, o marcas
+uno suelto, y la racha sigue viva. Dos días seguidos sin entrenar sí la cortan.
 
-> **Atribución.** Los datos del dataset son MIT. Las imágenes y animaciones son
-> propiedad de [**Gym visual**](https://gymvisual.com/), que permite su uso a un
-> máximo de 180×180 px y **exigiendo la atribución**. Por eso no se empaquetan:
-> se sirven desde jsDelivr y la app muestra el crédito «© Gym visual —
-> gymvisual.com» allí donde aparecen. Si publicas una app basada en este
-> repositorio, revisa esos términos antes.
+**Tu peso, en una línea.** Con tu objetivo marcado y cuánto te falta para
+llegar.
 
-Los datos nutricionales vienen de [**Open Food Facts**](https://world.openfoodfacts.org),
+**Cómo va cada ejercicio.** El peso que mueves en press banca, sesión a sesión.
+
+**Tus datos son tuyos.** Puedes exportarlo todo a un archivo y recuperarlo
+cuando quieras, en este móvil o en otro.
+
+---
+
+## Créditos
+
+Los **ejercicios** vienen del dataset público
+[hasaneyldrm/exercises-dataset](https://github.com/hasaneyldrm/exercises-dataset),
+cuyos datos son MIT.
+
+Las **imágenes y animaciones de los ejercicios** son propiedad de
+[**Gym visual**](https://gymvisual.com/), que permite usarlas a un máximo de
+180×180 píxeles y **exigiendo la atribución**. Por eso no se incluyen en la app:
+se descargan al verlas y la app muestra el crédito «© Gym visual —
+gymvisual.com» junto a cada una. Si vas a publicar algo basado en este
+repositorio, revisa esos términos antes.
+
+Los **datos de alimentos** son de [Open Food Facts](https://world.openfoodfacts.org),
 base de datos colaborativa bajo licencia ODbL.
+
+---
+
+<div align="center">
+
+¿Quieres instalarla, trastear el código o aportar?
+**[Guía de desarrollo →](docs/DESARROLLO.md)**
+
+</div>
