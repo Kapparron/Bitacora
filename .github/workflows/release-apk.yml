@@ -85,8 +85,14 @@ jobs:
       - name: Generar el proyecto Android
         run: npx expo prebuild --platform android --no-install
 
+      # Solo arm64-v8a: es la arquitectura de cualquier movil actual, y las otras
+      # tres anadian mas de 90 MB de librerias nativas que nadie llegaba a usar.
+      # La minificacion recorta ademas las clases Java a las que no se llama.
       - name: Compilar el APK
-        run: ./gradlew assembleRelease --no-daemon
+        run: |
+          ./gradlew assembleRelease --no-daemon \
+            -PreactNativeArchitectures=arm64-v8a \
+            -Pandroid.enableMinifyInReleaseBuilds=true
         working-directory: android
 
       - name: Renombrar el APK

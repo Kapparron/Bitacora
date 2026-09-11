@@ -145,6 +145,13 @@ La carpeta `android/` no está en el repositorio: se genera en cada compilación
 desde `app.json`, que es la única fuente de la configuración nativa. Por eso el
 `versionCode` y la versión se escriben ahí antes de generarla.
 
+El APK se compila **solo para `arm64-v8a`** y con minificación
+(`android.enableMinifyInReleaseBuilds`). Un APK universal lleva las librerías
+nativas de las cuatro arquitecturas y pesa unos 143 MB; con una sola baja a
+alrededor de 50 MB. A cambio no se instala en móviles de 32 bits ni en
+emuladores x86: para esos hay que quitar `-PreactNativeArchitectures` de la
+llamada a `gradlew` en el flujo.
+
 > **El APK va firmado con la clave de depuración**, que es la que trae la
 > plantilla de Expo. Sirve para instalarlo a mano en tu móvil, pero no vale para
 > Google Play, y si algún día firmas con una clave propia, Android tratará la app
