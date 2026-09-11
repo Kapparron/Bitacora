@@ -37,7 +37,8 @@ function fieldsFor(
     case 'distance_duration':
       return ['distance', 'duration'];
     default:
-      return ['weight', 'reps'];
+      // Reps first, matching how a set is said out loud: 12 by 60 kg.
+      return ['reps', 'weight'];
   }
 }
 
