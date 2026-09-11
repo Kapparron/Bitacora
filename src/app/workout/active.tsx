@@ -86,7 +86,6 @@ export default function ActiveWorkoutScreen() {
       title: 'Descartar entreno',
       message: 'Se pierde todo lo registrado en esta sesion.',
       confirmLabel: 'Descartar',
-      destructive: true,
     });
 
     if (!accepted) return;

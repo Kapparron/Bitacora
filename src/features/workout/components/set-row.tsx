@@ -162,7 +162,6 @@ function SetRowComponent({
       title: 'Borrar serie',
       message: `Se borra la serie ${index + 1}.`,
       confirmLabel: 'Borrar',
-      destructive: true,
     });
 
     if (accepted) onDelete(set.id);

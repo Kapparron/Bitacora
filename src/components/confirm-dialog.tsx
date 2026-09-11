@@ -10,8 +10,6 @@ export type ConfirmOptions = {
   confirmLabel?: string;
   /** `null` hides the cancel button, turning the dialog into a notice. */
   cancelLabel?: string | null;
-  /** Paints the confirm action in the danger colour. */
-  destructive?: boolean;
 };
 
 type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
@@ -95,7 +93,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 onPress={() => close(true)}
                 style={({ pressed }) => [
                   styles.action,
-                  { backgroundColor: options?.destructive ? theme.danger : theme.accent },
+                  { backgroundColor: theme.accent },
                   pressed && styles.pressed,
                 ]}>
                 <ThemedText

@@ -66,7 +66,6 @@ export default function ProfileScreen() {
         title: 'Restaurar copia',
         message: `Se borran TODOS los datos de la app y se sustituyen por los ${rows} registros de la copia. Esto no se puede deshacer.`,
         confirmLabel: 'Restaurar',
-        destructive: true,
       });
 
       if (!accepted) return;

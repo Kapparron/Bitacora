@@ -46,7 +46,6 @@ export default function RoutineListScreen() {
       title: 'Borrar rutina',
       message: `Se borra "${routine.name}". Los entrenos ya registrados con ella se mantienen.`,
       confirmLabel: 'Borrar',
-      destructive: true,
     });
 
     if (accepted) await deleteRoutine(routine.id);

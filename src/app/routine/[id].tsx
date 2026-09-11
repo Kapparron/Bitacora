@@ -188,7 +188,6 @@ function RoutineExerciseCard({
       title: 'Quitar ejercicio',
       message: `Se quita "${entry.exercise.name}" de la rutina.`,
       confirmLabel: 'Quitar',
-      destructive: true,
     });
 
     if (accepted) await removeRoutineExercise(entry.routineExerciseId);

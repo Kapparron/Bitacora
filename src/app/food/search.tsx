@@ -129,7 +129,6 @@ export default function FoodSearchScreen() {
       title: 'Eliminar alimento',
       message: `Se quita "${food.name}" de tus alimentos. Lo que ya registraste con el se mantiene.`,
       confirmLabel: 'Eliminar',
-      destructive: true,
     });
 
     if (accepted) await deleteFood(food.id);

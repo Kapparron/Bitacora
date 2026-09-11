@@ -51,7 +51,6 @@ export function BodyPanel() {
       title: 'Borrar medida',
       message: `Se borra la medida de ${formatDay(dayTimestamp(metric.date)).toLowerCase()}.`,
       confirmLabel: 'Borrar',
-      destructive: true,
     });
 
     if (accepted) await deleteBodyMetric(metric.id);

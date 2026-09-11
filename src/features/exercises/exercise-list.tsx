@@ -114,7 +114,6 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
         title: 'Borrar ejercicio',
         message: `Se borra "${exercise.name}". Los entrenos que ya lo usan lo siguen mostrando.`,
         confirmLabel: 'Borrar',
-        destructive: true,
       });
 
       if (accepted) await deleteCustomExercise(exercise.id);

@@ -28,7 +28,6 @@ export function WorkoutActionsSheet({
       title: 'Eliminar entreno',
       message: 'Se quita del historial. Los records que consiguio se mantienen.',
       confirmLabel: 'Eliminar',
-      destructive: true,
     });
 
     if (accepted) await deleteWorkout(workout.id);

@@ -32,7 +32,6 @@ export default function NutritionScreen() {
       title: 'Borrar registro',
       message: `Se borra ${entry.name}.`,
       confirmLabel: 'Borrar',
-      destructive: true,
     });
 
     if (accepted) await deleteEntry(entry.id);

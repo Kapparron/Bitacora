@@ -85,7 +85,6 @@ function ExerciseCardComponent({
       title: 'Quitar ejercicio',
       message: `Se quita "${entry.exercise.name}" y sus series.`,
       confirmLabel: 'Quitar',
-      destructive: true,
     });
 
     if (accepted) await removeWorkoutExercise(entry.workoutExerciseId);
