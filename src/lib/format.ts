@@ -62,3 +62,9 @@ export function toIsoDay(date: Date = new Date()): string {
   const day = date.getDate().toString().padStart(2, '0');
   return `${date.getFullYear()}-${month}-${day}`;
 }
+
+/** The calendar day `delta` days from `day`, both as `YYYY-MM-DD`. */
+export function shiftIsoDay(day: string, delta: number): string {
+  const [year, month, date] = day.split('-').map(Number);
+  return toIsoDay(new Date(year, month - 1, date + delta));
+}

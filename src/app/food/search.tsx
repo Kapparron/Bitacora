@@ -11,11 +11,17 @@ import { OptionSheet, type SheetOption } from '@/components/option-sheet';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import type { Food } from '@/db/schema';
-import { cacheProduct, deleteFood } from '@/features/nutrition/mutations';
+import { cacheProduct, deleteFood, repeatMeal } from '@/features/nutrition/mutations';
 import { searchProducts, type OffProduct } from '@/features/nutrition/openfoodfacts';
-import { useLocalFoods, useSuggestedFoods, type Meal } from '@/features/nutrition/queries';
+import {
+  MEALS,
+  useDayDiary,
+  useLocalFoods,
+  useSuggestedFoods,
+  type Meal,
+} from '@/features/nutrition/queries';
 import { useTheme } from '@/hooks/use-theme';
-import { formatNumber } from '@/lib/format';
+import { formatNumber, shiftIsoDay } from '@/lib/format';
 import { normalizeText } from '@/lib/text';
 
 type Row =
@@ -44,6 +50,11 @@ export default function FoodSearchScreen() {
 
   const localFoods = useLocalFoods();
   const { favorites, recents } = useSuggestedFoods();
+
+  // The same meal on the previous day, to offer repeating it.
+  const yesterday = shiftIsoDay(date, -1);
+  const { diary: yesterdayDiary } = useDayDiary(yesterday);
+  const yesterdayEntries = yesterdayDiary.byMeal[meal];
 
   const trimmed = query.trim();
 
@@ -93,6 +104,26 @@ export default function FoodSearchScreen() {
 
   const searchedWeb = webQuery !== null && webQuery === trimmed;
 
+  /**
+   * Logs yesterday's version of this meal again. The confirmation names what is
+   * being copied: repeating the wrong meal is only undone entry by entry.
+   */
+  async function repeatYesterday() {
+    const mealLabel = MEALS.find((option) => option.value === meal)?.label ?? '';
+    const accepted = await confirm({
+      title: `Repetir ${mealLabel.toLowerCase()} de ayer`,
+      message: `Se anaden ${yesterdayEntries.length} alimentos: ${yesterdayEntries
+        .map((entry) => entry.name)
+        .join(', ')}.`,
+      confirmLabel: 'Anadir',
+    });
+
+    if (!accepted) return;
+
+    await repeatMeal({ date, meal, from: yesterday });
+    router.dismissTo('/nutrition');
+  }
+
   async function removeFood(food: Food) {
     const accepted = await confirm({
       title: 'Eliminar alimento',
@@ -134,6 +165,14 @@ export default function FoodSearchScreen() {
             label="Crear alimento"
             onPress={() => router.push({ pathname: '/food/form', params: { date, meal } })}
           />
+
+          {yesterdayEntries.length > 0 ? (
+            <Action
+              icon="repeat-outline"
+              label="Repetir ayer"
+              onPress={() => void repeatYesterday()}
+            />
+          ) : null}
         </View>
       </View>
 
@@ -341,7 +380,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   tools: { paddingHorizontal: 16, gap: 10, paddingBottom: 12 },
   search: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
-  actions: { flexDirection: 'row', gap: 8 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   action: {
     flex: 1,
     flexDirection: 'row',

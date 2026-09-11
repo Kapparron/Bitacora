@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { newId } from '@/db/ids';
@@ -197,4 +197,53 @@ export async function setGoal(input: {
   }
 
   await db.insert(nutritionGoals).values({ id: newId(), ...input });
+}
+
+/**
+ * Copies a meal from another day into `date`.
+ *
+ * The entries are copied as they were logged, macros included, rather than being
+ * recomputed from the foods: an entry records what was eaten, and the food it
+ * points at may have been edited since.
+ *
+ * Returns how many entries were copied.
+ */
+export async function repeatMeal(input: {
+  /** Day being filled in. */
+  date: string;
+  meal: Meal;
+  /** Day to copy from. */
+  from: string;
+}): Promise<number> {
+  const source = await db
+    .select()
+    .from(foodEntries)
+    .where(
+      and(
+        eq(foodEntries.date, input.from),
+        eq(foodEntries.meal, input.meal),
+        isNull(foodEntries.deletedAt)
+      )
+    )
+    .orderBy(asc(foodEntries.createdAt));
+
+  if (source.length === 0) return 0;
+
+  await db.insert(foodEntries).values(
+    source.map((entry) => ({
+      id: newId(),
+      date: input.date,
+      meal: input.meal,
+      foodId: entry.foodId,
+      name: entry.name,
+      brand: entry.brand,
+      grams: entry.grams,
+      kcal: entry.kcal,
+      protein: entry.protein,
+      carbs: entry.carbs,
+      fat: entry.fat,
+    }))
+  );
+
+  return source.length;
 }
