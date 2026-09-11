@@ -19,8 +19,10 @@ import {
   updateWorkoutExerciseRest,
   type SetPatch,
 } from '../mutations';
-import { getLastPerformance, type WorkoutEntry } from '../queries';
+import { getLastPerformance, useExerciseRecords, type WorkoutEntry } from '../queries';
+import { RECORD_LABEL, recordsReachedBy } from '../set-records';
 import { useRestTimer } from '../rest-timer';
+import { RecordBubble } from './record-bubble';
 import { RestSheet, formatRest } from './rest-sheet';
 import { SetRow, SetRowHeader } from './set-row';
 import type { SetType } from './set-type-sheet';
@@ -39,6 +41,10 @@ function ExerciseCardComponent({
   const confirm = useConfirm();
   const startRest = useRestTimer((state) => state.start);
   const [restSheetOpen, setRestSheetOpen] = useState(false);
+  /** What the bubble is announcing, or null while there is nothing to say. */
+  const [bubble, setBubble] = useState<string | null>(null);
+
+  const records = useExerciseRecords(entry.exercise.id);
 
   // Last time this exercise was trained, used only for the greyed-out hints.
   const { data: previousSets = [] } = useQuery({
@@ -67,9 +73,16 @@ function ExerciseCardComponent({
 
       // Checking a set starts the rest; unchecking one is a correction and must
       // not, so the rest only starts on the transition into "done".
-      if (!set.completed && restSeconds) startRest(restSeconds);
+      if (set.completed) return;
+
+      if (restSeconds) startRest(restSeconds);
+
+      // The set is about to count, so it is measured as completed. Only the
+      // first record reached is announced: two bubbles at once read as noise.
+      const reached = recordsReachedBy({ ...set, completed: true }, records);
+      if (reached.length > 0) setBubble(`Record de ${RECORD_LABEL[reached[0]].toLowerCase()}`);
     },
-    [restSeconds, startRest]
+    [restSeconds, startRest, records]
   );
 
   const handleChangeType = useCallback((setId: string, type: SetType) => {
@@ -164,11 +177,14 @@ function ExerciseCardComponent({
 
       <SetRowHeader trackingType={entry.exercise.trackingType} />
 
+      {bubble ? <RecordBubble label={bubble} onDone={() => setBubble(null)} /> : null}
+
       {entry.sets.map((set, index) => (
         <SetRow
           key={set.id}
           set={set}
           index={index}
+          record={recordsReachedBy(set, records).length > 0}
           previous={previousSets[index] ?? null}
           trackingType={entry.exercise.trackingType}
           editable={editable}

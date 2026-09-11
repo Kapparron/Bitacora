@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { estimateGoal } from '@/features/nutrition/calorie-goal';
 import { progressFor, tierFor } from '@/features/progress/streak';
 import { isRestDay, parseRestWeekdays, serializeRestWeekdays } from '@/features/rest/rest';
+import { recordsReachedBy } from '@/features/workout/set-records';
 import { estimatedOneRepMax, countsTowardsVolume, totalVolume } from '@/features/workout/volume';
 import type { WorkoutSet } from '@/db/schema';
 
@@ -121,4 +122,27 @@ test('the weekly rest days survive being written and read back', () => {
   assert.deepEqual([...parseRestWeekdays('2,6')], [2, 6]);
   assert.deepEqual([...parseRestWeekdays(null)], []);
   assert.deepEqual([...parseRestWeekdays('9,x,3')], [3], 'lo que no es un dia se descarta');
+});
+
+test('a set wears a medal when it reaches a stored record', () => {
+  const records = { estimated_1rm: 80, best_set_volume: 600 };
+
+  // 60x10 estimates 80 and moves 600: both marks reached.
+  assert.deepEqual(recordsReachedBy(set({ weight: 60, reps: 10 }), records), [
+    'estimated_1rm',
+    'best_set_volume',
+  ]);
+
+  // Lighter set, below both.
+  assert.deepEqual(recordsReachedBy(set({ weight: 40, reps: 10 }), records), []);
+
+  // More reps at less weight moves more without estimating more.
+  assert.deepEqual(recordsReachedBy(set({ weight: 50, reps: 13 }), records), ['best_set_volume']);
+
+  // A warm-up reaches nothing, and neither does a set still unchecked.
+  assert.deepEqual(recordsReachedBy(set({ weight: 60, reps: 10, type: 'warmup' }), records), []);
+  assert.deepEqual(recordsReachedBy(set({ weight: 60, reps: 10, completed: false }), records), []);
+
+  // With nothing stored yet there is no record to reach.
+  assert.deepEqual(recordsReachedBy(set({ weight: 60, reps: 10 }), {}), []);
 });

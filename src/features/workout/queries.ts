@@ -3,8 +3,10 @@ import { useMemo } from 'react';
 
 import { db } from '@/db/client';
 import { useLiveTables } from '@/db/live';
+import type { RecordValues } from '@/features/workout/set-records';
 import {
   exercises,
+  personalRecords,
   sets,
   workoutExercises,
   workouts,
@@ -466,4 +468,22 @@ export function useDayWorkouts(day: string | null): WorkoutSummary[] {
   );
 
   return data ?? [];
+}
+
+/**
+ * Best values stored for one exercise, by record type. Read live so a set that
+ * beats one is marked the moment the record is written.
+ */
+export function useExerciseRecords(exerciseId: string): RecordValues {
+  const { data } = useLiveTables(
+    ['personal_records'],
+    () =>
+      db
+        .select({ type: personalRecords.type, value: personalRecords.value })
+        .from(personalRecords)
+        .where(eq(personalRecords.exerciseId, exerciseId)),
+    [exerciseId]
+  );
+
+  return Object.fromEntries((data ?? []).map((row) => [row.type, row.value])) as RecordValues;
 }

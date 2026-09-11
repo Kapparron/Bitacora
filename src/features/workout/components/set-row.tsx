@@ -76,6 +76,8 @@ export type SetRowProps = {
   set: WorkoutSet;
   index: number;
   previous: WorkoutSet | null;
+  /** True when this set reaches a record, which puts a medal on its number. */
+  record: boolean;
   trackingType: Exercise['trackingType'];
   editable: boolean;
   /** Callbacks take the set id so the parent can keep them stable across renders. */
@@ -89,6 +91,7 @@ function SetRowComponent({
   set,
   index,
   previous,
+  record,
   trackingType,
   editable,
   onChange,
@@ -184,9 +187,13 @@ function SetRowComponent({
         onPress={editable ? () => setTypeSheetOpen(true) : undefined}
         onLongPress={editable ? () => void confirmDelete() : undefined}
         style={styles.indexCell}>
-        <ThemedText type="smallBold" style={{ color: labelColor }}>
-          {label}
-        </ThemedText>
+        {record ? (
+          <Ionicons name="medal" size={18} color={theme.accentText} accessibilityLabel="Record" />
+        ) : (
+          <ThemedText type="smallBold" style={{ color: labelColor }}>
+            {label}
+          </ThemedText>
+        )}
       </Pressable>
 
       <ThemedText
@@ -270,6 +277,7 @@ export const SetRow = memo(SetRowComponent, (before, after) => {
     a.distanceM === b.distanceM &&
     before.index === after.index &&
     before.previous === after.previous &&
+    before.record === after.record &&
     before.trackingType === after.trackingType &&
     before.editable === after.editable &&
     before.onChange === after.onChange &&

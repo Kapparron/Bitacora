@@ -3,9 +3,11 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { newId } from '@/db/ids';
 import { personalRecords, sets, workoutExercises, type WorkoutSet } from '@/db/schema';
+import { RECORD_LABEL, type RecordType } from './set-records';
 import { countsTowardsVolume, estimatedOneRepMax, setVolume } from './volume';
 
-export type RecordType = (typeof personalRecords.$inferSelect)['type'];
+// Re-exported so the screens that show a record keep one import for it.
+export { RECORD_LABEL, type RecordType };
 
 export type NewRecord = {
   exerciseId: string;
@@ -106,9 +108,3 @@ export async function updatePersonalRecords(
   return beaten;
 }
 
-export const RECORD_LABEL: Record<RecordType, string> = {
-  heaviest_weight: 'Peso maximo',
-  estimated_1rm: '1RM estimado',
-  best_set_volume: 'Mejor serie',
-  session_volume: 'Volumen en sesion',
-};
