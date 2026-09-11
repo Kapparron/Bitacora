@@ -2,6 +2,7 @@
   "name": "bitacora",
   "main": "expo-router/entry",
   "version": "0.1.0",
+  "license": "MIT",
   "dependencies": {
     "@expo/ui": "~57.0.17",
     "@expo/vector-icons": "^15.0.2",

@@ -106,6 +106,9 @@ repositorio, revisa esos términos antes.
 Los **datos de alimentos** son de [Open Food Facts](https://world.openfoodfacts.org),
 base de datos colaborativa bajo licencia ODbL.
 
+El **código de Bitácora** es libre, con [licencia MIT](LICENSE). Esa licencia
+cubre el código: los materiales de terceros de arriba se rigen por los suyos.
+
 ---
 
 <div align="center">
