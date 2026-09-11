@@ -42,7 +42,15 @@
           "cameraPermission": "Bitacora usa la camara para escanear el codigo de barras de los alimentos."
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false,
