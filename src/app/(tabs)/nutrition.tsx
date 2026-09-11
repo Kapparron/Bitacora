@@ -12,14 +12,8 @@ import { MacroSummary } from '@/features/nutrition/components/macro-summary';
 import { deleteEntry } from '@/features/nutrition/mutations';
 import { MEALS, useDayDiary, useGoalFor, type Meal } from '@/features/nutrition/queries';
 import { useTheme } from '@/hooks/use-theme';
-import { formatDay, formatNumber, toIsoDay } from '@/lib/format';
+import { formatDay, formatNumber, shiftIsoDay, toIsoDay } from '@/lib/format';
 import type { FoodEntry } from '@/db/schema';
-
-/** Days are moved one at a time; `YYYY-MM-DD` shifted through a local Date. */
-function shiftDay(day: string, delta: number): string {
-  const [year, month, date] = day.split('-').map(Number);
-  return toIsoDay(new Date(year, month - 1, date + delta));
-}
 
 export default function NutritionScreen() {
   const theme = useTheme();
@@ -47,7 +41,7 @@ export default function NutritionScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       <View style={styles.dayBar}>
-        <Pressable onPress={() => setDate(shiftDay(date, -1))} hitSlop={10}>
+        <Pressable onPress={() => setDate(shiftIsoDay(date, -1))} hitSlop={10}>
           <Ionicons name="chevron-back" size={22} color={theme.text} />
         </Pressable>
 
@@ -57,7 +51,7 @@ export default function NutritionScreen() {
           </ThemedText>
         </Pressable>
 
-        <Pressable onPress={() => setDate(shiftDay(date, 1))} hitSlop={10}>
+        <Pressable onPress={() => setDate(shiftIsoDay(date, 1))} hitSlop={10}>
           <Ionicons name="chevron-forward" size={22} color={theme.text} />
         </Pressable>
       </View>
