@@ -191,7 +191,8 @@ export default function WorkoutScreen() {
               </View>
             ) : (
               <View style={styles.stats}>
-                <StatsCard />
+                {/* Follows the calendar, so paging back reports that month. */}
+                <StatsCard month={toIsoDay(month).slice(0, 7)} />
               </View>
             )}
 

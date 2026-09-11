@@ -1,15 +1,19 @@
 import { shiftIsoDay } from '@/lib/format';
 
 /**
- * Figures behind the totals card. Pure functions over the day sets the queries
+ * Figures behind the stats card. Pure functions over the day sets the queries
  * already return, so nothing here needs its own SQL or its own refresh.
  *
- * Days are `YYYY-MM-DD` local calendar days, as everywhere else in the app.
+ * Days are `YYYY-MM-DD` local calendar days and months are `YYYY-MM`, as
+ * everywhere else in the app.
  */
 
 /**
  * Days in a row ending today, or ending yesterday when today has nothing yet: a
  * streak should not read as broken at breakfast because the day is young.
+ *
+ * The run is followed past the start of the month, since that is where it
+ * actually started.
  */
 export function currentStreak(days: ReadonlySet<string>, today: string): number {
   let cursor = days.has(today) ? today : shiftIsoDay(today, -1);
@@ -25,29 +29,45 @@ export function currentStreak(days: ReadonlySet<string>, today: string): number 
 }
 
 /**
- * Mean of the days that carry a value inside the window ending today. Days with
- * nothing logged are left out rather than counted as zero: they say the diary
- * was not filled in, not that nothing was eaten.
- *
- * Returns null when the window holds no records.
+ * The longest run of consecutive days inside one month. Runs are cut at the
+ * month's edges: this answers what that month looked like, not what a streak
+ * passing through it reached.
  */
-export function averagePerLoggedDay(
-  byDay: ReadonlyMap<string, number>,
-  today: string,
-  windowDays: number
-): { average: number; days: number } | null {
+export function longestStreakInMonth(days: ReadonlySet<string>, month: string): number {
+  const inMonth = [...days].filter((day) => monthOf(day) === month).sort();
+
+  let longest = 0;
+  let run = 0;
+  let previous: string | null = null;
+
+  for (const day of inMonth) {
+    run = previous !== null && shiftIsoDay(previous, 1) === day ? run + 1 : 1;
+    longest = Math.max(longest, run);
+    previous = day;
+  }
+
+  return longest;
+}
+
+/**
+ * Mean of the days of a month that carry a value. Days with nothing logged are
+ * left out rather than counted as zero: they say the diary was not filled in,
+ * not that nothing was eaten.
+ *
+ * Returns null when the month holds no records.
+ */
+export function averageInMonth(byDay: ReadonlyMap<string, number>, month: string): number | null {
   let total = 0;
   let days = 0;
 
-  for (let back = 0; back < windowDays; back += 1) {
-    const value = byDay.get(shiftIsoDay(today, -back));
-    if (value === undefined) continue;
+  for (const [day, value] of byDay) {
+    if (monthOf(day) !== month) continue;
 
     total += value;
     days += 1;
   }
 
-  return days === 0 ? null : { average: total / days, days };
+  return days === 0 ? null : total / days;
 }
 
 /** `YYYY-MM` of a calendar day. */
