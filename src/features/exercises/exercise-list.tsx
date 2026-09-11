@@ -6,10 +6,12 @@ import { useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, SectionList, StyleSheet, TextInput, View } from 'react-native';
 
+import { useConfirm } from '@/components/confirm-dialog';
 import { ThemedText } from '@/components/themed-text';
 import { db } from '@/db/client';
 import { exercises, type Exercise } from '@/db/schema';
 import { exerciseMediaUrl } from '@/features/exercises/media';
+import { deleteCustomExercise } from '@/features/exercises/mutations';
 import { useTheme } from '@/hooks/use-theme';
 import { normalizeText } from '@/lib/text';
 
@@ -35,6 +37,7 @@ export type ExerciseListProps = {
 export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProps) {
   const theme = useTheme();
   const router = useRouter();
+  const confirm = useConfirm();
   const [query, setQuery] = useState('');
   /** Muscle group filter; null means every group. */
   const [group, setGroup] = useState<string | null>(null);
@@ -99,6 +102,26 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
     [selectable, onToggle, router]
   );
 
+  /**
+   * Long press removes an exercise the user added. Catalogue exercises are not
+   * offered: they come back with the next seed, so hiding one would not stick.
+   */
+  const handleLongPress = useCallback(
+    async (exercise: Exercise) => {
+      if (!exercise.isCustom) return;
+
+      const accepted = await confirm({
+        title: 'Borrar ejercicio',
+        message: `Se borra "${exercise.name}". Los entrenos que ya lo usan lo siguen mostrando.`,
+        confirmLabel: 'Borrar',
+        destructive: true,
+      });
+
+      if (accepted) await deleteCustomExercise(exercise.id);
+    },
+    [confirm]
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: Exercise }) => (
       <ExerciseRow
@@ -106,9 +129,10 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
         selected={selectedIds?.has(item.id) ?? false}
         selectable={selectable}
         onPress={handlePress}
+        onLongPress={handleLongPress}
       />
     ),
-    [selectedIds, selectable, handlePress]
+    [selectedIds, selectable, handlePress, handleLongPress]
   );
 
   return (
@@ -196,17 +220,20 @@ const ExerciseRow = memo(function ExerciseRow({
   selected,
   selectable,
   onPress,
+  onLongPress,
 }: {
   exercise: Exercise;
   selected: boolean;
   selectable: boolean;
   onPress: (exercise: Exercise) => void;
+  onLongPress: (exercise: Exercise) => void;
 }) {
   const theme = useTheme();
 
   return (
     <Pressable
       onPress={() => onPress(exercise)}
+      onLongPress={() => void onLongPress(exercise)}
       style={({ pressed }) => [
         styles.row,
         { borderBottomColor: theme.backgroundElement },
