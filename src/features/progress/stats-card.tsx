@@ -10,13 +10,10 @@ import {
   longestStreakInMonth,
   monthOf,
 } from '@/features/progress/stats';
+import { StreakRow } from '@/features/progress/streak-row';
 import { useWorkoutHistory } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatNumber, toIsoDay } from '@/lib/format';
-
-function plural(count: number, one: string, many: string): string {
-  return `${count} ${count === 1 ? one : many}`;
-}
 
 /**
  * How the training and the diary went in one month, following whichever month
@@ -59,14 +56,16 @@ export function StatsCard({ month }: { month: string }) {
         ESTADISTICAS
       </ThemedText>
 
-      <Row
+      <StreakRow
         label={current ? 'Racha de entrenos' : 'Mejor racha de entrenos'}
-        value={workoutStreak === 0 ? '-' : plural(workoutStreak, 'dia', 'dias')}
+        days={workoutStreak}
       />
-      <Row
+      <StreakRow
         label={current ? 'Racha de calorias' : 'Mejor racha de calorias'}
-        value={kcalStreak === 0 ? '-' : plural(kcalStreak, 'dia', 'dias')}
+        days={kcalStreak}
       />
+
+      <View style={[styles.divider, { backgroundColor: theme.border }]} />
       <Row
         label="Media diaria de calorias"
         value={average === null ? '-' : `${formatNumber(average, 0)} kcal`}
@@ -92,7 +91,8 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  card: { padding: 14, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, gap: 8 },
+  card: { padding: 14, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, gap: 10 },
+  divider: { height: StyleSheet.hairlineWidth },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   rowLabel: { flex: 1 },
   rowValue: { fontWeight: '700' },
