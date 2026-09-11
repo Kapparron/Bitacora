@@ -8,7 +8,6 @@ import {
   countInMonth,
   currentStreak,
   monthOf,
-  sumInMonth,
 } from '@/features/progress/stats';
 import { useWorkoutHistory } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
@@ -41,6 +40,11 @@ export function TotalsCard() {
     [workouts]
   );
 
+  // Sessions, not days: two sessions in one day count twice here and once above.
+  const sessionsThisMonth = workouts.filter(
+    (workout) => monthOf(toIsoDay(new Date(workout.startedAt))) === month
+  ).length;
+
   const workoutStreak = currentStreak(trainedDays, today);
   const kcalStreak = currentStreak(new Set(kcalByDay.keys()), today);
   const recent = averagePerLoggedDay(kcalByDay, today, AVERAGE_DAYS);
@@ -62,29 +66,19 @@ export function TotalsCard() {
       <Row
         label={`Media diaria (${AVERAGE_DAYS} dias)`}
         value={recent === null ? '-' : `${formatNumber(recent.average, 0)} kcal`}
-        // The mean only covers the days that were filled in, so it says how many.
-        hint={recent === null ? undefined : `sobre ${plural(recent.days, 'dia', 'dias')}`}
       />
       <Row label="Dias entrenados este mes" value={String(countInMonth(trainedDays, month))} />
-      <Row
-        label="Calorias este mes"
-        value={`${formatNumber(sumInMonth(kcalByDay, month), 0)} kcal`}
-      />
+      <Row label="Entrenos este mes" value={String(sessionsThisMonth)} />
     </View>
   );
 }
 
-function Row({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Row({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.row}>
-      <View style={styles.rowLabel}>
-        <ThemedText type="default">{label}</ThemedText>
-        {hint ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            {hint}
-          </ThemedText>
-        ) : null}
-      </View>
+      <ThemedText type="default" style={styles.rowLabel}>
+        {label}
+      </ThemedText>
 
       <ThemedText type="default" style={styles.rowValue}>
         {value}
@@ -96,6 +90,6 @@ function Row({ label, value, hint }: { label: string; value: string; hint?: stri
 const styles = StyleSheet.create({
   card: { padding: 14, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  rowLabel: { flex: 1, gap: 1 },
+  rowLabel: { flex: 1 },
   rowValue: { fontWeight: '700' },
 });

@@ -60,9 +60,3 @@ export function countInMonth(days: Iterable<string>, month: string): number {
   for (const day of days) if (monthOf(day) === month) count += 1;
   return count;
 }
-
-export function sumInMonth(byDay: ReadonlyMap<string, number>, month: string): number {
-  let total = 0;
-  for (const [day, value] of byDay) if (monthOf(day) === month) total += value;
-  return total;
-}
