@@ -20,8 +20,9 @@ import { WorkoutActionsSheet } from '@/features/workout/components/workout-actio
 import { startEmptyWorkout, startWorkoutFromRoutine } from '@/features/workout/mutations';
 import {
   useActiveWorkout,
+  useDayWorkouts,
   useDayWorkoutPreviews,
-  useWorkoutHistory,
+  useTrainedDays,
   type ExercisePreview,
   type WorkoutSummary,
 } from '@/features/workout/queries';
@@ -32,7 +33,7 @@ export default function WorkoutScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { contents: active } = useActiveWorkout();
-  const { workouts } = useWorkoutHistory();
+  const trainedByDay = useTrainedDays();
   const { routines } = useRoutines();
   const kcalByDay = useDailyKcal();
   const rest = useRestPlan();
@@ -53,25 +54,12 @@ export default function WorkoutScreen() {
   const { diary } = useDayDiary(shownDay);
   const goal = useGoalFor(shownDay);
   const previews = useDayWorkoutPreviews(selectedDay);
+  // Only the picked day's sessions are loaded; the calendar needs the days, not
+  // what each of them held.
+  const listed = useDayWorkouts(selectedDay);
 
-  /**
-   * Sessions grouped by the local day they started on. The calendar marks those
-   * days, and picking one filters the list below it.
-   */
-  const byDay = useMemo(() => {
-    const map = new Map<string, WorkoutSummary[]>();
-
-    for (const workout of workouts) {
-      const day = toIsoDay(new Date(workout.startedAt));
-      const current = map.get(day);
-      if (current) current.push(workout);
-      else map.set(day, [workout]);
-    }
-
-    return map;
-  }, [workouts]);
-
-  const markedDays = useMemo(() => new Set(byDay.keys()), [byDay]);
+  /** Days the calendar marks as trained. */
+  const markedDays = useMemo(() => new Set(trainedByDay.keys()), [trainedByDay]);
 
   /** Rest days of the shown month, from the weekly rule plus the marked ones. */
   const restDaysOfMonth = useMemo(() => {
@@ -113,9 +101,6 @@ export default function WorkoutScreen() {
   );
 
   const todaysRoutines = useMemo(() => scheduledFor(today), [scheduledFor, today]);
-  // Sessions are listed for the day that was picked. With none picked the tab
-  // shows the totals instead: the whole history is the Entrenos tab's job.
-  const listed = selectedDay ? (byDay.get(selectedDay) ?? []) : [];
   // Only worth showing when the day produced nothing: otherwise the preview of
   // what was actually done says more than what was planned.
   const plannedForSelected = selectedDay && listed.length === 0 ? scheduledFor(selectedDay) : [];

@@ -12,7 +12,7 @@ import {
 } from '@/features/progress/stats';
 import { StreakRow } from '@/features/progress/streak-row';
 import { useRestPlan } from '@/features/rest/queries';
-import { useWorkoutHistory } from '@/features/workout/queries';
+import { useTrainedDays } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatNumber, toIsoDay } from '@/lib/format';
 
@@ -29,17 +29,14 @@ import { formatNumber, toIsoDay } from '@/lib/format';
  */
 export function StatsCard({ month }: { month: string }) {
   const theme = useTheme();
-  const { workouts } = useWorkoutHistory();
+  const trainedByDay = useTrainedDays();
   const kcalByDay = useDailyKcal();
   const rest = useRestPlan();
 
   const today = toIsoDay();
   const current = monthOf(today) === month;
 
-  const trainedDays = useMemo(
-    () => new Set(workouts.map((workout) => toIsoDay(new Date(workout.startedAt)))),
-    [workouts]
-  );
+  const trainedDays = useMemo(() => new Set(trainedByDay.keys()), [trainedByDay]);
 
   const loggedDays = useMemo(() => new Set(kcalByDay.keys()), [kcalByDay]);
 

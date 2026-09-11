@@ -122,36 +122,6 @@ export type WorkoutSummary = {
   volume: number;
 };
 
-/**
- * Finished sessions, newest first, with their totals computed in SQL so the
- * history list does not have to load every set.
- */
-export function useWorkoutHistory(): { workouts: WorkoutSummary[]; loading: boolean } {
-  const { data, loading } = useLiveTables(
-    ['workouts', 'workout_exercises', 'sets'],
-    async () =>
-      db
-        .select({
-          id: workouts.id,
-          name: workouts.name,
-          startedAt: workouts.startedAt,
-          finishedAt: workouts.finishedAt,
-          exerciseCount: sql<number>`count(distinct ${workoutExercises.id})`,
-          setCount: sql<number>`count(distinct case when ${sets.completed} = 1 then ${sets.id} end)`,
-          volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${sets.type} <> 'warmup' then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
-        })
-        .from(workouts)
-        .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
-        .leftJoin(sets, eq(sets.workoutExerciseId, workoutExercises.id))
-        .where(and(isNotNull(workouts.finishedAt), isNull(workouts.deletedAt)))
-        .groupBy(workouts.id)
-        .orderBy(desc(workouts.startedAt)),
-    []
-  );
-
-  return { workouts: data ?? [], loading };
-}
-
 export type ExercisePreview = {
   workoutId: string;
   exerciseName: string;
@@ -433,4 +403,67 @@ export function useHistorySessions(limit = HISTORY_LIMIT): {
   );
 
   return { sessions: data ?? [], loading };
+}
+
+/**
+ * Local calendar days that hold a finished session, with how many each holds.
+ *
+ * Grouped in SQL, so the calendar and the stats card no longer pull every
+ * session and every set across just to learn which days were trained.
+ */
+export function useTrainedDays(): Map<string, number> {
+  const { data } = useLiveTables(
+    ['workouts'],
+    async () =>
+      db
+        .select({
+          day: sql<string>`date(${workouts.startedAt} / 1000, 'unixepoch', 'localtime')`,
+          sessions: sql<number>`count(*)`,
+        })
+        .from(workouts)
+        .where(and(isNotNull(workouts.finishedAt), isNull(workouts.deletedAt)))
+        .groupBy(sql`1`),
+    []
+  );
+
+  return new Map((data ?? []).map((row) => [row.day, row.sessions]));
+}
+
+/**
+ * Finished sessions of one local day, with their totals. The workout tab reads
+ * this for the day the calendar has picked, instead of holding the whole
+ * history to show one day of it.
+ */
+export function useDayWorkouts(day: string | null): WorkoutSummary[] {
+  const { data } = useLiveTables(
+    SESSION_TABLES,
+    async () => {
+      if (!day) return [];
+
+      return db
+        .select({
+          id: workouts.id,
+          name: workouts.name,
+          startedAt: workouts.startedAt,
+          finishedAt: workouts.finishedAt,
+          exerciseCount: sql<number>`count(distinct ${workoutExercises.id})`,
+          setCount: sql<number>`count(distinct case when ${sets.completed} = 1 then ${sets.id} end)`,
+          volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${sets.type} <> 'warmup' then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
+        })
+        .from(workouts)
+        .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
+        .leftJoin(sets, eq(sets.workoutExerciseId, workoutExercises.id))
+        .where(
+          and(
+            isNull(workouts.deletedAt),
+            sql`date(${workouts.startedAt} / 1000, 'unixepoch', 'localtime') = ${day}`
+          )
+        )
+        .groupBy(workouts.id)
+        .orderBy(desc(workouts.startedAt));
+    },
+    [day]
+  );
+
+  return data ?? [];
 }

@@ -137,3 +137,36 @@ test('a day holds one measurement and one rest mark', () => {
   db.exec(`insert into rest_days (day) values ('2026-09-11')`);
   assert.throws(() => db.exec(`insert into rest_days (day) values ('2026-09-11')`), /UNIQUE/);
 });
+
+test('trained days are grouped in SQL, one row per local day', () => {
+  const db = migratedDatabase();
+  const day = (year, month, date, hour) => new Date(year, month - 1, date, hour).getTime();
+
+  db.exec(
+    `insert into workouts (id, name, started_at, finished_at) values
+      ('a','Manana',${day(2026, 9, 11, 8)},${day(2026, 9, 11, 9)}),
+      ('b','Tarde',${day(2026, 9, 11, 19)},${day(2026, 9, 11, 20)}),
+      ('c','Otro dia',${day(2026, 9, 9, 18)},${day(2026, 9, 9, 19)}),
+      ('d','Sin terminar',${day(2026, 9, 8, 18)},null),
+      ('e','Borrado',${day(2026, 9, 7, 18)},${day(2026, 9, 7, 19)})`
+  );
+  db.exec(`update workouts set deleted_at = 1 where id = 'e'`);
+
+  const rows = db
+    .prepare(
+      `select date(started_at / 1000, 'unixepoch', 'localtime') as day, count(*) as sessions
+       from workouts
+       where finished_at is not null and deleted_at is null
+       group by 1
+       order by 1`
+    )
+    .all()
+    .map((row) => [row.day, row.sessions]);
+
+  // Two sessions on one day collapse into one calendar day; the unfinished and
+  // the deleted ones are not days at all.
+  assert.deepEqual(rows, [
+    ['2026-09-09', 1],
+    ['2026-09-11', 2],
+  ]);
+});
