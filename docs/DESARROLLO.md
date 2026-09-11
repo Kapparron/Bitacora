@@ -6,8 +6,10 @@ de cada fase, en [`PLAN.md`](PLAN.md).
 
 ## Arrancar
 
-Hace falta **Node.js 20 o superior** y la app **Expo Go** en el móvil, o Android
-Studio para un emulador.
+Hace falta **Node.js 24 o superior** y la app **Expo Go** en el móvil, o Android
+Studio para un emulador. Las comprobaciones de `npm run check` están escritas en
+TypeScript y se apoyan en que Node las ejecute sin transpilar, que es lo que esa
+versión ya hace.
 
 ```bash
 npm install

@@ -1,5 +1,9 @@
 name: Publicar APK
 
+# El nombre de cada ejecucion dice que version publica, para distinguirlas en la
+# lista de Actions.
+run-name: Publicar version ${{ inputs.version }}
+
 # Se lanza a mano desde la pestaña Actions. La rama la elige ahi el propio
 # desplegable de GitHub, asi que aqui solo se pregunta la version.
 on:
@@ -32,10 +36,12 @@ jobs:
       - name: Descargar el codigo
         uses: actions/checkout@v4
 
+      # Node 24: las comprobaciones son TypeScript, y hasta esa version el
+      # ejecutor de pruebas no las recorre por si mismo.
       - name: Preparar Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Preparar Java
