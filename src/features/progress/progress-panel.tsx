@@ -3,7 +3,6 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { LineChart } from '@/features/charts/line-chart';
 import { useDailyKcal } from '@/features/nutrition/queries';
-import { TotalsCard } from '@/features/progress/totals-card';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDay, formatNumber } from '@/lib/format';
 
@@ -16,9 +15,8 @@ function dayTimestamp(day: string): number {
 }
 
 /**
- * Calories over time, followed by the training totals, as a block of cards for
- * the profile screen. Both read from the same tables the rest of the app writes,
- * so there is nothing to keep in sync.
+ * Calories over time, as a card for the profile screen. It reads the same table
+ * the diary writes, so there is nothing to keep in sync.
  */
 export function ProgressPanel() {
   const theme = useTheme();
@@ -59,7 +57,6 @@ export function ProgressPanel() {
         />
       </View>
 
-      <TotalsCard />
     </>
   );
 }
