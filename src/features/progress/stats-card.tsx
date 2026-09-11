@@ -11,6 +11,7 @@ import {
   monthOf,
 } from '@/features/progress/stats';
 import { StreakRow } from '@/features/progress/streak-row';
+import { useRestPlan } from '@/features/rest/queries';
 import { useWorkoutHistory } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatNumber, toIsoDay } from '@/lib/format';
@@ -30,6 +31,7 @@ export function StatsCard({ month }: { month: string }) {
   const theme = useTheme();
   const { workouts } = useWorkoutHistory();
   const kcalByDay = useDailyKcal();
+  const rest = useRestPlan();
 
   const today = toIsoDay();
   const current = monthOf(today) === month;
@@ -41,9 +43,11 @@ export function StatsCard({ month }: { month: string }) {
 
   const loggedDays = useMemo(() => new Set(kcalByDay.keys()), [kcalByDay]);
 
+  // Only the training streak forgives a rest day: a day off the gym is not a
+  // day off the diary.
   const workoutStreak = current
-    ? currentStreak(trainedDays, today)
-    : longestStreakInMonth(trainedDays, month);
+    ? currentStreak(trainedDays, today, rest)
+    : longestStreakInMonth(trainedDays, month, rest);
   const kcalStreak = current
     ? currentStreak(loggedDays, today)
     : longestStreakInMonth(loggedDays, month);

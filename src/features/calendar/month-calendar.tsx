@@ -62,8 +62,12 @@ export type MonthCalendarProps = {
   plannedDays?: ReadonlySet<string>;
   /** Days with food logged. */
   loggedDays?: ReadonlySet<string>;
+  /** Days kept for rest, weekly or marked by hand. */
+  restDays?: ReadonlySet<string>;
   selectedDay: string | null;
   onSelectDay: (day: string | null) => void;
+  /** Long press on a day, used to mark it as rest. */
+  onLongPressDay?: (day: string) => void;
 };
 
 /**
@@ -79,8 +83,10 @@ export function MonthCalendar({
   markedDays,
   plannedDays,
   loggedDays,
+  restDays,
   selectedDay,
   onSelectDay,
+  onLongPressDay,
 }: MonthCalendarProps) {
   const theme = useTheme();
   const cells = useMemo(() => buildGrid(month), [month]);
@@ -122,6 +128,7 @@ export function MonthCalendar({
           const marked = markedDays.has(iso);
           const planned = !marked && (plannedDays?.has(iso) ?? false);
           const logged = loggedDays?.has(iso) ?? false;
+          const resting = restDays?.has(iso) ?? false;
           const selected = iso === selectedDay;
 
           return (
@@ -129,10 +136,14 @@ export function MonthCalendar({
               key={index}
               // Tapping the selected day again clears the filter.
               onPress={() => onSelectDay(selected ? null : iso)}
+              onLongPress={onLongPressDay ? () => onLongPressDay(iso) : undefined}
               style={styles.cell}>
               <View
                 style={[
                   styles.day,
+                  // Rest reads as a quiet fill, so it is visible without
+                  // competing with the day that is selected.
+                  resting && !selected && { backgroundColor: theme.backgroundElement },
                   selected && { backgroundColor: theme.accent },
                   !selected && iso === today && { borderColor: theme.accent },
                 ]}>

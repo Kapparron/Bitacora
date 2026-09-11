@@ -9,6 +9,9 @@ import { BottomTabInset } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { MonthCalendar } from '@/features/calendar/month-calendar';
 import { MacroSummary } from '@/features/nutrition/components/macro-summary';
+import { setRestDay } from '@/features/rest/mutations';
+import { useRestPlan } from '@/features/rest/queries';
+import { isRestDay } from '@/features/rest/rest';
 import { StatsCard } from '@/features/progress/stats-card';
 import { useDailyKcal, useDayDiary, useGoalFor } from '@/features/nutrition/queries';
 import { useRoutines, type RoutineSummary } from '@/features/routines/queries';
@@ -32,6 +35,7 @@ export default function WorkoutScreen() {
   const { workouts } = useWorkoutHistory();
   const { routines } = useRoutines();
   const kcalByDay = useDailyKcal();
+  const rest = useRestPlan();
 
   const [starting, setStarting] = useState(false);
   /** Session whose long-press menu is open. */
@@ -68,6 +72,19 @@ export default function WorkoutScreen() {
   }, [workouts]);
 
   const markedDays = useMemo(() => new Set(byDay.keys()), [byDay]);
+
+  /** Rest days of the shown month, from the weekly rule plus the marked ones. */
+  const restDaysOfMonth = useMemo(() => {
+    const days = new Set<string>();
+    const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const iso = toIsoDay(new Date(month.getFullYear(), month.getMonth(), day));
+      if (isRestDay(rest, iso)) days.add(iso);
+    }
+
+    return days;
+  }, [rest, month]);
   const loggedDays = useMemo(() => new Set(kcalByDay.keys()), [kcalByDay]);
 
   /**
@@ -146,9 +163,19 @@ export default function WorkoutScreen() {
               markedDays={markedDays}
               plannedDays={plannedDays}
               loggedDays={loggedDays}
+              restDays={restDaysOfMonth}
               selectedDay={selectedDay}
               onSelectDay={setSelectedDay}
+              // Long press marks a single day as rest, whatever the weekly rule
+              // says; pressing again gives it back to the rule.
+              onLongPressDay={(day) => void setRestDay(day, !rest.days.has(day))}
             />
+
+            {isRestDay(rest, today) && !markedDays.has(today) ? (
+              <ThemedText type="small" themeColor="textSecondary" style={styles.restNote}>
+                Hoy toca descanso. Entrenar igualmente no rompe nada.
+              </ThemedText>
+            ) : null}
 
             <View style={styles.actions}>
               {active ? (
@@ -293,6 +320,7 @@ const styles = StyleSheet.create({
   header: { paddingTop: 8, gap: 12 },
   actions: { paddingHorizontal: 12, gap: 8 },
   stats: { paddingHorizontal: 12 },
+  restNote: { paddingHorizontal: 16 },
   sectionTitle: {
     flexDirection: 'row',
     alignItems: 'center',

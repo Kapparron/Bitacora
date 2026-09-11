@@ -267,9 +267,19 @@ export const bodyMetrics = sqliteTable(
 );
 
 /**
- * Single values that belong to the app rather than to a day or a row: right now
- * only the weight the user is aiming for. Keyed rather than columned so one more
- * such value does not need a migration of its own.
+ * Days marked as rest by hand, one row per day. The weekly rest days live in
+ * `settings`; this table is what overrides them for a single date.
+ */
+export const restDays = sqliteTable('rest_days', {
+  /** Local calendar day as `YYYY-MM-DD`. */
+  day: text('day').primaryKey(),
+  ...auditColumns,
+});
+
+/**
+ * Single values that belong to the app rather than to a day or a row: the weight
+ * being aimed for and the weekdays kept for rest. Keyed rather than columned so
+ * one more such value does not need a migration of its own.
  */
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
@@ -285,3 +295,4 @@ export type WorkoutSet = typeof sets.$inferSelect;
 export type Food = typeof foods.$inferSelect;
 export type FoodEntry = typeof foodEntries.$inferSelect;
 export type BodyMetric = typeof bodyMetrics.$inferSelect;
+export type RestDay = typeof restDays.$inferSelect;

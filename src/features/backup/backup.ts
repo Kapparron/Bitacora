@@ -10,6 +10,7 @@ import {
   foods,
   nutritionGoals,
   personalRecords,
+  restDays,
   routineExercises,
   routines,
   sets,
@@ -43,6 +44,7 @@ const TABLES = [
   ['foodEntries', foodEntries],
   ['nutritionGoals', nutritionGoals],
   ['bodyMetrics', bodyMetrics],
+  ['restDays', restDays],
   ['settings', settings],
 ] as const;
 
