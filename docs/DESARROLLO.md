@@ -129,14 +129,15 @@ variante monocroma, la marca del splash y el favicon a partir de
 ## Publicar una version
 
 El flujo [`Publicar APK`](../.github/workflows/release-apk.yml) se lanza a mano
-desde la pestaña **Actions** de GitHub. Pide la **rama** que se compila y la
-**etiqueta** de la versión (`v1.2.0`), y opcionalmente marcarla como preliminar.
+desde la pestaña **Actions** de GitHub. La rama se elige en el desplegable del
+propio GitHub; el flujo solo pregunta la **versión** (`v1.2.0`) y si publicarla
+como preliminar.
 
-Lo que hace, en orden: comprueba tipos, pasa `npm run check`, escribe en
-`app.json` la versión que dice la etiqueta y como `versionCode` el número de
-ejecución, genera el proyecto Android con `expo prebuild`, compila
-`assembleRelease` y crea la release con el APK adjunto como
-`bitacora-<etiqueta>.apk`.
+Lo que hace, en orden: comprueba tipos, pasa `npm run check`, escribe esa
+versión en `app.json` y el número de ejecución como `versionCode`, genera el
+proyecto Android con `expo prebuild`, compila `assembleRelease` y crea la
+release —etiquetada sobre el commit compilado— con el APK adjunto como
+`bitacora-<version>.apk`.
 
 La carpeta `android/` no está en el repositorio: se genera en cada compilación
 desde `app.json`, que es la única fuente de la configuración nativa. Por eso el

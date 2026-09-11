@@ -1,17 +1,12 @@
 name: Publicar APK
 
-# Se lanza a mano desde la pestaña Actions: se elige la rama que se compila y la
-# etiqueta de la version que se publica.
+# Se lanza a mano desde la pestaña Actions. La rama la elige ahi el propio
+# desplegable de GitHub, asi que aqui solo se pregunta la version.
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: Rama que se compila
-        required: true
-        default: master
-        type: string
-      tag:
-        description: Etiqueta de la version, por ejemplo v1.0.0
+      version:
+        description: Version, por ejemplo v1.0.0
         required: true
         type: string
       prerelease:
@@ -34,10 +29,8 @@ jobs:
       contents: write
 
     steps:
-      - name: Descargar la rama
+      - name: Descargar el codigo
         uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.branch }}
 
       - name: Preparar Node
         uses: actions/setup-node@v4
@@ -60,15 +53,15 @@ jobs:
       - name: Pasar las comprobaciones
         run: npm run check
 
-      # La etiqueta manda sobre la version que se compila, para que lo instalado
-      # y lo publicado digan lo mismo. El numero de ejecucion sirve de
-      # versionCode: Android solo exige que crezca.
-      - name: Fijar la version desde la etiqueta
+      # La version pedida manda sobre la que se compila, para que lo instalado y
+      # lo publicado digan lo mismo. El numero de ejecucion sirve de versionCode:
+      # Android solo exige que crezca.
+      - name: Fijar la version
         run: |
           node --input-type=module -e "
             import { readFileSync, writeFileSync } from 'node:fs';
 
-            const version = process.env.TAG.replace(/^v/, '');
+            const version = process.env.VERSION.replace(/^v/, '');
             const app = JSON.parse(readFileSync('app.json', 'utf8'));
 
             app.expo.version = version;
@@ -78,7 +71,7 @@ jobs:
             console.log('version ' + version + ', versionCode ' + app.expo.android.versionCode);
           "
         env:
-          TAG: ${{ inputs.tag }}
+          VERSION: ${{ inputs.version }}
           RUN_NUMBER: ${{ github.run_number }}
 
       # El proyecto no guarda la carpeta android: se genera en cada compilacion a
@@ -91,17 +84,18 @@ jobs:
         working-directory: android
 
       - name: Renombrar el APK
-        run: mv android/app/build/outputs/apk/release/app-release.apk "bitacora-${{ inputs.tag }}.apk"
+        run: mv android/app/build/outputs/apk/release/app-release.apk "bitacora-${{ inputs.version }}.apk"
 
+      # La etiqueta se crea sobre el commit que se acaba de compilar, sea de la
+      # rama que sea.
       - name: Publicar la release
         run: |
-          gh release create "$TAG" "bitacora-$TAG.apk" \
-            --target "$BRANCH" \
-            --title "Bitacora $TAG" \
+          gh release create "$VERSION" "bitacora-$VERSION.apk" \
+            --target "$GITHUB_SHA" \
+            --title "Bitacora $VERSION" \
             --generate-notes \
             $PRERELEASE
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
-          BRANCH: ${{ inputs.branch }}
+          VERSION: ${{ inputs.version }}
           PRERELEASE: ${{ inputs.prerelease && '--prerelease' || '' }}
