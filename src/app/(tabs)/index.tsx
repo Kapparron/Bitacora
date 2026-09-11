@@ -5,6 +5,7 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { BottomTabInset } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { MonthCalendar } from '@/features/calendar/month-calendar';
 import { MacroSummary } from '@/features/nutrition/components/macro-summary';
@@ -131,7 +132,8 @@ export default function WorkoutScreen() {
       <FlatList
         data={listed}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        // Room for the tab bar, plus the floating session bar when there is one.
+        contentContainerStyle={{ paddingBottom: BottomTabInset + (active ? 64 : 12) }}
         ListHeaderComponent={
           <View style={styles.header}>
             <Pressable onPress={() => router.navigate('/nutrition')}>
@@ -288,7 +290,6 @@ function WorkoutPreviewCard({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  list: { paddingBottom: 120 },
   header: { paddingTop: 8, gap: 12 },
   actions: { paddingHorizontal: 12, gap: 8 },
   stats: { paddingHorizontal: 12 },
