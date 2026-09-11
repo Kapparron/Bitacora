@@ -54,6 +54,13 @@ export function SetRowHeader({ trackingType }: { trackingType: Exercise['trackin
       <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} style={styles.indexCell}>
         SERIE
       </ThemedText>
+      <ThemedText
+        type="small"
+        themeColor="textSecondary"
+        numberOfLines={1}
+        style={styles.previousCell}>
+        ANTERIOR
+      </ThemedText>
       {fieldsFor(trackingType).map((field) => (
         <ThemedText key={field} type="small" themeColor="textSecondary" style={styles.inputCell}>
           {FIELD_LABEL[field]}
@@ -181,6 +188,14 @@ function SetRowComponent({
         </ThemedText>
       </Pressable>
 
+      <ThemedText
+        type="small"
+        themeColor="textSecondary"
+        numberOfLines={1}
+        style={styles.previousCell}>
+        {describePrevious(previous, trackingType)}
+      </ThemedText>
+
       {/* Mounted only while open: a session has dozens of set rows, and every
           mounted Modal is a native window even when it is not visible. */}
       {typeSheetOpen ? (
@@ -263,6 +278,37 @@ export const SetRow = memo(SetRowComponent, (before, after) => {
   );
 });
 
+/**
+ * What this set was last time, as one string: `12x60kg`, or whatever the
+ * exercise is measured in. A dash when the exercise has no history yet, or when
+ * last time went no further than this set.
+ */
+function describePrevious(
+  previous: WorkoutSet | null,
+  trackingType: Exercise['trackingType']
+): string {
+  if (!previous) return '-';
+
+  switch (trackingType) {
+    case 'reps':
+      return previous.reps != null ? `${previous.reps} reps` : '-';
+    case 'duration':
+      return previous.durationS != null ? `${previous.durationS} s` : '-';
+    case 'distance_duration': {
+      const parts = [
+        previous.distanceM != null ? `${formatNumber(previous.distanceM)} m` : null,
+        previous.durationS != null ? `${previous.durationS} s` : null,
+      ].filter(Boolean);
+      return parts.length > 0 ? parts.join(' · ') : '-';
+    }
+    default:
+      if (previous.reps == null && previous.weight == null) return '-';
+      if (previous.weight == null) return `${previous.reps} reps`;
+      if (previous.reps == null) return `${formatNumber(previous.weight)}kg`;
+      return `${previous.reps}x${formatNumber(previous.weight)}kg`;
+  }
+}
+
 /** Last session's value, shown greyed out so one tap on the check reuses it. */
 function previousPlaceholder(field: string, previous: WorkoutSet | null): string {
   if (!previous) return '';
@@ -291,6 +337,8 @@ const styles = StyleSheet.create({
   },
   // Wide enough for the "SERIE" header to fit on one line.
   indexCell: { width: 48, alignItems: 'center' },
+  // Wide enough for "ANTERIOR" and for a figure like 12x62,5kg.
+  previousCell: { width: 74, textAlign: 'center' },
   inputCell: { flex: 1, textAlign: 'center' },
   input: { borderRadius: 8, paddingVertical: 8, fontSize: 16, fontWeight: '600' },
   checkCell: { width: 40, alignItems: 'center' },
