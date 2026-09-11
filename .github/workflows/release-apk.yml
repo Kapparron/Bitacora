@@ -1,0 +1,107 @@
+name: Publicar APK
+
+# Se lanza a mano desde la pestaña Actions: se elige la rama que se compila y la
+# etiqueta de la version que se publica.
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Rama que se compila
+        required: true
+        default: master
+        type: string
+      tag:
+        description: Etiqueta de la version, por ejemplo v1.0.0
+        required: true
+        type: string
+      prerelease:
+        description: Publicar como version preliminar
+        required: false
+        default: false
+        type: boolean
+
+# Una publicacion a la vez: dos a la vez se pisarian al crear la etiqueta.
+concurrency:
+  group: release-apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # El paso final crea la release y sube el APK con el token del propio flujo.
+    permissions:
+      contents: write
+
+    steps:
+      - name: Descargar la rama
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Preparar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Comprobar tipos
+        run: npx tsc --noEmit
+
+      - name: Pasar las comprobaciones
+        run: npm run check
+
+      # La etiqueta manda sobre la version que se compila, para que lo instalado
+      # y lo publicado digan lo mismo. El numero de ejecucion sirve de
+      # versionCode: Android solo exige que crezca.
+      - name: Fijar la version desde la etiqueta
+        run: |
+          node --input-type=module -e "
+            import { readFileSync, writeFileSync } from 'node:fs';
+
+            const version = process.env.TAG.replace(/^v/, '');
+            const app = JSON.parse(readFileSync('app.json', 'utf8'));
+
+            app.expo.version = version;
+            app.expo.android.versionCode = Number(process.env.RUN_NUMBER);
+
+            writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n');
+            console.log('version ' + version + ', versionCode ' + app.expo.android.versionCode);
+          "
+        env:
+          TAG: ${{ inputs.tag }}
+          RUN_NUMBER: ${{ github.run_number }}
+
+      # El proyecto no guarda la carpeta android: se genera en cada compilacion a
+      # partir de app.json, que es la unica fuente de la configuracion nativa.
+      - name: Generar el proyecto Android
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Compilar el APK
+        run: ./gradlew assembleRelease --no-daemon
+        working-directory: android
+
+      - name: Renombrar el APK
+        run: mv android/app/build/outputs/apk/release/app-release.apk "bitacora-${{ inputs.tag }}.apk"
+
+      - name: Publicar la release
+        run: |
+          gh release create "$TAG" "bitacora-$TAG.apk" \
+            --target "$BRANCH" \
+            --title "Bitacora $TAG" \
+            --generate-notes \
+            $PRERELEASE
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          BRANCH: ${{ inputs.branch }}
+          PRERELEASE: ${{ inputs.prerelease && '--prerelease' || '' }}

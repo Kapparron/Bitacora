@@ -125,3 +125,26 @@ obligatoria, y por eso se sirven desde jsDelivr en vez de empaquetarse.
 `npm run build:icons` genera el icono de la app, el adaptativo de Android, su
 variante monocroma, la marca del splash y el favicon a partir de
 `assets/images/logo.png`, tomando el color de fondo del propio logo.
+
+## Publicar una version
+
+El flujo [`Publicar APK`](../.github/workflows/release-apk.yml) se lanza a mano
+desde la pestaña **Actions** de GitHub. Pide la **rama** que se compila y la
+**etiqueta** de la versión (`v1.2.0`), y opcionalmente marcarla como preliminar.
+
+Lo que hace, en orden: comprueba tipos, pasa `npm run check`, escribe en
+`app.json` la versión que dice la etiqueta y como `versionCode` el número de
+ejecución, genera el proyecto Android con `expo prebuild`, compila
+`assembleRelease` y crea la release con el APK adjunto como
+`bitacora-<etiqueta>.apk`.
+
+La carpeta `android/` no está en el repositorio: se genera en cada compilación
+desde `app.json`, que es la única fuente de la configuración nativa. Por eso el
+`versionCode` y la versión se escriben ahí antes de generarla.
+
+> **El APK va firmado con la clave de depuración**, que es la que trae la
+> plantilla de Expo. Sirve para instalarlo a mano en tu móvil, pero no vale para
+> Google Play, y si algún día firmas con una clave propia, Android tratará la app
+> como distinta y habrá que desinstalar la anterior. Para una clave real hacen
+> falta un keystore guardado en los secretos del repositorio y un
+> `signingConfig` propio en `android/app/build.gradle`, que hoy no existe.
