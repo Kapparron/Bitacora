@@ -40,11 +40,6 @@ export function TotalsCard() {
     [workouts]
   );
 
-  // Sessions, not days: two sessions in one day count twice here and once above.
-  const sessionsThisMonth = workouts.filter(
-    (workout) => monthOf(toIsoDay(new Date(workout.startedAt))) === month
-  ).length;
-
   const workoutStreak = currentStreak(trainedDays, today);
   const kcalStreak = currentStreak(new Set(kcalByDay.keys()), today);
   const recent = averagePerLoggedDay(kcalByDay, today, AVERAGE_DAYS);
@@ -68,7 +63,10 @@ export function TotalsCard() {
         value={recent === null ? '-' : `${formatNumber(recent.average, 0)} kcal`}
       />
       <Row label="Dias entrenados este mes" value={String(countInMonth(trainedDays, month))} />
-      <Row label="Entrenos este mes" value={String(sessionsThisMonth)} />
+      <Row
+        label="Dias con calorias este mes"
+        value={String(countInMonth(kcalByDay.keys(), month))}
+      />
     </View>
   );
 }
