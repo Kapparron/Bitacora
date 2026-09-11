@@ -8,7 +8,7 @@ import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { MonthCalendar } from '@/features/calendar/month-calendar';
 import { MacroSummary } from '@/features/nutrition/components/macro-summary';
-import { TotalsCard } from '@/features/progress/totals-card';
+import { StatsCard } from '@/features/progress/stats-card';
 import { useDailyKcal, useDayDiary, useGoalFor } from '@/features/nutrition/queries';
 import { useRoutines, type RoutineSummary } from '@/features/routines/queries';
 import { isScheduledOn, scheduleOf } from '@/features/routines/schedule';
@@ -190,8 +190,8 @@ export default function WorkoutScreen() {
                 </Pressable>
               </View>
             ) : (
-              <View style={styles.totals}>
-                <TotalsCard />
+              <View style={styles.stats}>
+                <StatsCard />
               </View>
             )}
 
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   list: { paddingBottom: 120 },
   header: { paddingTop: 8, gap: 12 },
   actions: { paddingHorizontal: 12, gap: 8 },
-  totals: { paddingHorizontal: 12 },
+  stats: { paddingHorizontal: 12 },
   sectionTitle: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -27,7 +27,7 @@ function plural(count: number, one: string, many: string): string {
  * Everything is derived from the day sets the workout and nutrition queries
  * already return, so the card follows every write without a query of its own.
  */
-export function TotalsCard() {
+export function StatsCard() {
   const theme = useTheme();
   const { workouts } = useWorkoutHistory();
   const kcalByDay = useDailyKcal();
@@ -47,7 +47,7 @@ export function TotalsCard() {
   return (
     <View style={[styles.card, { borderColor: theme.border }]}>
       <ThemedText type="small" themeColor="textSecondary">
-        TOTALES
+        ESTADISTICAS
       </ThemedText>
 
       <Row
