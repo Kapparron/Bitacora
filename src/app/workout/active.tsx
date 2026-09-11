@@ -110,9 +110,11 @@ export default function ActiveWorkoutScreen() {
         }
       />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <RestTimerBar />
+      {/* Outside the ScrollView so the countdown and its actions stay reachable
+          while scrolling down to the next exercise. */}
+      <RestTimerBar />
 
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={[styles.stats, { borderColor: theme.border }]}>
           <Stat label="Duracion" value={formatDuration(elapsed)} />
           <Stat label="Volumen" value={`${formatNumber(volume, 0)} kg`} />

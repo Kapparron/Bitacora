@@ -99,7 +99,7 @@ export function RestTimerBar() {
 }
 
 const styles = StyleSheet.create({
-  bar: { marginHorizontal: 12, marginBottom: 12, borderRadius: 12, overflow: 'hidden' },
+  bar: { marginHorizontal: 12, marginVertical: 12, borderRadius: 12, overflow: 'hidden' },
   progress: { position: 'absolute', top: 0, bottom: 0, left: 0, opacity: 0.25 },
   content: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12 },
   time: { flex: 1, fontWeight: '700' },
