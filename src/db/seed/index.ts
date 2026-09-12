@@ -13,8 +13,10 @@ const INSERT_CHUNK = 60;
  * the upstream id. Runs on every start after migrations so a later app version
  * can ship new entries.
  *
- * Existing rows are left untouched: the user may have added notes to them, and
- * their custom exercises must never be overwritten.
+ * Existing rows keep everything the user owns — their notes, and their custom
+ * exercises, which are never touched. Only the catalogue's own naming columns
+ * are refreshed, so a corrected name reaches an install that already has the
+ * row.
  */
 export async function seedExercises(): Promise<number> {
   const existing = await db
@@ -36,9 +38,58 @@ export async function seedExercises(): Promise<number> {
     }
   }
 
+  await refreshCatalogueNames();
   await removeUnusedLegacyExercises();
 
   return missing.length;
+}
+
+/**
+ * Brings the columns the catalogue owns back in line with the shipped file for
+ * rows that are already seeded, one update per row that drifted — normally
+ * none. Steps and media are left out on purpose: reading them for all 1300 rows
+ * on every start costs far more than the correction is worth.
+ */
+async function refreshCatalogueNames(): Promise<void> {
+  const rows = await db
+    .select({
+      id: exercises.id,
+      externalId: exercises.externalId,
+      name: exercises.name,
+      nameEn: exercises.nameEn,
+      muscleGroup: exercises.muscleGroup,
+      equipment: exercises.equipment,
+    })
+    .from(exercises)
+    .where(and(isNotNull(exercises.externalId), eq(exercises.isCustom, false)));
+
+  const byId = new Map(CATALOGUE.map((exercise) => [exercise.id, exercise]));
+
+  const stale = rows.flatMap((row) => {
+    const exercise = byId.get(row.externalId ?? '');
+    if (!exercise) return [];
+
+    const current = {
+      name: exercise.name,
+      nameEn: exercise.nameEn,
+      muscleGroup: exercise.muscleGroup,
+      equipment: exercise.equipment,
+    };
+
+    const drifted = Object.entries(current).some(
+      ([column, value]) => row[column as keyof typeof current] !== value
+    );
+
+    return drifted ? [{ id: row.id, current }] : [];
+  });
+
+  if (stale.length === 0) return;
+
+  db.transaction((tx) => {
+    for (const row of stale) {
+      tx.update(exercises).set(row.current).where(eq(exercises.id, row.id)).run();
+    }
+  });
 }
 
 function toRow(exercise: CatalogueExercise) {
