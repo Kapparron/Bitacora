@@ -152,6 +152,32 @@ alrededor de 50 MB. A cambio no se instala en móviles de 32 bits ni en
 emuladores x86: para esos hay que quitar `-PreactNativeArchitectures` de la
 llamada a `gradlew` en el flujo.
 
+## Actualizaciones dentro de la app
+
+La app se mira ella sola si hay una versión más nueva: pregunta por la release
+más reciente de este repositorio, y si su etiqueta es mayor que la versión
+instalada, ofrece descargar el APK adjunto y lo entrega al instalador de
+Android. El código está en `src/features/updates/`.
+
+La comprobación corre cuando la app pasa a primer plano, como mucho una vez cada
+24 horas, y guarda en `settings` cuándo miró por última vez y qué versión
+rechazó el usuario. El botón **Buscar actualizaciones** del perfil se salta
+ambas cosas. Sin conexión no pasa nada: el fallo se ignora.
+
+Requisitos que hay que respetar al tocar esto:
+
+- **La firma tiene que coincidir.** Android solo instala encima de una app si la
+  nueva lleva la misma clave. Hoy todas las releases salen del mismo flujo, así
+  que coinciden; el día que se firme con una clave propia, la primera
+  actualización fallará con `INSTALL_FAILED_UPDATE_INCOMPATIBLE` y habrá que
+  desinstalar a mano.
+- **El `versionCode` tiene que crecer.** El flujo usa el número de ejecución,
+  que crece solo.
+- El permiso `REQUEST_INSTALL_PACKAGES` está en `app.json`, y Android además
+  pide al usuario autorizar la instalación una vez, en una pantalla de ajustes
+  que no se puede consultar desde la app.
+- Nada de esto funciona en Expo Go: el instalador necesita el APK real.
+
 > **El APK va firmado con la clave de depuración**, que es la que trae la
 > plantilla de Expo. Sirve para instalarlo a mano en tu móvil, pero no vale para
 > Google Play, y si algún día firmas con una clave propia, Android tratará la app

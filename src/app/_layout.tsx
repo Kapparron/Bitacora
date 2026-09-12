@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ConfirmProvider } from '@/components/confirm-dialog';
 import { DatabaseProvider } from '@/db/provider';
+import { UpdateProvider } from '@/features/updates/components/update-provider';
 
 /**
  * Nothing is fetched from the network on a schedule: Open Food Facts lookups are
@@ -26,16 +27,18 @@ export default function RootLayout() {
         <DatabaseProvider>
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
             <ConfirmProvider>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="workout" options={{ headerShown: false }} />
-                <Stack.Screen name="exercise" options={{ headerShown: false }} />
-                <Stack.Screen name="routine" options={{ headerShown: false }} />
-                <Stack.Screen name="exercises" />
-                <Stack.Screen name="food" options={{ headerShown: false }} />
-                <Stack.Screen name="pick-exercise" options={{ presentation: 'modal' }} />
-              </Stack>
-              <StatusBar style="auto" />
+              <UpdateProvider>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="workout" options={{ headerShown: false }} />
+                  <Stack.Screen name="exercise" options={{ headerShown: false }} />
+                  <Stack.Screen name="routine" options={{ headerShown: false }} />
+                  <Stack.Screen name="exercises" />
+                  <Stack.Screen name="food" options={{ headerShown: false }} />
+                  <Stack.Screen name="pick-exercise" options={{ presentation: 'modal' }} />
+                </Stack>
+                <StatusBar style="auto" />
+              </UpdateProvider>
             </ConfirmProvider>
           </ThemeProvider>
         </DatabaseProvider>
