@@ -84,6 +84,23 @@ export function isNewer(release: string, installed: string | null): boolean {
 }
 
 /**
+ * Whether a release is worth putting in front of the user.
+ *
+ * On its own the app only offers a higher version. A check asked for by hand
+ * offers any version other than the one running, which is how a preliminary
+ * build gets installed on purpose: it can sit below the release it followed.
+ *
+ * Nothing offerable means nothing to show, popup and card alike. Saying both
+ * "disponible la 0.0.4" and "ya tienes la ultima" is the bug this prevents.
+ */
+export function shouldOffer(release: string, installed: string | null, manual: boolean): boolean {
+  if (isNewer(release, installed)) return true;
+  if (!manual) return false;
+
+  return compareVersions(release, installed ?? '') !== 0;
+}
+
+/**
  * Whether enough time has passed to ask GitHub again. A check that never ran
  * runs now.
  */

@@ -9,6 +9,7 @@ import {
   parseRelease,
   pickLatest,
   shouldCheck,
+  shouldOffer,
 } from '@/features/updates/updates';
 
 test('a tag and an app version compare as the same number', () => {
@@ -90,4 +91,19 @@ test('releases with no APK are skipped when picking the latest', () => {
   assert.equal(pickLatest([withoutApk, RELEASE])?.version, '1.3.0');
   assert.equal(pickLatest([]), null);
   assert.equal(pickLatest({ message: 'Not Found' }), null);
+});
+
+test('the same version is never offered, however the check was asked for', () => {
+  // Both the card and the popup read this: saying 'disponible la 0.0.4' next to
+  // 'ya tienes la ultima version' was the contradiction it prevents.
+  assert.equal(shouldOffer('0.0.4', '0.0.4', true), false);
+  assert.equal(shouldOffer('0.0.4', '0.0.4', false), false);
+});
+
+test('a manual check offers a version below the installed one', () => {
+  // A preliminary build can sit under the release it followed, and asking by
+  // hand is how it gets installed on purpose.
+  assert.equal(shouldOffer('0.0.5', '1.0.0', true), true);
+  assert.equal(shouldOffer('0.0.5', '1.0.0', false), false);
+  assert.equal(shouldOffer('1.1.0', '1.0.0', false), true);
 });

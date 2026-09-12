@@ -20,8 +20,8 @@ import {
   DISMISSED_KEY,
   LAST_CHECKED_KEY,
   PRERELEASES_KEY,
-  isNewer,
   shouldCheck,
+  shouldOffer,
   type Release,
 } from '@/features/updates/updates';
 
@@ -109,23 +109,17 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      if (!shouldOffer(release.version, installedVersion, manual)) {
+        setAvailable(null);
+        if (manual) setNote(`Ya tienes la ultima version (${installedVersion ?? 'desconocida'}).`);
+        return;
+      }
+
       setAvailable(release);
 
-      if (isNewer(release.version, installedVersion)) {
-        // A version already turned down stays quiet until a newer one arrives.
-        const dismissed = await readSetting(DISMISSED_KEY);
-        if (manual || dismissed !== release.version) setPrompted(true);
-        return;
-      }
-
-      // Asked for by hand, any version that is not the one running is worth
-      // offering: that is how a preliminary build gets installed on purpose.
-      if (manual && release.version !== installedVersion) {
-        setPrompted(true);
-        return;
-      }
-
-      if (manual) setNote(`Ya tienes la ultima version (${installedVersion ?? 'desconocida'}).`);
+      // A version already turned down stays quiet until a newer one arrives.
+      const dismissed = await readSetting(DISMISSED_KEY);
+      if (manual || dismissed !== release.version) setPrompted(true);
     } catch (cause) {
       // Being offline is the normal case in a gym, and says nothing worth an alert.
       if (manual) setNote(`No se pudo comprobar: ${String(cause)}`);
