@@ -12,8 +12,21 @@
 /** Repository the releases are read from. */
 export const REPO = 'Kapparron/Bitacora';
 
-/** Where the newest published release is described. Public, so no token. */
+/**
+ * Where the newest published release is described. Public, so no token.
+ *
+ * This endpoint answers with the newest release that is neither a draft nor a
+ * prerelease: GitHub applies that filter itself, and a repository whose
+ * releases are all preliminary answers 404 here.
+ */
 export const LATEST_RELEASE_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
+
+/**
+ * Every release, newest first, preliminary ones included. Used only when the
+ * user has asked for test versions, because picking among them is then up to
+ * the app.
+ */
+export const RELEASES_URL = `https://api.github.com/repos/${REPO}/releases?per_page=20`;
 
 /**
  * How long a check stays good for.
@@ -122,6 +135,29 @@ export function parseRelease(payload: unknown): Release | null {
   };
 }
 
+/**
+ * Highest version among a list of releases, skipping the ones with no APK.
+ *
+ * The list arrives in publication order, which is not version order: a fix
+ * published for an older line would otherwise look like the newest build.
+ * Drafts never reach an unauthenticated caller, and are dropped by
+ * `parseRelease` anyway.
+ */
+export function pickLatest(payloads: unknown): Release | null {
+  if (!Array.isArray(payloads)) return null;
+
+  let best: Release | null = null;
+
+  for (const payload of payloads) {
+    const release = parseRelease(payload);
+    if (!release) continue;
+    if (!best || compareVersions(release.version, best.version) > 0) best = release;
+  }
+
+  return best;
+}
+
 /** Keys the update state is stored under in `settings`. */
 export const LAST_CHECKED_KEY = 'update_last_checked';
 export const DISMISSED_KEY = 'update_dismissed';
+export const PRERELEASES_KEY = 'update_prereleases';

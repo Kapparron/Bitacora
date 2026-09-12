@@ -164,6 +164,14 @@ La comprobación corre cuando la app pasa a primer plano, como mucho una vez cad
 rechazó el usuario. El botón **Buscar actualizaciones** del perfil se salta
 ambas cosas. Sin conexión no pasa nada: el fallo se ignora.
 
+Por defecto solo cuentan las versiones terminadas, porque se pregunta por
+`releases/latest` y ese endpoint descarta borradores y preliminares; un
+repositorio cuyas releases son todas preliminares responde `404` ahí. La casilla
+**Incluir versiones de prueba** cambia la pregunta a la lista completa de
+releases y se queda con la versión más alta, preliminar o no. Con la casilla
+puesta, una comprobación manual ofrece cualquier versión distinta de la
+instalada, no solo una mayor: es la forma de bajarse una preliminar a propósito.
+
 Requisitos que hay que respetar al tocar esto:
 
 - **La firma tiene que coincidir.** Android solo instala encima de una app si la

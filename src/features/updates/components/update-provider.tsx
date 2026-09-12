@@ -19,6 +19,7 @@ import { canInstall, downloadAndInstall } from '@/features/updates/install';
 import {
   DISMISSED_KEY,
   LAST_CHECKED_KEY,
+  PRERELEASES_KEY,
   isNewer,
   shouldCheck,
   type Release,
@@ -44,6 +45,10 @@ type UpdatesValue = {
   progress: number | null;
   /** Outcome of the last manual check, for the profile card to show. */
   note: string | null;
+  /** Whether preliminary versions count as updates. */
+  prereleases: boolean;
+  /** Turns preliminary versions on or off and checks again straight away. */
+  setPrereleases: (value: boolean) => Promise<void>;
   /** Checks now, ignoring both the interval and the dismissed version. */
   check: () => Promise<void>;
   /** Downloads the available release and opens the system installer. */
@@ -73,10 +78,11 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState<number | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [prompted, setPrompted] = useState(false);
+  const [prereleases, setPrereleasesState] = useState(false);
   /** Guards against a second check starting while one is in flight. */
   const running = useRef(false);
 
-  const run = useCallback(async (manual: boolean) => {
+  const run = useCallback(async (manual: boolean, wanted?: boolean) => {
     if (running.current) return;
     running.current = true;
 
@@ -93,21 +99,33 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
         if (!shouldCheck(Number.isFinite(last) && last > 0 ? last : null, now)) return;
       }
 
-      const release = await fetchLatestRelease();
+      const testing = wanted ?? (await readSetting(PRERELEASES_KEY)) === 'true';
+      const release = await fetchLatestRelease(testing);
       await writeSetting(LAST_CHECKED_KEY, String(now));
 
-      if (!release || !isNewer(release.version, installedVersion)) {
+      if (!release) {
         setAvailable(null);
-        if (manual) setNote(`Ya tienes la ultima version (${installedVersion ?? 'desconocida'}).`);
+        if (manual) setNote('No hay ninguna version publicada todavia.');
         return;
       }
 
       setAvailable(release);
 
-      // A version already turned down stays quiet until a newer one arrives.
-      const dismissed = await readSetting(DISMISSED_KEY);
-      if (manual || dismissed !== release.version) setPrompted(true);
-      if (manual) setNote(null);
+      if (isNewer(release.version, installedVersion)) {
+        // A version already turned down stays quiet until a newer one arrives.
+        const dismissed = await readSetting(DISMISSED_KEY);
+        if (manual || dismissed !== release.version) setPrompted(true);
+        return;
+      }
+
+      // Asked for by hand, any version that is not the one running is worth
+      // offering: that is how a preliminary build gets installed on purpose.
+      if (manual && release.version !== installedVersion) {
+        setPrompted(true);
+        return;
+      }
+
+      if (manual) setNote(`Ya tienes la ultima version (${installedVersion ?? 'desconocida'}).`);
     } catch (cause) {
       // Being offline is the normal case in a gym, and says nothing worth an alert.
       if (manual) setNote(`No se pudo comprobar: ${String(cause)}`);
@@ -118,6 +136,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    void readSetting(PRERELEASES_KEY).then((value) => setPrereleasesState(value === 'true'));
     void run(false);
 
     // Coming back after days away is exactly when a new version is waiting.
@@ -127,6 +146,18 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.remove();
   }, [run]);
+
+  const setPrereleases = useCallback(
+    async (value: boolean) => {
+      setPrereleasesState(value);
+      await writeSetting(PRERELEASES_KEY, String(value));
+
+      // The answer changes with the switch, so the old one is already stale.
+      setAvailable(null);
+      await run(true, value);
+    },
+    [run]
+  );
 
   const install = useCallback(async () => {
     if (!available) return;
@@ -162,11 +193,13 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       available,
       progress,
       note,
+      prereleases,
+      setPrereleases,
       check: () => run(true),
       install,
       dismiss,
     }),
-    [status, available, progress, note, run, install, dismiss]
+    [status, available, progress, note, prereleases, setPrereleases, run, install, dismiss]
   );
 
   return (

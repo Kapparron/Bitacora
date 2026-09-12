@@ -7,6 +7,7 @@ import {
   isNewer,
   normalizeVersion,
   parseRelease,
+  pickLatest,
   shouldCheck,
 } from '@/features/updates/updates';
 
@@ -72,4 +73,21 @@ test('a release with no APK is not an update', () => {
   assert.equal(parseRelease({ ...RELEASE, draft: true }), null);
   assert.equal(parseRelease({ message: 'Not Found' }), null);
   assert.equal(parseRelease(null), null);
+});
+
+test('the highest version wins, not the one published last', () => {
+  const older = { ...RELEASE, tag_name: 'v1.9.0' };
+  const newer = { ...RELEASE, tag_name: 'v1.10.0' };
+
+  // A fix for an older line can be published after a newer version.
+  assert.equal(pickLatest([older, newer])?.version, '1.10.0');
+  assert.equal(pickLatest([newer, older])?.version, '1.10.0');
+});
+
+test('releases with no APK are skipped when picking the latest', () => {
+  const withoutApk = { ...RELEASE, tag_name: 'v2.0.0', assets: [] };
+
+  assert.equal(pickLatest([withoutApk, RELEASE])?.version, '1.3.0');
+  assert.equal(pickLatest([]), null);
+  assert.equal(pickLatest({ message: 'Not Found' }), null);
 });
