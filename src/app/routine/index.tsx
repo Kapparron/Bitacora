@@ -62,6 +62,11 @@ export default function RoutineListScreen() {
         ListHeaderComponent={
           <View style={styles.headerActions}>
             <Button title="Nueva rutina" onPress={() => setNaming(true)} />
+            <Button
+              title="Importar rutina"
+              variant="secondary"
+              onPress={() => router.push('/routine/scan')}
+            />
           </View>
         }
         renderItem={({ item }) => (
@@ -155,7 +160,7 @@ function RoutineRow({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   list: { paddingBottom: 120 },
-  headerActions: { paddingHorizontal: 12, paddingTop: 4 },
+  headerActions: { paddingHorizontal: 12, paddingTop: 4, gap: 8 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

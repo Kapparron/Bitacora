@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -7,8 +7,9 @@ import { ScreenHeader } from '@/components/screen-header';
 import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
 import { DatePrompt } from '@/features/calendar/date-prompt';
+import { ReorderSheet } from '@/features/exercises/components/reorder-sheet';
 import { ExerciseCard } from '@/features/workout/components/exercise-card';
-import { rescheduleWorkout, updateWorkout } from '@/features/workout/mutations';
+import { reorderWorkoutExercises, rescheduleWorkout, updateWorkout } from '@/features/workout/mutations';
 import { useWorkoutContents } from '@/features/workout/queries';
 import { completedSetCount, totalVolume } from '@/features/workout/volume';
 import { useTheme } from '@/hooks/use-theme';
@@ -31,6 +32,9 @@ export default function WorkoutDetailScreen() {
   const [editing, setEditing] = useState(edit === '1');
   const [renaming, setRenaming] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
+  const [reordering, setReordering] = useState(false);
+  // Stable, so opening the sheet does not re-render every memoised card.
+  const openReorder = useCallback(() => setReordering(true), []);
 
   if (!contents) {
     return (
@@ -73,6 +77,7 @@ export default function WorkoutDetailScreen() {
             entry={entry}
             workoutId={workout.id}
             editable={editing}
+            onReorder={entries.length > 1 ? openReorder : undefined}
           />
         ))}
 
@@ -108,6 +113,18 @@ export default function WorkoutDetailScreen() {
             setRenaming(false);
             void updateWorkout(workout.id, { name });
           }}
+        />
+      ) : null}
+
+      {reordering ? (
+        <ReorderSheet
+          items={entries.map((entry) => ({
+            id: entry.workoutExerciseId,
+            supersetGroup: entry.supersetGroup,
+            exercise: entry.exercise,
+          }))}
+          onReorder={(orderedIds) => void reorderWorkoutExercises(workout.id, orderedIds)}
+          onClose={() => setReordering(false)}
         />
       ) : null}
 

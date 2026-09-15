@@ -21,7 +21,8 @@ Expo Go.
 
 > El escáner de códigos de barras, compartir la copia de seguridad y el selector
 > de archivos necesitan una *development build* (`npx expo run:android`): en Expo
-> Go pueden no funcionar.
+> Go pueden no funcionar. Las notificaciones del entreno y del descanso son un
+> módulo nativo propio y solo existen en esa build.
 
 ## Comandos
 
@@ -71,6 +72,7 @@ src/
                   calendar, body, rest, progress, charts, backup
   db/             cliente SQLite, esquema, migraciones y semilla
   constants/      tema y tipografías
+modules/          módulos nativos propios: notificaciones del entreno (Android)
 drizzle/          migraciones SQL generadas
 assets/data/      catálogo de ejercicios generado
 scripts/          generador del catálogo, iconos y comprobaciones
@@ -122,6 +124,36 @@ Las condiciones de uso de las imágenes están en los créditos del
 [README](../README.md): son de Gym visual, con límite de tamaño y atribución
 obligatoria, y por eso se sirven desde jsDelivr en vez de empaquetarse.
 
+## Compartir rutinas
+
+Sin servidor ni cuentas, una rutina viaja entera dentro de un enlace, que se
+muestra como código QR o se envía como texto. El código está en
+`src/features/routines/share.ts`.
+
+El enlace es `https://kapparron.github.io/Bitacora/rutina/#<rutina>` porque
+WhatsApp solo deja pulsar enlaces web. Lleva a una página estática,
+[`site/rutina/index.html`](../site/rutina/index.html), que enseña el nombre de
+la rutina y abre la app con `bitacora://routine/import?r=<rutina>`; en Android lo
+hace con un enlace `intent://` que, si la app no está instalada, manda a las
+releases para descargarla. La rutina va detrás del `#`, que el navegador no
+envía al servidor.
+
+La página se publica en GitHub Pages con el flujo
+[`Publicar web`](../.github/workflows/pages.yml), al cambiar `site/` en `master`
+o a mano. Si cambia la dirección, hay que cambiar también `WEB_PREFIX`: los
+enlaces ya enviados apuntan a la antigua.
+
+- Un ejercicio del catálogo va solo con su id del dataset; uno propio va con
+  nombre, grupo muscular, material y tipo de registro, y al importarlo se reusa
+  el propio con el mismo nombre o se crea. Si el catálogo del receptor no tiene
+  algún ejercicio, no se guarda nada y se le pide actualizar.
+- La programación (cuándo toca) no se comparte.
+- Un QR tiene un máximo de unos 3 KB, por eso las claves son de una letra. Si se
+  añade un campo, sube `SHARE_VERSION` solo cuando una versión anterior ya no
+  pueda leer el enlace: la importación rechaza versiones que no conoce.
+- Lo leído de un QR no es de fiar: `parseSharedRoutine` valida cada campo antes
+  de que llegue a la base de datos.
+
 ## Iconos
 
 `npm run build:icons` genera el icono de la app, el adaptativo de Android, su
@@ -151,6 +183,40 @@ nativas de las cuatro arquitecturas y pesa unos 143 MB; con una sola baja a
 alrededor de 50 MB. A cambio no se instala en móviles de 32 bits ni en
 emuladores x86: para esos hay que quitar `-PreactNativeArchitectures` de la
 llamada a `gradlew` en el flujo.
+
+## Actualizaciones dentro de la app
+
+La app se mira ella sola si hay una versión más nueva: pregunta por la release
+más reciente de este repositorio, y si su etiqueta es mayor que la versión
+instalada, ofrece descargar el APK adjunto y lo entrega al instalador de
+Android. El código está en `src/features/updates/`.
+
+La comprobación corre cuando la app pasa a primer plano, como mucho una vez cada
+24 horas, y guarda en `settings` cuándo miró por última vez y qué versión
+rechazó el usuario. El botón **Buscar actualizaciones** del perfil se salta
+ambas cosas. Sin conexión no pasa nada: el fallo se ignora.
+
+Por defecto solo cuentan las versiones terminadas, porque se pregunta por
+`releases/latest` y ese endpoint descarta borradores y preliminares; un
+repositorio cuyas releases son todas preliminares responde `404` ahí. La casilla
+**Incluir versiones de prueba** cambia la pregunta a la lista completa de
+releases y se queda con la versión más alta, preliminar o no. Con la casilla
+puesta, una comprobación manual ofrece cualquier versión distinta de la
+instalada, no solo una mayor: es la forma de bajarse una preliminar a propósito.
+
+Requisitos que hay que respetar al tocar esto:
+
+- **La firma tiene que coincidir.** Android solo instala encima de una app si la
+  nueva lleva la misma clave. Hoy todas las releases salen del mismo flujo, así
+  que coinciden; el día que se firme con una clave propia, la primera
+  actualización fallará con `INSTALL_FAILED_UPDATE_INCOMPATIBLE` y habrá que
+  desinstalar a mano.
+- **El `versionCode` tiene que crecer.** El flujo usa el número de ejecución,
+  que crece solo.
+- El permiso `REQUEST_INSTALL_PACKAGES` está en `app.json`, y Android además
+  pide al usuario autorizar la instalación una vez, en una pantalla de ajustes
+  que no se puede consultar desde la app.
+- Nada de esto funciona en Expo Go: el instalador necesita el APK real.
 
 > **El APK va firmado con la clave de depuración**, que es la que trae la
 > plantilla de Expo. Sirve para instalarlo a mano en tu móvil, pero no vale para

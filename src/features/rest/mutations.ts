@@ -1,25 +1,13 @@
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/db/client';
-import { restDays, settings } from '@/db/schema';
+import { restDays } from '@/db/schema';
+import { writeSetting } from '@/db/settings';
 import { REST_WEEKDAYS_KEY, serializeRestWeekdays } from '@/features/rest/rest';
-
-const touch = () => ({ updatedAt: Date.now() });
 
 /** Replaces the weekdays kept for rest. An empty set clears them. */
 export async function setRestWeekdays(weekdays: Iterable<number>): Promise<void> {
-  const value = serializeRestWeekdays(weekdays);
-  const [existing] = await db.select().from(settings).where(eq(settings.key, REST_WEEKDAYS_KEY));
-
-  if (existing) {
-    await db
-      .update(settings)
-      .set({ value, ...touch() })
-      .where(eq(settings.key, REST_WEEKDAYS_KEY));
-    return;
-  }
-
-  await db.insert(settings).values({ key: REST_WEEKDAYS_KEY, value });
+  await writeSetting(REST_WEEKDAYS_KEY, serializeRestWeekdays(weekdays));
 }
 
 /**

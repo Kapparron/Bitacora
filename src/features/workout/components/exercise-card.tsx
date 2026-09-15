@@ -25,16 +25,19 @@ import { useRestTimer } from '../rest-timer';
 import { RecordBubble } from './record-bubble';
 import { RestSheet, formatRest } from './rest-sheet';
 import { SetRow, SetRowHeader } from './set-row';
-import type { SetType } from './set-type-sheet';
+import { badgeFor, type SetType } from './set-type-sheet';
 
 function ExerciseCardComponent({
   entry,
   workoutId,
   editable,
+  onReorder,
 }: {
   entry: WorkoutEntry;
   workoutId: string;
   editable: boolean;
+  /** Opens the reorder sheet. Left out when there is nothing to reorder. */
+  onReorder?: () => void;
 }) {
   const theme = useTheme();
   const router = useRouter();
@@ -131,6 +134,12 @@ function ExerciseCardComponent({
 
         {editable ? (
           <View style={styles.headerActions}>
+            {onReorder ? (
+              <Pressable onPress={onReorder} hitSlop={8} accessibilityLabel="Reordenar ejercicios">
+                <Ionicons name="reorder-three" size={22} color={theme.textSecondary} />
+              </Pressable>
+            ) : null}
+
             <Pressable
               onPress={() =>
                 router.push({
@@ -183,7 +192,7 @@ function ExerciseCardComponent({
         <SetRow
           key={set.id}
           set={set}
-          index={index}
+          label={badgeFor(entry.sets, index)}
           record={recordsReachedBy(set, records).length > 0}
           previous={previousSets[index] ?? null}
           trackingType={entry.exercise.trackingType}
@@ -215,6 +224,7 @@ export const ExerciseCard = memo(ExerciseCardComponent, (before, after) => {
   if (
     before.workoutId !== after.workoutId ||
     before.editable !== after.editable ||
+    before.onReorder !== after.onReorder ||
     before.entry.workoutExerciseId !== after.entry.workoutExerciseId ||
     before.entry.exercise.id !== after.entry.exercise.id ||
     before.entry.notes !== after.entry.notes ||

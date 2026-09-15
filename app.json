@@ -18,6 +18,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
+      "permissions": ["android.permission.REQUEST_INSTALL_PACKAGES"],
       "package": "com.bitacora.app",
       "versionCode": 1
     },
@@ -39,10 +40,18 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Bitacora usa la camara para escanear el codigo de barras de los alimentos."
+          "cameraPermission": "Bitacora usa la camara para escanear el codigo de barras de los alimentos y el codigo QR de las rutinas compartidas."
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false,

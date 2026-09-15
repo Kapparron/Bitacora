@@ -1,8 +1,10 @@
-import { and, asc, eq, max, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, max, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { newId } from '@/db/ids';
-import { routineExercises, routines } from '@/db/schema';
+import { exercises, routineExercises, routines } from '@/db/schema';
+
+import type { SharedRoutine } from './share';
 
 const touch = () => ({ updatedAt: Date.now() });
 
@@ -107,41 +109,18 @@ export async function removeRoutineExercise(routineExerciseId: string): Promise<
   });
 }
 
-/** Swaps an exercise with its neighbour, keeping positions contiguous. */
-export async function moveRoutineExercise(
-  routineExerciseId: string,
-  direction: 'up' | 'down'
+/** Rewrites every position from the new order, keeping them contiguous. */
+export async function reorderRoutineExercises(
+  routineId: string,
+  orderedIds: readonly string[]
 ): Promise<void> {
-  const [target] = await db
-    .select()
-    .from(routineExercises)
-    .where(eq(routineExercises.id, routineExerciseId));
-  if (!target) return;
-
-  const neighbourPosition = target.position + (direction === 'up' ? -1 : 1);
-
-  const [neighbour] = await db
-    .select()
-    .from(routineExercises)
-    .where(
-      and(
-        eq(routineExercises.routineId, target.routineId),
-        eq(routineExercises.position, neighbourPosition)
-      )
-    );
-
-  if (!neighbour) return;
-
   db.transaction((tx) => {
-    tx.update(routineExercises)
-      .set({ position: target.position, updatedAt: Date.now() })
-      .where(eq(routineExercises.id, neighbour.id))
-      .run();
-
-    tx.update(routineExercises)
-      .set({ position: neighbourPosition, updatedAt: Date.now() })
-      .where(eq(routineExercises.id, target.id))
-      .run();
+    orderedIds.forEach((id, position) => {
+      tx.update(routineExercises)
+        .set({ position, updatedAt: Date.now() })
+        .where(and(eq(routineExercises.id, id), eq(routineExercises.routineId, routineId)))
+        .run();
+    });
   });
 }
 
@@ -223,6 +202,107 @@ async function nextSupersetGroup(routineId: string): Promise<number> {
     .where(eq(routineExercises.routineId, routineId));
 
   return (value ?? 0) + 1;
+}
+
+export type ImportResult =
+  | { status: 'imported'; routineId: string }
+  /** The code names catalogue exercises this phone does not have yet. */
+  | { status: 'missing_exercises' };
+
+/**
+ * Saves a routine received from someone else as a new routine at the end of the
+ * list. Catalogue exercises are matched by dataset id. A custom exercise reuses
+ * one of the user's own with the same name and tracking type, so importing
+ * twice does not duplicate it, and is created otherwise.
+ *
+ * Nothing is written unless every exercise resolves: a routine with holes in it
+ * would be worse than none.
+ */
+export async function importRoutine(shared: SharedRoutine): Promise<ImportResult> {
+  const externalIds = [
+    ...new Set(shared.e.flatMap((entry) => ('x' in entry.e ? [entry.e.x] : []))),
+  ];
+
+  const catalogue =
+    externalIds.length === 0
+      ? []
+      : await db
+          .select({ id: exercises.id, externalId: exercises.externalId })
+          .from(exercises)
+          .where(inArray(exercises.externalId, externalIds));
+
+  const byExternalId = new Map(catalogue.map((row) => [row.externalId, row.id]));
+  if (byExternalId.size < externalIds.length) return { status: 'missing_exercises' };
+
+  const ownExercises = await db
+    .select({ id: exercises.id, name: exercises.name, trackingType: exercises.trackingType })
+    .from(exercises)
+    .where(and(eq(exercises.isCustom, true), isNull(exercises.deletedAt)));
+
+  const customKey = (name: string, trackingType: string) =>
+    `${name.trim().toLowerCase()}|${trackingType}`;
+  const byCustomKey = new Map(ownExercises.map((row) => [customKey(row.name, row.trackingType), row.id]));
+
+  const [{ value: lastPosition } = { value: null }] = await db
+    .select({ value: max(routines.position) })
+    .from(routines);
+
+  const routineId = newId();
+
+  db.transaction((tx) => {
+    tx.insert(routines)
+      .values({
+        id: routineId,
+        name: shared.n || 'Rutina sin nombre',
+        notes: shared.o,
+        position: (lastPosition ?? -1) + 1,
+      })
+      .run();
+
+    shared.e.forEach((entry, position) => {
+      let exerciseId: string;
+
+      if ('x' in entry.e) {
+        exerciseId = byExternalId.get(entry.e.x)!;
+      } else {
+        const key = customKey(entry.e.n, entry.e.t);
+        const existing = byCustomKey.get(key);
+
+        if (existing) {
+          exerciseId = existing;
+        } else {
+          exerciseId = newId();
+          tx.insert(exercises)
+            .values({
+              id: exerciseId,
+              name: entry.e.n,
+              muscleGroup: entry.e.m,
+              equipment: entry.e.q,
+              trackingType: entry.e.t,
+              isCustom: true,
+            })
+            .run();
+          byCustomKey.set(key, exerciseId);
+        }
+      }
+
+      tx.insert(routineExercises)
+        .values({
+          id: newId(),
+          routineId,
+          exerciseId,
+          position,
+          supersetGroup: entry.g,
+          targetSets: entry.s,
+          targetReps: entry.r,
+          restSeconds: entry.d,
+          notes: entry.o,
+        })
+        .run();
+    });
+  });
+
+  return { status: 'imported', routineId };
 }
 
 /** Exercise ids already in the routine, so the picker can pre-tick them. */

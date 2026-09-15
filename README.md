@@ -35,7 +35,8 @@ segundos que hayas puesto para ese ejercicio.
 
 **Rutinas.** Monta tu día de pecho una vez y empiézalo con un botón. Puedes
 programarlas por días de la semana o cada X días, y la que toca hoy te espera en
-la pantalla de inicio.
+la pantalla de inicio. Para pasarle una a un amigo, enséñale su código QR: lo
+escanea desde su app y la tiene igual, sin cuentas de por medio.
 
 **Récords.** La app se queda con tus mejores marcas de cada ejercicio: el peso
 más alto, la serie más dura y tu máximo estimado. Cuando una serie bate una de

@@ -16,6 +16,7 @@ import {
 import { GoalCalculator } from '@/features/nutrition/components/goal-calculator';
 import { setGoal } from '@/features/nutrition/mutations';
 import { RestWeekdaysCard } from '@/features/rest/components/rest-weekdays-card';
+import { AboutCard } from '@/features/updates/components/about-card';
 import { useGoalFor } from '@/features/nutrition/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatNumber, toIsoDay } from '@/lib/format';
@@ -203,6 +204,8 @@ export default function ProfileScreen() {
             </ThemedText>
           ) : null}
         </View>
+
+        <AboutCard />
       </ScrollView>
     </SafeAreaView>
   );
