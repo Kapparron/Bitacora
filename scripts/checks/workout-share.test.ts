@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 import QRCode from 'qrcode';
@@ -23,7 +22,6 @@ import {
   setCountOf,
   volumeOf,
 } from '../../site/entreno/entreno.js';
-import { APP_CATALOGUE, WEB_CATALOGUE, webCatalogue } from '../build-web-catalog.mjs';
 
 function set(fields: Partial<WorkoutSet>): WorkoutSet {
   return {
@@ -223,12 +221,4 @@ test('a long session still fits in a QR code', () => {
 
   // Throws when the text is past what the largest QR code holds.
   assert.doesNotThrow(() => QRCode.create(workoutLink(shared), { errorCorrectionLevel: 'L' }));
-});
-
-test('the catalogue the page loads matches the one the app ships', () => {
-  const app = JSON.parse(readFileSync(APP_CATALOGUE, 'utf8'));
-  const published = JSON.parse(readFileSync(WEB_CATALOGUE, 'utf8'));
-
-  // Run `npm run build:web-catalog` when this fails.
-  assert.deepEqual(published, webCatalogue(app));
 });

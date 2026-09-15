@@ -1,0 +1,42 @@
+{
+  "light": {
+    "text": "#000000",
+    "background": "#ffffff",
+    "backgroundElement": "#F0F0F3",
+    "backgroundSelected": "#E0E1E6",
+    "textSecondary": "#60646C",
+    "border": "#D8D9E0",
+    "accent": "#84C226",
+    "onAccent": "#10230A",
+    "accentText": "#4E7A12",
+    "success": "#5D9E1B",
+    "danger": "#D93A3A"
+  },
+  "dark": {
+    "text": "#ffffff",
+    "background": "#000000",
+    "backgroundElement": "#212225",
+    "backgroundSelected": "#2E3135",
+    "textSecondary": "#B0B4BA",
+    "border": "#33363B",
+    "accent": "#96D62F",
+    "onAccent": "#10230A",
+    "accentText": "#96D62F",
+    "success": "#96D62F",
+    "danger": "#FF6B6B"
+  },
+  "brand": "#8bb735",
+  "site": {
+    "bg": "#0b0c0a",
+    "bgRaised": "#15171a",
+    "bgLine": "#25282c",
+    "bgPanel": "#1b1d20",
+    "bgSection": "#0f1110",
+    "shadowRing": "#0f1012",
+    "text": "#f4f6f0",
+    "muted": "#9aa097",
+    "onAccent": "#0b0c0a",
+    "accentHover": "#a8e647",
+    "warm": "#f5a524"
+  }
+}

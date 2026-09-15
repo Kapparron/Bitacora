@@ -7,18 +7,11 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { Button } from '@/components/button';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
+import { TRACKING_TYPES } from '@/constants/sets';
 import { db } from '@/db/client';
 import { exercises, type Exercise } from '@/db/schema';
 import { createCustomExercise } from '@/features/exercises/mutations';
 import { useTheme } from '@/hooks/use-theme';
-
-/** How a set of the exercise is measured; it decides the fields a set shows. */
-const TRACKING_TYPES: { value: Exercise['trackingType']; label: string }[] = [
-  { value: 'weight_reps', label: 'Peso y reps' },
-  { value: 'reps', label: 'Solo reps' },
-  { value: 'duration', label: 'Tiempo' },
-  { value: 'distance_duration', label: 'Distancia y tiempo' },
-];
 
 /**
  * Creates an exercise the catalogue does not have. The muscle groups and the
@@ -104,10 +97,10 @@ export default function NewExerciseScreen() {
         <View style={styles.chips}>
           {TRACKING_TYPES.map((option) => (
             <Chip
-              key={option.value}
+              key={option.id}
               label={option.label}
-              active={option.value === trackingType}
-              onPress={() => setTrackingType(option.value)}
+              active={option.id === trackingType}
+              onPress={() => setTrackingType(option.id)}
             />
           ))}
         </View>

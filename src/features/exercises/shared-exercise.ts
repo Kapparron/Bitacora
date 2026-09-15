@@ -1,3 +1,4 @@
+import { TRACKING_TYPE_IDS } from '@/constants/sets';
 import type { Exercise } from '@/db/schema';
 import { isObject, isText } from '@/lib/link';
 
@@ -14,13 +15,6 @@ export type SharedExercise =
   | { x: string }
   /** A custom exercise: name, muscle group, equipment, tracking type. */
   | { n: string; m: string; q: string; t: Exercise['trackingType'] };
-
-const TRACKING_TYPES: readonly Exercise['trackingType'][] = [
-  'weight_reps',
-  'reps',
-  'duration',
-  'distance_duration',
-];
 
 export function toSharedExercise(exercise: Exercise): SharedExercise {
   return exercise.externalId && !exercise.isCustom
@@ -39,7 +33,7 @@ export function parseSharedExercise(raw: unknown): SharedExercise | null {
   if ('x' in raw) return isText(raw.x) ? { x: raw.x } : null;
 
   if (!isText(raw.n) || !isText(raw.m) || !isText(raw.q)) return null;
-  if (!TRACKING_TYPES.includes(raw.t as Exercise['trackingType'])) return null;
+  if (!TRACKING_TYPE_IDS.includes(raw.t as Exercise['trackingType'])) return null;
 
   return { n: raw.n.trim(), m: raw.m, q: raw.q, t: raw.t as Exercise['trackingType'] };
 }

@@ -1,6 +1,19 @@
-import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+  notInArray,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import { useMemo } from 'react';
 
+import { UNCOUNTED_SET_TYPES } from '@/constants/sets';
 import { db } from '@/db/client';
 import { useLiveTables } from '@/db/live';
 import type { RecordValues } from '@/features/workout/set-records';
@@ -260,7 +273,7 @@ export function useExerciseProgress(exerciseId: string): ExerciseSessionStat[] {
           and(
             eq(sets.workoutExerciseId, workoutExercises.id),
             eq(sets.completed, true),
-            ne(sets.type, 'warmup')
+            notInArray(sets.type, UNCOUNTED_SET_TYPES)
           )
         )
         .where(
@@ -296,7 +309,7 @@ export function useWeeklyVolume(): WeeklyVolume[] {
       db
         .select({
           week: sql<string>`date(${workouts.startedAt} / 1000, 'unixepoch', 'localtime', 'weekday 0', '-6 days')`,
-          volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${sets.type} <> 'warmup' then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
+          volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${notInArray(sets.type, UNCOUNTED_SET_TYPES)} then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
           workouts: sql<number>`count(distinct ${workouts.id})`,
         })
         .from(workouts)
@@ -344,7 +357,7 @@ export function useHistorySessions(limit = HISTORY_LIMIT): {
           finishedAt: workouts.finishedAt,
           exerciseCount: sql<number>`count(distinct ${workoutExercises.id})`,
           setCount: sql<number>`count(distinct case when ${sets.completed} = 1 then ${sets.id} end)`,
-          volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${sets.type} <> 'warmup' then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
+          volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${notInArray(sets.type, UNCOUNTED_SET_TYPES)} then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
         })
         .from(workouts)
         .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
@@ -458,7 +471,7 @@ export function useDayWorkouts(day: string | null): WorkoutSummary[] {
           finishedAt: workouts.finishedAt,
           exerciseCount: sql<number>`count(distinct ${workoutExercises.id})`,
           setCount: sql<number>`count(distinct case when ${sets.completed} = 1 then ${sets.id} end)`,
-          volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${sets.type} <> 'warmup' then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
+          volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${notInArray(sets.type, UNCOUNTED_SET_TYPES)} then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
         })
         .from(workouts)
         .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))

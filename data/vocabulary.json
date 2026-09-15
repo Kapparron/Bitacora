@@ -1,0 +1,214 @@
+{
+  "muscles": [
+    {
+      "en": "abductors",
+      "es": "abductores"
+    },
+    {
+      "en": "abs",
+      "es": "abdominales"
+    },
+    {
+      "en": "adductors",
+      "es": "aductores"
+    },
+    {
+      "en": "biceps",
+      "es": "biceps"
+    },
+    {
+      "en": "calves",
+      "es": "gemelos"
+    },
+    {
+      "en": "cardiovascular system",
+      "es": "cardio"
+    },
+    {
+      "en": "delts",
+      "es": "hombros"
+    },
+    {
+      "en": "forearms",
+      "es": "antebrazos"
+    },
+    {
+      "en": "glutes",
+      "es": "gluteos"
+    },
+    {
+      "en": "hamstrings",
+      "es": "femoral"
+    },
+    {
+      "en": "lats",
+      "es": "dorsales"
+    },
+    {
+      "en": "levator scapulae",
+      "es": "cuello"
+    },
+    {
+      "en": "pectorals",
+      "es": "pecho"
+    },
+    {
+      "en": "quads",
+      "es": "cuadriceps"
+    },
+    {
+      "en": "serratus anterior",
+      "es": "serrato"
+    },
+    {
+      "en": "spine",
+      "es": "lumbares"
+    },
+    {
+      "en": "traps",
+      "es": "trapecio"
+    },
+    {
+      "en": "triceps",
+      "es": "triceps"
+    },
+    {
+      "en": "upper back",
+      "es": "espalda alta"
+    }
+  ],
+  "equipment": [
+    {
+      "en": "assisted",
+      "es": "asistido"
+    },
+    {
+      "en": "band",
+      "es": "banda",
+      "namePattern": "\\bcon banda\\b|(?<!resistance )\\bband\\b"
+    },
+    {
+      "en": "barbell",
+      "es": "barra",
+      "namePattern": "\\bcon barra\\b(?! [VZ]\\b)|(?<!ez[- ])(?<!olympic )\\bbarbell\\b"
+    },
+    {
+      "en": "body weight",
+      "es": "peso corporal",
+      "namePattern": "\\bpeso corporal\\b|\\bbody weight\\b"
+    },
+    {
+      "en": "bosu ball",
+      "es": "bosu"
+    },
+    {
+      "en": "cable",
+      "es": "polea",
+      "namePattern": "\\ben polea\\b|\\bcon cuerda\\b|\\bcon barra V\\b|\\bcable\\b"
+    },
+    {
+      "en": "dumbbell",
+      "es": "mancuerna",
+      "namePattern": "\\bcon mancuernas?\\b|\\bdumbbell\\b"
+    },
+    {
+      "en": "elliptical machine",
+      "es": "eliptica",
+      "cardio": true
+    },
+    {
+      "en": "ez barbell",
+      "es": "barra Z",
+      "namePattern": "\\bcon barra Z\\b|\\bez[- ]barbell\\b"
+    },
+    {
+      "en": "hammer",
+      "es": "maquina hammer",
+      "family": "maquina"
+    },
+    {
+      "en": "kettlebell",
+      "es": "kettlebell",
+      "namePattern": "\\bkettlebell\\b"
+    },
+    {
+      "en": "leverage machine",
+      "es": "maquina",
+      "namePattern": "\\ben maquina\\b|(?<!front )(?<!back )\\blever\\b"
+    },
+    {
+      "en": "medicine ball",
+      "es": "balon medicinal"
+    },
+    {
+      "en": "olympic barbell",
+      "es": "barra olimpica",
+      "family": "barra",
+      "namePattern": "\\bolympic barbell\\b"
+    },
+    {
+      "en": "resistance band",
+      "es": "banda elastica",
+      "family": "banda"
+    },
+    {
+      "en": "roller",
+      "es": "rodillo"
+    },
+    {
+      "en": "rope",
+      "es": "cuerda"
+    },
+    {
+      "en": "skierg machine",
+      "es": "skierg",
+      "cardio": true
+    },
+    {
+      "en": "sled machine",
+      "es": "prensa",
+      "namePattern": "\\bprensa\\b|\\bsled\\b"
+    },
+    {
+      "en": "smith machine",
+      "es": "multipower",
+      "namePattern": "\\ben multipower\\b|\\bsmith\\b"
+    },
+    {
+      "en": "stability ball",
+      "es": "fitball"
+    },
+    {
+      "en": "stationary bike",
+      "es": "bicicleta estatica",
+      "cardio": true
+    },
+    {
+      "en": "stepmill machine",
+      "es": "escaladora",
+      "cardio": true
+    },
+    {
+      "en": "tire",
+      "es": "neumatico"
+    },
+    {
+      "en": "trap bar",
+      "es": "barra hexagonal",
+      "family": "barra"
+    },
+    {
+      "en": "upper body ergometer",
+      "es": "ergometro de brazos",
+      "cardio": true
+    },
+    {
+      "en": "weighted",
+      "es": "lastrado"
+    },
+    {
+      "en": "wheel roller",
+      "es": "rueda abdominal"
+    }
+  ]
+}

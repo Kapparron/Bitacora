@@ -1,14 +1,20 @@
+import vocabulary from '@/data/vocabulary.json';
+
 /**
- * Catalogue equipment spelled as a variant of a broader one. The filter offers
- * only the broader name, so "barra" also finds the Olympic and hex bars. The EZ
- * bar keeps its own entry: it has enough exercises to be worth picking alone.
+ * Catalogue equipment spelled as a variant of a broader one, read from
+ * `data/vocabulary.json`: the filter offers only the broader name, so "barra"
+ * also finds the Olympic and hex bars. The EZ bar keeps its own entry there —
+ * it has enough exercises to be worth picking alone.
+ *
+ * The same file is what `scripts/build-exercise-catalog.mjs` translates the
+ * upstream names with, so a piece of equipment is named and grouped in one
+ * place.
  */
-const EQUIPMENT_FAMILIES: Record<string, string> = {
-  'barra olimpica': 'barra',
-  'barra hexagonal': 'barra',
-  'banda elastica': 'banda',
-  'maquina hammer': 'maquina',
-};
+const EQUIPMENT_FAMILIES: Record<string, string> = Object.fromEntries(
+  vocabulary.equipment
+    .filter((item): item is typeof item & { family: string } => 'family' in item)
+    .map((item) => [item.es, item.family])
+);
 
 /** The equipment name the filter groups an exercise under. */
 export function equipmentFamily(equipment: string): string {

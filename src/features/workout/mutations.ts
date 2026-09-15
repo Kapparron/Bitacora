@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm';
 
+import { countsForVolume } from '@/constants/sets';
 import { db } from '@/db/client';
 import { newId } from '@/db/ids';
 import {
@@ -103,7 +104,9 @@ export async function addSet(workoutExerciseId: string): Promise<void> {
     id: newId(),
     workoutExerciseId,
     position: (last?.position ?? -1) + 1,
-    type: last?.type === 'warmup' ? 'normal' : (last?.type ?? 'normal'),
+    // Copia el tipo de la anterior, salvo el calentamiento: despues de
+    // calentar viene una serie de trabajo.
+    type: last && countsForVolume(last.type) ? last.type : 'normal',
     weight: last?.weight ?? null,
     reps: last?.reps ?? null,
     durationS: last?.durationS ?? null,

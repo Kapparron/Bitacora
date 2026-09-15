@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { describeSchedule, isScheduledOn, scheduleOf } from '@/features/routines/schedule';
-import { formatDay, formatDuration, shiftIsoDay, toIsoDay } from '@/lib/format';
+import { formatDay, formatDuration, formatNumber, shiftIsoDay, toIsoDay } from '@/lib/format';
 
 /** A day as a timestamp at midday, away from any daylight-saving edge. */
 function at(day: string): number {
@@ -61,4 +61,30 @@ test('an interval schedule counts from its anchor and survives the clocks changi
   // The clocks go back on 2026-10-25 in Spain; the count must not drift.
   assert.equal(isScheduledOn(schedule, '2026-10-29'), true);
   assert.equal(isScheduledOn(schedule, '2026-10-22'), false, 'antes del inicio');
+});
+
+/**
+ * La web tiene su propia copia de estas dos funciones, porque GitHub Pages solo
+ * publica `site/` y desde ahi no se puede importar la app. Lo que impide que se
+ * separen es esto: la misma tabla por los dos lados.
+ *
+ * Ojo a las unidades: la app cuenta en milisegundos y la web en segundos, que
+ * es como viaja una duracion dentro de un enlace.
+ */
+test('la web escribe las duraciones y los numeros como la app', async () => {
+  const web = await import('../../site/formato.js');
+
+  for (const seconds of [0, 1, 59, 60, 61, 90, 599, 600, 3599, 3600, 3661, 45296]) {
+    assert.equal(
+      web.formatDuration(seconds),
+      formatDuration(seconds * 1000),
+      `duracion de ${seconds}s`
+    );
+  }
+
+  for (const value of [0, 1, 60, 62.5, 1055, 12345.678, 0.5]) {
+    assert.equal(web.formatNumber(value), formatNumber(value), `numero ${value}`);
+  }
+
+  assert.equal(web.formatNumber(12345.678, 0), formatNumber(12345.678, 0));
 });

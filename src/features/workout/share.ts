@@ -1,3 +1,5 @@
+import { WORKOUT_LINK_PREFIX } from '@/constants/project';
+import { codeOf } from '@/constants/sets';
 import type { WorkoutSet } from '@/db/schema';
 import { toSharedExercise, type SharedExercise } from '@/features/exercises/shared-exercise';
 import { encodePayload } from '@/lib/link';
@@ -59,15 +61,6 @@ export type SharedWorkout = {
   e: SharedWorkoutEntry[];
 };
 
-const WEB_PREFIX = 'https://kapparron.github.io/Bitacora/entreno/#';
-
-const TYPE_CODE: Record<WorkoutSet['type'], string> = {
-  normal: '',
-  warmup: 'w',
-  drop: 'd',
-  failure: 'f',
-};
-
 export function toSharedWorkout({ workout, entries }: WorkoutContents): SharedWorkout {
   return {
     v: SHARE_VERSION,
@@ -91,7 +84,7 @@ export function toSharedWorkout({ workout, entries }: WorkoutContents): SharedWo
 }
 
 export function workoutLink(shared: SharedWorkout): string {
-  return `${WEB_PREFIX}${encodePayload(shared)}`;
+  return `${WORKOUT_LINK_PREFIX}${encodePayload(shared)}`;
 }
 
 /** The sets of one exercise as the compact string the format described above. */
@@ -104,7 +97,7 @@ export function encodeSets(sets: readonly WorkoutSet[]): string {
 
 function encodeSet(set: WorkoutSet): string {
   const rpe = set.rpe === null ? '' : `@${number(set.rpe)}`;
-  return `${TYPE_CODE[set.type]}${measures(set)}${rpe}`;
+  return `${codeOf(set.type)}${measures(set)}${rpe}`;
 }
 
 /** What was written down in a set, in the shortest form that keeps it all. */

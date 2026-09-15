@@ -3,6 +3,7 @@ import {
   toSharedExercise,
   type SharedExercise,
 } from '@/features/exercises/shared-exercise';
+import { ROUTINE_APP_PREFIX, ROUTINE_LINK_PREFIX } from '@/constants/project';
 import {
   decodePayload,
   encodePayload,
@@ -59,11 +60,6 @@ export type SharedRoutine = {
   e: SharedEntry[];
 };
 
-const WEB_PREFIX = 'https://kapparron.github.io/Bitacora/rutina/#';
-
-/** What the web page opens, and what links shared before the page existed use. */
-const APP_PREFIX = 'bitacora://routine/import?r=';
-
 /** Generous limit, only there so a hostile code cannot flood the database. */
 const MAX_ENTRIES = 60;
 
@@ -84,7 +80,7 @@ export function toSharedRoutine({ routine, entries }: RoutineContents): SharedRo
 }
 
 export function routineLink(shared: SharedRoutine): string {
-  return `${WEB_PREFIX}${encodePayload(shared)}`;
+  return `${ROUTINE_LINK_PREFIX}${encodePayload(shared)}`;
 }
 
 /**
@@ -94,7 +90,9 @@ export function routineLink(shared: SharedRoutine): string {
  * database.
  */
 export function parseSharedRoutine(input: string): SharedRoutine | null {
-  const prefix = [WEB_PREFIX, APP_PREFIX].find((candidate) => input.startsWith(candidate));
+  const prefix = [ROUTINE_LINK_PREFIX, ROUTINE_APP_PREFIX].find((candidate) =>
+    input.startsWith(candidate)
+  );
   const value = decodePayload(prefix ? input.slice(prefix.length) : input);
 
   if (!isObject(value) || value.v !== SHARE_VERSION) return null;

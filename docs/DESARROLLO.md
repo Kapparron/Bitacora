@@ -35,6 +35,7 @@ Expo Go.
 | `npx expo export -p android` | Empaqueta para verificar que todo compila |
 | `npm run build:icons` | Regenera los iconos desde `assets/images/logo.png` |
 | `npm run build:catalog` | Regenera el catálogo de ejercicios |
+| `npm run build:data` | Regenera lo que la web sirve desde `data/` |
 
 ## Stack
 
@@ -74,9 +75,11 @@ src/
   constants/      tema y tipografías
 modules/          módulos nativos propios: notificaciones del entreno (Android)
 drizzle/          migraciones SQL generadas
-assets/data/      catálogo de ejercicios generado
-scripts/          generador del catálogo, iconos y comprobaciones
-site/             la web de GitHub Pages: portada, rutina y entreno compartidos
+data/             única fuente de los datos: catálogo, vocabulario, tipos de
+                  serie, constantes del proyecto y paleta
+scripts/          generadores del catálogo y de la web, iconos y comprobaciones
+site/             la web de GitHub Pages: portada, rutina y entreno compartidos.
+                  catalogo.json, datos.js y estilo.css los genera build:data
 docs/PLAN.md      plan de producto y fases
 ```
 
@@ -105,11 +108,44 @@ programación de rutinas al cambiar la hora.
 Conviene ejecutarlo junto a `npx tsc --noEmit` después de tocar el esquema o
 cualquier cálculo.
 
+## Los datos, en un solo sitio
+
+Todo lo que la app y la web dicen sobre sí mismas vive en `data/`, y nada de
+ello está escrito dos veces:
+
+| Fichero | Qué guarda | Quién lo lee |
+| --- | --- | --- |
+| `exercises.json` | los 1.324 ejercicios del catálogo | la semilla de la base de datos y la web |
+| `vocabulary.json` | músculos y material, en inglés y en español, con sus familias y los patrones con que se reconocen en un nombre | el generador del catálogo, los filtros de la app y `catalogue.test.mjs` |
+| `sets.json` | los tipos de serie (letra del enlace, insignia, si cuenta para el volumen) y los tipos de registro | la app, el enlace compartido y la web |
+| `project.json` | el repositorio, el paquete, el esquema, los enlaces de la web y el CDN de las imágenes | `src/constants/project.ts` y la web |
+| `theme.json` | la paleta clara y oscura, el verde de marca y los colores propios de la web | `src/constants/theme.ts`, `site/estilo.css` y `app.json` |
+
+**La web no importa de la app**, porque GitHub Pages solo publica `site/`. Lo que
+necesita se genera con `npm run build:data`, que escribe tres ficheros que no se
+editan a mano:
+
+```
+site/catalogo.json   el catálogo recortado a nombre y foto, para las dos páginas
+site/datos.js        enlaces, medios y tipos de serie
+site/estilo.css      la paleta, como propiedades personalizadas
+```
+
+Lo que sí está escrito dos veces, porque no hay forma de importarlo, es el
+formato de las cifras (`site/formato.js`) y la elección de la última versión
+(`site/versiones.js`). Las comprobaciones pasan los mismos casos por los dos
+lados y fallan en cuanto se separan.
+
+**La versión de la app está solo en `app.json`.** `package.json` no la lleva:
+llevaba una distinta desde hacía tiempo y no la leía nadie. El flujo
+`Publicar APK` sobrescribe la de `app.json` con la etiqueta que se le pide, que
+es lo que la app compara al buscar actualizaciones.
+
 ## Catálogo de ejercicios
 
 Los 1.324 ejercicios integrados provienen del dataset público
 [hasaneyldrm/exercises-dataset](https://github.com/hasaneyldrm/exercises-dataset),
-recortado y traducido a `assets/data/exercises.json` por
+recortado y traducido a `data/exercises.json` por
 `scripts/build-exercise-catalog.mjs`. Se insertan en el primer arranque y se
 identifican por el id del dataset, así que una versión posterior puede añadir
 entradas sin tocar las existentes ni los ejercicios creados por el usuario.
@@ -181,10 +217,9 @@ entenderse.
   anotar nada; la letra de delante es calentamiento, drop o fallo, y el `@8` de
   detrás el RPE. Un entreno de seis ejercicios cabe en medio kilobyte.
 - La página necesita el catálogo para convertir un id en nombre e imagen, pero
-  no el de 1 MB que lleva la app: `npm run build:web-catalog` genera
-  `site/entreno/catalogo.json` (69 KB) a partir de `assets/data/exercises.json`,
-  y `npm run build:catalog` lo regenera también. La comprobación falla si se
-  queda atrás.
+  no el de 1 MB que lleva la app: `npm run build:data` genera `site/catalogo.json`
+  (69 KB) a partir de `data/exercises.json`, y `npm run build:catalog` lo
+  regenera también. La comprobación falla si se queda atrás.
 - Las imágenes salen del mismo CDN que en la app, y el GIF solo se descarga al
   pulsar la miniatura.
 
