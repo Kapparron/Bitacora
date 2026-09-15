@@ -27,17 +27,20 @@ const ROUTINE: SharedRoutine = {
   ],
 };
 
-/** What the other phone reads: the `r` parameter or the scanned text. */
+/** The routine part of a link, which the web page passes on as `r`. */
 function encoded(link: string): string {
-  return link.slice(link.indexOf('?r=') + 3);
+  return link.slice(link.indexOf('#') + 1);
 }
 
 test('a shared routine survives the link, accents included', () => {
   const link = routineLink(ROUTINE);
 
-  assert.match(link, /^bitacora:\/\/routine\/import\?r=[A-Za-z0-9_-]+$/);
+  // WhatsApp only makes https links tappable.
+  assert.match(link, /^https:\/\/kapparron\.github\.io\/Bitacora\/rutina\/#[A-Za-z0-9_-]+$/);
   assert.deepEqual(parseSharedRoutine(link), ROUTINE);
   assert.deepEqual(parseSharedRoutine(encoded(link)), ROUTINE);
+  // What the page opens, and what links sent before it used.
+  assert.deepEqual(parseSharedRoutine(`bitacora://routine/import?r=${encoded(link)}`), ROUTINE);
 });
 
 test('anything that is not a routine is refused', () => {

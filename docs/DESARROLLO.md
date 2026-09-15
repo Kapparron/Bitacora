@@ -124,9 +124,22 @@ obligatoria, y por eso se sirven desde jsDelivr en vez de empaquetarse.
 
 ## Compartir rutinas
 
-Sin servidor ni cuentas, una rutina viaja entera dentro de un enlace
-`bitacora://routine/import?r=...`, que se muestra como código QR o se envía como
-texto. El código está en `src/features/routines/share.ts`.
+Sin servidor ni cuentas, una rutina viaja entera dentro de un enlace, que se
+muestra como código QR o se envía como texto. El código está en
+`src/features/routines/share.ts`.
+
+El enlace es `https://kapparron.github.io/Bitacora/rutina/#<rutina>` porque
+WhatsApp solo deja pulsar enlaces web. Lleva a una página estática,
+[`site/rutina/index.html`](../site/rutina/index.html), que enseña el nombre de
+la rutina y abre la app con `bitacora://routine/import?r=<rutina>`; en Android lo
+hace con un enlace `intent://` que, si la app no está instalada, manda a las
+releases para descargarla. La rutina va detrás del `#`, que el navegador no
+envía al servidor.
+
+La página se publica en GitHub Pages con el flujo
+[`Publicar web`](../.github/workflows/pages.yml), al cambiar `site/` en `master`
+o a mano. Si cambia la dirección, hay que cambiar también `WEB_PREFIX`: los
+enlaces ya enviados apuntan a la antigua.
 
 - Un ejercicio del catálogo va solo con su id del dataset; uno propio va con
   nombre, grupo muscular, material y tipo de registro, y al importarlo se reusa

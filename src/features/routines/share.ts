@@ -4,9 +4,13 @@ import type { RoutineContents } from './queries';
 
 /**
  * A routine passed from one phone to another, with no server in between: the
- * whole routine travels inside a `bitacora://routine/import?r=...` link, shown
- * as a QR code or sent as text. Scanning the code, in the app or with the
- * phone's own camera, opens the import screen.
+ * whole routine travels inside a link, shown as a QR code or sent as text.
+ *
+ * The link is `https`, because WhatsApp and most chats only let a user tap on
+ * web links. It points at a static page (site/rutina/index.html) that hands the
+ * routine to the app through `bitacora://routine/import?r=...`, or offers the
+ * download to someone who does not have the app. The routine sits after the
+ * `#`, which browsers never send to the server.
  *
  * A QR code holds under 3 KB and a denser one is harder to scan, so the payload
  * uses one-letter keys and a catalogue exercise travels as its dataset id alone:
@@ -57,7 +61,10 @@ export type SharedRoutine = {
   e: SharedEntry[];
 };
 
-const LINK_PREFIX = 'bitacora://routine/import?r=';
+const WEB_PREFIX = 'https://kapparron.github.io/Bitacora/rutina/#';
+
+/** What the web page opens, and what links shared before the page existed use. */
+const APP_PREFIX = 'bitacora://routine/import?r=';
 
 /** Generous limits, only there so a hostile code cannot flood the database. */
 const MAX_ENTRIES = 60;
@@ -93,16 +100,18 @@ export function routineLink(shared: SharedRoutine): string {
   for (const byte of bytes) binary += String.fromCharCode(byte);
 
   const base64url = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  return `${LINK_PREFIX}${base64url}`;
+  return `${WEB_PREFIX}${base64url}`;
 }
 
 /**
- * Reads a scanned code or the `r` parameter of an opened link. Anything that is
- * not a routine this version understands comes back as null: a QR code can say
- * anything, so every field is checked before it gets near the database.
+ * Reads a scanned code, either link, or the `r` parameter of an opened link.
+ * Anything that is not a routine this version understands comes back as null:
+ * a QR code can say anything, so every field is checked before it gets near the
+ * database.
  */
 export function parseSharedRoutine(input: string): SharedRoutine | null {
-  const encoded = input.startsWith(LINK_PREFIX) ? input.slice(LINK_PREFIX.length) : input;
+  const prefix = [WEB_PREFIX, APP_PREFIX].find((candidate) => input.startsWith(candidate));
+  const encoded = prefix ? input.slice(prefix.length) : input;
   if (!/^[A-Za-z0-9_-]+$/.test(encoded)) return null;
 
   let value: unknown;
