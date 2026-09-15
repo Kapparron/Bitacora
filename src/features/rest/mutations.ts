@@ -2,12 +2,31 @@ import { eq } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { restDays } from '@/db/schema';
-import { writeSetting } from '@/db/settings';
-import { REST_WEEKDAYS_KEY, serializeRestWeekdays } from '@/features/rest/rest';
+import { deleteSetting, writeSetting } from '@/db/settings';
+import {
+  REST_CYCLE_KEY,
+  REST_WEEKDAYS_KEY,
+  serializeRestCycle,
+  serializeRestWeekdays,
+  type RestCycle,
+} from '@/features/rest/rest';
 
 /** Replaces the weekdays kept for rest. An empty set clears them. */
 export async function setRestWeekdays(weekdays: Iterable<number>): Promise<void> {
   await writeSetting(REST_WEEKDAYS_KEY, serializeRestWeekdays(weekdays));
+}
+
+/**
+ * Switches rest to a cycle, or back to the weekdays with null. The weekdays are
+ * left stored either way, so going back to them finds them as they were.
+ */
+export async function setRestCycle(cycle: RestCycle | null): Promise<void> {
+  if (!cycle) {
+    await deleteSetting(REST_CYCLE_KEY);
+    return;
+  }
+
+  await writeSetting(REST_CYCLE_KEY, serializeRestCycle(cycle));
 }
 
 /**
