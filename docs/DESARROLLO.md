@@ -122,6 +122,36 @@ Las condiciones de uso de las imágenes están en los créditos del
 [README](../README.md): son de Gym visual, con límite de tamaño y atribución
 obligatoria, y por eso se sirven desde jsDelivr en vez de empaquetarse.
 
+## Compartir rutinas
+
+Sin servidor ni cuentas, una rutina viaja entera dentro de un enlace, que se
+muestra como código QR o se envía como texto. El código está en
+`src/features/routines/share.ts`.
+
+El enlace es `https://kapparron.github.io/Bitacora/rutina/#<rutina>` porque
+WhatsApp solo deja pulsar enlaces web. Lleva a una página estática,
+[`site/rutina/index.html`](../site/rutina/index.html), que enseña el nombre de
+la rutina y abre la app con `bitacora://routine/import?r=<rutina>`; en Android lo
+hace con un enlace `intent://` que, si la app no está instalada, manda a las
+releases para descargarla. La rutina va detrás del `#`, que el navegador no
+envía al servidor.
+
+La página se publica en GitHub Pages con el flujo
+[`Publicar web`](../.github/workflows/pages.yml), al cambiar `site/` en `master`
+o a mano. Si cambia la dirección, hay que cambiar también `WEB_PREFIX`: los
+enlaces ya enviados apuntan a la antigua.
+
+- Un ejercicio del catálogo va solo con su id del dataset; uno propio va con
+  nombre, grupo muscular, material y tipo de registro, y al importarlo se reusa
+  el propio con el mismo nombre o se crea. Si el catálogo del receptor no tiene
+  algún ejercicio, no se guarda nada y se le pide actualizar.
+- La programación (cuándo toca) no se comparte.
+- Un QR tiene un máximo de unos 3 KB, por eso las claves son de una letra. Si se
+  añade un campo, sube `SHARE_VERSION` solo cuando una versión anterior ya no
+  pueda leer el enlace: la importación rechaza versiones que no conoce.
+- Lo leído de un QR no es de fiar: `parseSharedRoutine` valida cada campo antes
+  de que llegue a la base de datos.
+
 ## Iconos
 
 `npm run build:icons` genera el icono de la app, el adaptativo de Android, su
