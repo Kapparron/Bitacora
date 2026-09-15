@@ -4,12 +4,18 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, SectionList, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, SectionList, StyleSheet, TextInput, View } from 'react-native';
 
 import { useConfirm } from '@/components/confirm-dialog';
+import { OptionSheet, type SheetOption } from '@/components/option-sheet';
 import { ThemedText } from '@/components/themed-text';
 import { db } from '@/db/client';
 import { exercises, type Exercise } from '@/db/schema';
+import {
+  filterCounts,
+  matchesFilters,
+  type ExerciseFilters,
+} from '@/features/exercises/filters';
 import { exerciseMediaUrl } from '@/features/exercises/media';
 import { deleteCustomExercise } from '@/features/exercises/mutations';
 import { useTheme } from '@/hooks/use-theme';
@@ -39,8 +45,9 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
   const router = useRouter();
   const confirm = useConfirm();
   const [query, setQuery] = useState('');
-  /** Muscle group filter; null means every group. */
-  const [group, setGroup] = useState<string | null>(null);
+  const [filters, setFilters] = useState<ExerciseFilters>({ muscleGroup: null, equipment: null });
+  /** Which filter sheet is open, if any. */
+  const [openFilter, setOpenFilter] = useState<keyof ExerciseFilters | null>(null);
 
   const { data } = useLiveQuery(
     db
@@ -64,24 +71,21 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
     [data]
   );
 
-  /** Muscle groups present in the catalogue, most populated first. */
-  const groups = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const exercise of data) {
-      counts.set(exercise.muscleGroup, (counts.get(exercise.muscleGroup) ?? 0) + 1);
-    }
-
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name);
-  }, [data]);
-
-  const sections = useMemo(() => {
+  /** Exercises matching the search text, before the muscle and equipment filters. */
+  const textMatches = useMemo(() => {
     const needle = normalizeText(query.trim());
-    let matches = needle
+
+    return needle
       ? searchIndex.filter((entry) => entry.haystack.includes(needle)).map((entry) => entry.exercise)
       : data;
+  }, [data, searchIndex, query]);
 
-    if (group) matches = matches.filter((exercise) => exercise.muscleGroup === group);
+  const matches = useMemo(
+    () => textMatches.filter((exercise) => matchesFilters(exercise, filters)),
+    [textMatches, filters]
+  );
 
+  const sections = useMemo(() => {
     const byGroup = new Map<string, Exercise[]>();
     for (const exercise of matches) {
       const current = byGroup.get(exercise.muscleGroup);
@@ -90,7 +94,24 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
     }
 
     return [...byGroup.entries()].map(([title, items]) => ({ title, data: items }));
-  }, [data, searchIndex, query, group]);
+  }, [matches]);
+
+  // Built only while a sheet is open, so typing does not recount the catalogue.
+  const sheetOptions = useMemo((): SheetOption<string | null>[] => {
+    if (!openFilter) return [];
+
+    const counts = filterCounts(textMatches, openFilter, filters);
+    const total = counts.reduce((sum, [, count]) => sum + count, 0);
+
+    return [
+      { value: null, label: FILTER_LABELS[openFilter].all, description: `${total} ejercicios` },
+      ...counts.map(([name, count]) => ({
+        value: name,
+        label: name,
+        description: `${count} ejercicios`,
+      })),
+    ];
+  }, [openFilter, textMatches, filters]);
 
   const selectable = selectedIds !== undefined;
 
@@ -157,45 +178,65 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
             autoCorrect={false}
             style={[styles.search, { backgroundColor: theme.backgroundElement, color: theme.text }]}
           />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.chips}>
-            {groups.map((name) => {
-              const active = name === group;
+          <View style={styles.filters}>
+            {FILTER_FIELDS.map((field) => {
+              const value = filters[field];
 
               return (
                 <Pressable
-                  key={name}
-                  // Tapping the active chip clears the filter.
-                  onPress={() => setGroup(active ? null : name)}
+                  key={field}
+                  onPress={() => setOpenFilter(field)}
                   style={({ pressed }) => [
-                    styles.chip,
-                    { backgroundColor: active ? theme.accent : theme.backgroundElement },
+                    styles.filter,
+                    { backgroundColor: value ? theme.accent : theme.backgroundElement },
                     pressed && { opacity: 0.6 },
                   ]}>
                   <ThemedText
                     type="small"
-                    style={{ color: active ? theme.onAccent : theme.text, fontWeight: '600' }}>
-                    {name}
+                    numberOfLines={1}
+                    style={[styles.filterText, { color: value ? theme.onAccent : theme.text }]}>
+                    {value ?? FILTER_LABELS[field].all}
                   </ThemedText>
+                  {value ? (
+                    // Clears the filter in one tap, without opening the sheet.
+                    <Pressable
+                      hitSlop={10}
+                      accessibilityLabel={FILTER_LABELS[field].all}
+                      onPress={() => setFilters((current) => ({ ...current, [field]: null }))}>
+                      <Ionicons name="close-circle" size={18} color={theme.onAccent} />
+                    </Pressable>
+                  ) : (
+                    <Ionicons name="chevron-down" size={16} color={theme.textSecondary} />
+                  )}
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
 
           <ThemedText type="small" themeColor="textSecondary" style={styles.count}>
-            {group
-              ? `${sections[0]?.data.length ?? 0} en ${group}`
-              : `${data.length} ejercicios en el catalogo`}
+            {matches.length === data.length
+              ? `${data.length} ejercicios en el catalogo`
+              : `${matches.length} de ${data.length} ejercicios`}
           </ThemedText>
+
+          {openFilter ? (
+            <OptionSheet
+              title={FILTER_LABELS[openFilter].title}
+              options={sheetOptions}
+              current={filters[openFilter]}
+              onSelect={(value) => {
+                setFilters((current) => ({ ...current, [openFilter]: value }));
+                setOpenFilter(null);
+              }}
+              onClose={() => setOpenFilter(null)}
+            />
+          ) : null}
         </View>
       }
       renderSectionHeader={({ section }) =>
-        // With a group selected there is only one section, and its chip already
-        // names it.
-        group ? null : (
+        // With a group selected there is only one section, and its filter button
+        // already names it.
+        filters.muscleGroup ? null : (
           <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionHeader}>
             {section.title.toUpperCase()}
           </ThemedText>
@@ -209,6 +250,13 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
     />
   );
 }
+
+const FILTER_FIELDS: (keyof ExerciseFilters)[] = ['muscleGroup', 'equipment'];
+
+const FILTER_LABELS: Record<keyof ExerciseFilters, { title: string; all: string }> = {
+  muscleGroup: { title: 'Musculo', all: 'Todos los musculos' },
+  equipment: { title: 'Material', all: 'Todo el material' },
+};
 
 function keyExtractor(item: Exercise): string {
   return item.id;
@@ -281,8 +329,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 16,
   },
-  chips: { gap: 8, paddingHorizontal: 16, paddingTop: 12 },
-  chip: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
+  filters: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12 },
+  filter: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  filterText: { flex: 1, fontWeight: '600' },
   count: { paddingHorizontal: 16, paddingTop: 10 },
   sectionHeader: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 },
   row: {
