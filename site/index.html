@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bitácora · Tus entrenos y tus comidas, en una sola app</title>
+  <meta name="description" content="Registra series, rutinas, récords y comidas sin cuenta, sin anuncios y sin conexión. App gratuita y libre para Android.">
+  <meta name="theme-color" content="#0b0c0a">
+  <meta property="og:title" content="Bitácora · Entrena. Come. Progresa.">
+  <meta property="og:description" content="Tus entrenos y tus comidas, en una sola app. Sin cuenta, sin anuncios y sin conexión.">
+  <meta property="og:image" content="https://kapparron.github.io/Bitacora/icon.png">
+  <link rel="icon" href="favicon.png">
+  <style>
+    :root {
+      --bg: #0b0c0a;
+      --bg-raised: #15171a;
+      --bg-line: #25282c;
+      --text: #f4f6f0;
+      --muted: #9aa097;
+      --accent: #96d62f;
+      --accent-deep: #84c226;
+      --on-accent: #0b0c0a;
+      --display: "Bahnschrift", "DIN Condensed", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
+      --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: var(--body); line-height: 1.55; -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; }
+    img { display: block; }
+    .wrap { width: min(1120px, 100% - 40px); margin-inline: auto; }
+
+    /* Titles lean forward like the B of the icon. */
+    .display {
+      font-family: var(--display); font-weight: 800; font-stretch: condensed;
+      text-transform: uppercase; font-style: italic; letter-spacing: -.01em; line-height: .92;
+    }
+    .accent { color: var(--accent); }
+    .eyebrow {
+      display: inline-block; font-family: var(--display); font-weight: 700; font-style: italic;
+      text-transform: uppercase; letter-spacing: .14em; font-size: .8rem; color: var(--accent);
+    }
+
+    /* Header */
+    header {
+      position: sticky; top: 0; z-index: 10;
+      background: color-mix(in srgb, var(--bg) 85%, transparent);
+      backdrop-filter: blur(10px); border-bottom: 1px solid var(--bg-line);
+    }
+    header .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .brand img { width: 34px; height: 34px; border-radius: 8px; }
+    .brand span { font-size: 1.5rem; }
+    nav { display: flex; gap: 24px; align-items: center; }
+    nav a { text-decoration: none; color: var(--muted); font-weight: 600; font-size: .95rem; }
+    nav a:hover { color: var(--text); }
+    @media (max-width: 720px) { nav .link { display: none; } }
+    @media (max-width: 480px) { .phone { transform: rotate(2deg); } .screen { font-size: .8rem; } }
+
+    /* Buttons */
+    .button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 16px 28px; font-family: var(--display); font-weight: 800; font-style: italic;
+      text-transform: uppercase; letter-spacing: .04em; font-size: 1.1rem; text-decoration: none;
+      clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+      transition: transform .15s ease, background .15s ease;
+    }
+    .button:hover { transform: translateY(-2px); }
+    .button.primary { background: var(--accent); color: var(--on-accent); }
+    .button.primary:hover { background: #a8e647; }
+    .button.small { padding: 10px 20px; font-size: .95rem; }
+    .button[aria-disabled="true"] { opacity: .6; pointer-events: none; }
+    .button svg { width: 22px; height: 22px; flex: none; }
+
+    /* Hero */
+    .hero { position: relative; overflow: hidden; padding: 72px 0 96px; }
+    .hero::before {
+      /* Track stripes behind the phone. */
+      content: ""; position: absolute; inset: -20% -10% -20% 45%;
+      background: repeating-linear-gradient(-60deg, transparent 0 46px, rgba(150, 214, 47, .07) 46px 58px);
+      transform: skewX(-12deg); pointer-events: none;
+    }
+    .hero .wrap { position: relative; display: grid; grid-template-columns: 1.15fr .85fr; gap: 48px; align-items: center; }
+    .hero .wrap > * { min-width: 0; }
+    .hero h1 { font-size: clamp(3.2rem, 9vw, 6.6rem); margin: 16px 0 24px; }
+    .hero p.lead { font-size: 1.2rem; color: var(--muted); max-width: 34ch; margin: 0 0 36px; }
+    .hero p.lead strong { color: var(--text); }
+    .download-meta { margin: 14px 0 0; font-size: .9rem; color: var(--muted); min-height: 1.5em; }
+    .badge {
+      display: inline-block; padding: 1px 8px; margin-left: 6px; font-size: .75rem; font-weight: 700;
+      border: 1px solid var(--accent); color: var(--accent); text-transform: uppercase; letter-spacing: .06em;
+    }
+    .pills { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; padding: 0; list-style: none; }
+    .pills li {
+      padding: 6px 14px; border: 1px solid var(--bg-line); background: var(--bg-raised);
+      font-size: .9rem; font-weight: 600; transform: skewX(-10deg);
+    }
+    .pills li span { display: inline-block; transform: skewX(10deg); }
+    @media (max-width: 860px) {
+      .hero .wrap { grid-template-columns: 1fr; }
+      .hero::before { inset: 40% -30% -10% -30%; }
+    }
+
+    /* Phone mockup, drawn in HTML so the page needs no screenshots. */
+    .phone {
+      width: min(320px, 100%); margin-inline: auto; padding: 14px; border-radius: 42px;
+      background: #1b1d20; border: 1px solid #33363b;
+      box-shadow: 0 40px 80px -30px rgba(150, 214, 47, .35), 0 0 0 8px #0f1012;
+      transform: rotate(4deg);
+    }
+    .screen { border-radius: 30px; background: #000; padding: 22px 16px 18px; font-size: .85rem; }
+    .screen .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+    .screen .top b { font-size: 1.05rem; }
+    .screen .top small { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .exercise { background: #212225; border-radius: 16px; padding: 12px; margin-bottom: 10px; }
+    .exercise h4 { margin: 0 0 8px; font-size: .95rem; }
+    .row {
+      display: grid; grid-template-columns: 22px 1fr 1fr 1fr 26px; gap: 6px; align-items: center;
+      padding: 5px 0; font-variant-numeric: tabular-nums;
+    }
+    .row.head { color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; }
+    .row .prev { color: var(--muted); font-size: .75rem; }
+    .row .val { background: #2e3135; border-radius: 6px; text-align: center; padding: 3px 0; font-weight: 700; }
+    .row .check { width: 24px; height: 24px; border-radius: 6px; background: #2e3135; display: grid; place-items: center; }
+    .row.done .val { background: rgba(150, 214, 47, .18); }
+    .row.done .check { background: var(--accent); color: #000; font-weight: 900; }
+    .row .num.warm { color: #f5a524; font-weight: 700; }
+    .medal { margin-left: 4px; }
+    .rest {
+      display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 12px 14px;
+      border-radius: 14px; background: var(--accent); color: #000; font-weight: 800;
+    }
+    .rest .time { font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+
+    /* Stats band */
+    .stats { background: var(--accent); color: var(--on-accent); transform: skewY(-2deg); margin: 0 0 40px; }
+    .stats .wrap {
+      transform: skewY(2deg); display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 44px 0;
+    }
+    .stat b { display: block; font-size: clamp(2.4rem, 5vw, 3.6rem); }
+    .stat span { font-weight: 700; font-size: .95rem; }
+    @media (max-width: 720px) { .stats .wrap { grid-template-columns: repeat(2, 1fr); } }
+
+    /* Sections */
+    section.block { padding: 88px 0; scroll-margin-top: 64px; }
+    .section-head { max-width: 640px; margin-bottom: 48px; }
+    .section-head h2 { font-size: clamp(2.4rem, 6vw, 4rem); margin: 12px 0 16px; }
+    .section-head p { color: var(--muted); font-size: 1.1rem; margin: 0; }
+
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      position: relative; padding: 28px 26px; background: var(--bg-raised); border: 1px solid var(--bg-line);
+      overflow: hidden; transition: border-color .2s ease, transform .2s ease;
+    }
+    .card::after {
+      content: ""; position: absolute; left: 0; top: 0; width: 64px; height: 4px; background: var(--accent);
+      transform: skewX(-30deg) translateX(-6px);
+    }
+    .card:hover { border-color: var(--accent-deep); transform: translateY(-3px); }
+    .card .icon {
+      width: 46px; height: 46px; display: grid; place-items: center; margin-bottom: 18px;
+      background: rgba(150, 214, 47, .12); color: var(--accent);
+      clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+    }
+    .card .icon svg { width: 24px; height: 24px; }
+    .card h3 { font-family: var(--display); font-style: italic; text-transform: uppercase; font-size: 1.35rem; margin: 0 0 8px; letter-spacing: .01em; }
+    .card p { margin: 0; color: var(--muted); }
+
+    .split { border-top: 1px solid var(--bg-line); }
+    .split:nth-of-type(even) { background: linear-gradient(180deg, #0f1110, var(--bg)); }
+
+    /* Principles */
+    .principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--bg-line); }
+    .principle { padding: 36px 30px; border-right: 1px solid var(--bg-line); }
+    .principle:last-child { border-right: 0; }
+    .principle b { display: block; font-size: 2.2rem; margin-bottom: 8px; }
+    .principle p { margin: 0; color: var(--muted); }
+    @media (max-width: 760px) {
+      .principles { grid-template-columns: 1fr; }
+      .principle { border-right: 0; border-bottom: 1px solid var(--bg-line); }
+      .principle:last-child { border-bottom: 0; }
+    }
+
+    /* Download */
+    .cta { position: relative; overflow: hidden; background: var(--bg-raised); border-block: 1px solid var(--bg-line); }
+    .cta::before {
+      content: "B"; position: absolute; right: -2%; top: 50%; transform: translateY(-50%);
+      font-family: var(--display); font-weight: 900; font-style: italic; font-size: 34rem; line-height: 1;
+      color: rgba(150, 214, 47, .05); pointer-events: none;
+    }
+    .cta .wrap { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+    .cta h2 { font-size: clamp(2.6rem, 7vw, 4.6rem); margin: 12px 0 20px; }
+    .steps { counter-reset: step; list-style: none; padding: 0; margin: 0; }
+    .steps li { counter-increment: step; display: grid; grid-template-columns: 52px 1fr; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--bg-line); }
+    .steps li:last-child { border-bottom: 0; }
+    .steps li::before {
+      content: counter(step, decimal-leading-zero); font-family: var(--display); font-weight: 800;
+      font-style: italic; font-size: 2rem; color: var(--accent); line-height: 1;
+    }
+    .steps b { display: block; }
+    .steps span { color: var(--muted); font-size: .95rem; }
+    @media (max-width: 860px) { .cta .wrap { grid-template-columns: 1fr; } }
+
+    /* Footer */
+    footer { padding: 48px 0 64px; color: var(--muted); font-size: .9rem; }
+    footer .wrap { display: grid; grid-template-columns: 1fr 2fr; gap: 32px; }
+    footer p { margin: 0 0 10px; }
+    footer a { color: var(--text); }
+    @media (max-width: 760px) { footer .wrap { grid-template-columns: 1fr; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .button, .card { transition: none; }
+      .button:hover, .card:hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Icons used more than once. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3v12m0 0 5-5m-5 5-5-5M4 21h16"/>
+    </symbol>
+  </svg>
+
+  <header>
+    <div class="wrap">
+      <a class="brand" href="#">
+        <img src="icon.png" alt="" width="34" height="34">
+        <span class="display">Bitácora</span>
+      </a>
+      <nav>
+        <a class="link" href="#entrenar">Entrenar</a>
+        <a class="link" href="#comer">Comer</a>
+        <a class="link" href="#progreso">Progreso</a>
+        <a class="button primary small" href="#descargar">Descargar</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <div>
+          <span class="eyebrow">App gratuita para Android</span>
+          <h1 class="display">Entrena.<br>Come.<br><span class="accent">Progresa.</span></h1>
+          <p class="lead">
+            Tus entrenos y tus comidas, en una sola app.
+            <strong>Sin cuenta, sin anuncios y sin conexión.</strong>
+          </p>
+          <a class="button primary js-download" href="https://github.com/Kapparron/Bitacora/releases">
+            <svg><use href="#i-download"/></svg>
+            Descargar APK
+          </a>
+          <p class="download-meta js-download-meta">Buscando la última versión…</p>
+          <ul class="pills">
+            <li><span>Sin cuenta</span></li>
+            <li><span>Sin anuncios</span></li>
+            <li><span>Funciona offline</span></li>
+            <li><span>Código libre</span></li>
+          </ul>
+        </div>
+
+        <div class="phone" aria-hidden="true">
+          <div class="screen">
+            <div class="top"><b>Día de pecho</b><small>42:18</small></div>
+            <div class="exercise">
+              <h4>Press banca con barra</h4>
+              <div class="row head"><span>#</span><span>Anterior</span><span>Kg</span><span>Reps</span><span></span></div>
+              <div class="row done"><span class="num warm">C</span><span class="prev">40 × 12</span><span class="val">40</span><span class="val">12</span><span class="check">✓</span></div>
+              <div class="row done"><span class="num">1</span><span class="prev">70 × 8</span><span class="val">72,5</span><span class="val">8</span><span class="check">✓</span></div>
+              <div class="row done"><span class="num">2</span><span class="prev">70 × 8</span><span class="val">75<span class="medal">🏅</span></span><span class="val">7</span><span class="check">✓</span></div>
+              <div class="row"><span class="num">3</span><span class="prev">70 × 7</span><span class="val">75</span><span class="val">6</span><span class="check"></span></div>
+            </div>
+            <div class="exercise">
+              <h4>Aperturas con mancuernas</h4>
+              <div class="row"><span class="num">1</span><span class="prev">14 × 12</span><span class="val">14</span><span class="val">12</span><span class="check"></span></div>
+            </div>
+            <div class="rest"><span>Descanso</span><span class="time">1:24</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="stats">
+      <div class="wrap">
+        <div class="stat"><b class="display">1.324</b><span>ejercicios con animación</span></div>
+        <div class="stat"><b class="display">+3 M</b><span>alimentos de Open Food Facts</span></div>
+        <div class="stat"><b class="display">0 €</b><span>sin suscripciones ni anuncios</span></div>
+        <div class="stat"><b class="display">100 %</b><span>tus datos en tu teléfono</span></div>
+      </div>
+    </div>
+
+    <section class="block">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">La idea</span>
+          <h2 class="display">Una app. <span class="accent">Todo tu progreso.</span></h2>
+          <p>
+            Llevar el gimnasio en una app y la comida en otra significa apuntar dos veces y no ver
+            nunca el conjunto. Bitácora junta lo que levantas y lo que comes en el mismo calendario.
+          </p>
+        </div>
+        <div class="principles">
+          <div class="principle"><b class="display accent">Offline</b><p>En el gimnasio casi nunca hay cobertura. Solo se conecta cuando buscas un alimento nuevo.</p></div>
+          <div class="principle"><b class="display accent">Sin cuenta</b><p>Abres la app y empiezas. Nada de registros, correos ni contraseñas.</p></div>
+          <div class="principle"><b class="display accent">Tuyo</b><p>Todo se queda en tu teléfono. Lo exportas a un archivo y lo recuperas cuando quieras.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block split" id="entrenar">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">01 · Entrenar</span>
+          <h2 class="display">Apunta la serie <span class="accent">y sigue.</span></h2>
+          <p>Reps, kilos y un toque para marcarla como hecha. Al lado ves lo que hiciste la última vez, así sabes si estás mejorando sin salir de la pantalla.</p>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg></div>
+            <h3>Descanso automático</h3>
+            <p>Marcas la serie y arranca el cronómetro. Una campana y una notificación te avisan al acabar, aunque tengas el móvil bloqueado.</p>
+          </article>
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4m8-4v4"/></svg></div>
+            <h3>Rutinas programadas</h3>
+            <p>Monta tu día de pecho una vez y empiézalo con un botón. Prográmalas por días de la semana o cada X días.</p>
+          </article>
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 17h4v4h-4"/></svg></div>
+            <h3>Comparte con QR</h3>
+            <p>Pásale una rutina a un amigo con un código QR o un enlace que se abre desde cualquier chat.</p>
+          </article>
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="m8.5 14-1.5 8 5-3 5 3-1.5-8"/></svg></div>
+            <h3>Récords al momento</h3>
+            <p>Peso más alto, serie más dura y máximo estimado. Cuando los superas, aparece una medalla en la propia serie.</p>
+          </article>
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3 9.5v5M21 9.5v5M6.5 12h11"/></svg></div>
+            <h3>1.324 ejercicios</h3>
+            <p>Con animación, músculo, material e instrucciones. Filtra por músculo y material a la vez, o añade los tuyos.</p>
+          </article>
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></div>
+            <h3>Arrastra y ordena</h3>
+            <p>Reordena los ejercicios arrastrándolos, en la rutina o en pleno entreno. Cada sesión queda guardada y se corrige si hace falta.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="block split" id="comer">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">02 · Comer</span>
+          <h2 class="display">Escanea, <span class="accent">apunta y listo.</span></h2>
+          <p>Desayuno, comida, cena y snacks, cada uno con sus calorías y el total del día frente a tu objetivo.</p>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3M7 8v8M10 8v8M13 8v8M17 8v8"/></svg></div>
+            <h3>Código de barras</h3>
+            <p>Escanea el envase y los datos salen de Open Food Facts, con millones de productos. Si no tiene código, lo tecleas.</p>
+          </article>
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></div>
+            <h3>Repite en un toque</h3>
+            <p>Busca primero entre lo que ya comes, guarda lo que escaneas y repite la comida de ayer entera.</p>
+          </article>
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></div>
+            <h3>Objetivo a tu medida</h3>
+            <p>Con tu edad, altura, peso y ritmo te propone calorías, proteínas, carbohidratos y grasas. Si el ritmo es demasiado agresivo, te avisa.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="block split" id="progreso">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">03 · Progreso</span>
+          <h2 class="display">Mira lo <span class="accent">lejos que has llegado.</span></h2>
+          <p>Un calendario con tu mes: los días que entrenaste, los que apuntaste la comida, los de rutina y los de descanso.</p>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4 0 7-3 7-7 0-5-5-7-5-12-3 2-4 5-4 7-1-1-2-2-2-4-2 2-3 5-3 9 0 4 3 7 7 7Z"/></svg></div>
+            <h3>Rachas que no castigan</h3>
+            <p>Una llama que crece cada día seguido, hacia metas de 3, 7, 14 y 30 días. Los días de descanso no rompen la racha.</p>
+          </article>
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-7"/></svg></div>
+            <h3>Peso y ejercicios</h3>
+            <p>Tu peso en una línea con el objetivo marcado, y el peso que mueves en cada ejercicio, sesión a sesión.</p>
+          </article>
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3M12 3v12m0-12L7 8m5-5 5 5"/></svg></div>
+            <h3>Copia de seguridad</h3>
+            <p>Exporta todo a un archivo y recupéralo cuando quieras, en este móvil o en otro.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="block cta" id="descargar">
+      <div class="wrap">
+        <div>
+          <span class="eyebrow">Descargar</span>
+          <h2 class="display">Empieza <span class="accent">hoy.</span></h2>
+          <a class="button primary js-download" href="https://github.com/Kapparron/Bitacora/releases">
+            <svg><use href="#i-download"/></svg>
+            Descargar APK
+          </a>
+          <p class="download-meta js-download-meta">Buscando la última versión…</p>
+        </div>
+        <ol class="steps">
+          <li><div><b>Descarga el APK</b><span>Desde este botón, en tu móvil Android.</span></div></li>
+          <li><div><b>Permite la instalación</b><span>Android te pedirá permiso para instalar apps de tu navegador. Acéptalo solo para Bitácora.</span></div></li>
+          <li><div><b>Entrena</b><span>Las siguientes versiones te las ofrece la propia app, sin volver aquí.</span></div></li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div>
+        <a class="brand" href="#"><img src="icon.png" alt="" width="34" height="34"><span class="display">Bitácora</span></a>
+        <p style="margin-top:14px">Código libre con <a href="https://github.com/Kapparron/Bitacora/blob/master/LICENSE">licencia MIT</a>.</p>
+        <p><a href="https://github.com/Kapparron/Bitacora">Ver en GitHub</a></p>
+      </div>
+      <div>
+        <p>Ejercicios del dataset <a href="https://github.com/hasaneyldrm/exercises-dataset">hasaneyldrm/exercises-dataset</a> (MIT).</p>
+        <p>Imágenes y animaciones de los ejercicios © <a href="https://gymvisual.com/">Gym visual</a>. No se incluyen en la app: se descargan al verlas.</p>
+        <p>Datos de alimentos de <a href="https://world.openfoodfacts.org">Open Food Facts</a>, bajo licencia ODbL.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Points the download buttons at the APK of the newest release.
+    //
+    // Test versions count until the first finished release exists: from then on
+    // only finished ones are offered. Selection mirrors parseRelease and
+    // compareVersions in src/features/updates/updates.ts. With no connection or
+    // no APK, the buttons keep linking to the releases page.
+    (function () {
+      var RELEASES_URL = 'https://api.github.com/repos/Kapparron/Bitacora/releases?per_page=30';
+      var buttons = document.querySelectorAll('.js-download');
+      var metas = document.querySelectorAll('.js-download-meta');
+
+      function setMeta(html) {
+        metas.forEach(function (meta) { meta.innerHTML = html; });
+      }
+
+      function parseVersion(tag) {
+        return tag.trim().replace(/^v/i, '').split(/[.\-+]/).map(function (part) {
+          var number = parseInt(part, 10);
+          return isFinite(number) ? number : 0;
+        });
+      }
+
+      function compareVersions(left, right) {
+        var a = parseVersion(left);
+        var b = parseVersion(right);
+        for (var i = 0; i < Math.max(a.length, b.length); i += 1) {
+          var difference = (a[i] || 0) - (b[i] || 0);
+          if (difference !== 0) return difference > 0 ? 1 : -1;
+        }
+        return 0;
+      }
+
+      function toRelease(payload) {
+        if (!payload || payload.draft || typeof payload.tag_name !== 'string') return null;
+        var apk = (payload.assets || []).find(function (asset) {
+          return typeof asset.name === 'string' && /\.apk$/i.test(asset.name);
+        });
+        if (!apk) return null;
+        return {
+          tag: payload.tag_name,
+          prerelease: payload.prerelease === true,
+          url: apk.browser_download_url,
+          size: apk.size || 0
+        };
+      }
+
+      function escapeHtml(text) {
+        return text.replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; });
+      }
+
+      fetch(RELEASES_URL, { headers: { Accept: 'application/vnd.github+json' } })
+        .then(function (response) {
+          if (!response.ok) throw new Error('GitHub answered ' + response.status);
+          return response.json();
+        })
+        .then(function (payloads) {
+          var releases = (Array.isArray(payloads) ? payloads : []).map(toRelease).filter(Boolean);
+          var finished = releases.filter(function (release) { return !release.prerelease; });
+          var pool = finished.length > 0 ? finished : releases;
+
+          var best = pool.reduce(function (current, release) {
+            return !current || compareVersions(release.tag, current.tag) > 0 ? release : current;
+          }, null);
+
+          if (!best) {
+            setMeta('Aún no hay ninguna versión publicada.');
+            return;
+          }
+
+          buttons.forEach(function (button) {
+            button.href = best.url;
+            button.setAttribute('download', '');
+          });
+
+          var size = best.size ? ' · ' + (best.size / 1048576).toFixed(0) + ' MB' : '';
+          setMeta(
+            'Versión ' + escapeHtml(best.tag) + size + ' · Android' +
+            (best.prerelease ? '<span class="badge">Beta</span>' : '')
+          );
+        })
+        .catch(function () {
+          setMeta('No se pudo consultar la última versión. <a href="https://github.com/Kapparron/Bitacora/releases">Ver todas las versiones</a>.');
+        });
+    })();
+  </script>
+</body>
+</html>
