@@ -1,0 +1,43 @@
+name: Comprobaciones
+
+# Hasta ahora `npm run check` solo se ejecutaba al publicar un APK, asi que un
+# cambio podia llegar a master sin que nadie lo hubiera pasado, y la web se
+# publicaba sin comprobar nada. Esto lo pasa en cada propuesta de cambio.
+on:
+  pull_request:
+  push:
+    branches: [master, develop]
+  # Lo llama tambien "Publicar web" antes de desplegar.
+  workflow_call:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el codigo
+        uses: actions/checkout@v4
+
+      # Node 24: las comprobaciones son TypeScript, y hasta esa version el
+      # ejecutor de pruebas no las recorre por si mismo.
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Comprobar tipos
+        run: npx tsc --noEmit
+
+      - name: Pasar las comprobaciones
+        run: npm run check
+
+      # Lo que la web sirve se genera desde data/. Si regenerarlo cambia algo,
+      # es que lo publicado se quedo atras y hay que ejecutar `npm run build:data`.
+      - name: Comprobar que lo generado esta al dia
+        run: |
+          npm run build:data
+          git diff --exit-code -- site/

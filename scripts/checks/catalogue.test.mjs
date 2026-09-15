@@ -9,33 +9,28 @@ import { test } from 'node:test';
 import { SPANISH_NAMES, SPANISH_NAMES_BY_ID } from '../spanish-exercise-names.mjs';
 
 const CATALOGUE = JSON.parse(
-  readFileSync(new URL('../../assets/data/exercises.json', import.meta.url), 'utf8')
+  readFileSync(new URL('../../data/exercises.json', import.meta.url), 'utf8')
+);
+
+const VOCABULARY = JSON.parse(
+  readFileSync(new URL('../../data/vocabulary.json', import.meta.url), 'utf8')
 );
 
 /**
  * How a name refers to each piece of equipment, in the Spanish we write and in
- * the English the dataset ships. A name that matches one of these and carries a
- * different `equipment` is contradictory — that is how "Remo en maquina" (id
- * 0574, a barbell row) was found.
+ * the English the dataset ships, read from `data/vocabulary.json`. A name that
+ * matches one of these and carries a different `equipment` is contradictory —
+ * that is how "Remo en maquina" (id 0574, a barbell row) was found.
  *
- * The exclusions are names where the word does not mean the equipment it looks
- * like: an EZ or olympic bar is not a straight bar, a V-bar or a rope is a
- * cable attachment, and a front or back lever is a calisthenics hold, not a
- * machine.
+ * The exclusions live in the patterns themselves: an EZ or olympic bar is not a
+ * straight bar, a V-bar or a rope is a cable attachment, and a front or back
+ * lever is a calisthenics hold, not a machine.
  */
-const NAME_SAYS = {
-  barra: /\bcon barra\b(?! [VZ]\b)|(?<!ez[- ])(?<!olympic )\bbarbell\b/i,
-  'barra Z': /\bcon barra Z\b|\bez[- ]barbell\b/i,
-  'barra olimpica': /\bolympic barbell\b/i,
-  mancuerna: /\bcon mancuernas?\b|\bdumbbell\b/i,
-  polea: /\ben polea\b|\bcon cuerda\b|\bcon barra V\b|\bcable\b/i,
-  maquina: /\ben maquina\b|(?<!front )(?<!back )\blever\b/i,
-  multipower: /\ben multipower\b|\bsmith\b/i,
-  kettlebell: /\bkettlebell\b/i,
-  banda: /\bcon banda\b|(?<!resistance )\bband\b/i,
-  prensa: /\bprensa\b|\bsled\b/i,
-  'peso corporal': /\bpeso corporal\b|\bbody weight\b/i,
-};
+const NAME_SAYS = Object.fromEntries(
+  VOCABULARY.equipment
+    .filter((item) => item.namePattern)
+    .map((item) => [item.es, new RegExp(item.namePattern, 'i')])
+);
 
 /**
  * Exercises still carrying their English name. Translating one lowers this; the
