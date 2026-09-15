@@ -57,6 +57,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "build:catalog": "node scripts/build-exercise-catalog.mjs",
+    "build:web-catalog": "node scripts/build-web-catalog.mjs",
     "check": "node --import ./scripts/checks/register.mjs --test \"scripts/checks/*.test.mjs\" \"scripts/checks/*.test.ts\"",
     "build:icons": "node scripts/build-icons.mjs",
     "build:sounds": "node scripts/build-sounds.mjs"

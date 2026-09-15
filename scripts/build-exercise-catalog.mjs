@@ -12,6 +12,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
+import { writeWebCatalogue } from './build-web-catalog.mjs';
 import { SPANISH_NAMES, SPANISH_NAMES_BY_ID } from './spanish-exercise-names.mjs';
 
 const INPUT = process.argv[2];
@@ -154,3 +155,8 @@ const bytes = Buffer.byteLength(JSON.stringify(catalogue));
 
 console.log(`${catalogue.length} exercises, ${translated} with a Spanish name`);
 console.log(`${(bytes / 1024 / 1024).toFixed(2)} MB written to ${OUTPUT}`);
+
+// The shared-session page names exercises by the same ids, so its trimmed copy
+// is regenerated here and never falls behind.
+const web = writeWebCatalogue(catalogue);
+console.log(`${(web.bytes / 1024).toFixed(0)} KB written to the web catalogue`);

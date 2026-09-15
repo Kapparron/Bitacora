@@ -49,6 +49,10 @@ que no está en la lista, lo añades tú.
 **Todo queda guardado.** Cada entreno con su fecha, su duración y todas las
 series que hiciste. Si un día apuntaste mal, se corrige.
 
+**Enseña un entreno a quien quieras.** Compartes el enlace y se abre en el
+navegador con las series tal y como las hiciste, aunque quien lo reciba no tenga
+la app. El entreno va dentro del propio enlace: no se sube a ningún sitio.
+
 ---
 
 ## 🍎 Comer

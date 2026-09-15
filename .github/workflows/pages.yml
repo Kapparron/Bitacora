@@ -1,9 +1,10 @@
 name: Publicar web
 
-# La web tiene la portada de la app, con la descarga de la ultima version, y la
-# pagina puente de las rutinas compartidas: WhatsApp y compania no dejan pulsar
-# un enlace bitacora://, pero si uno https que lleve a la app. Se publica al
-# cambiar la carpeta site en master, o a mano.
+# La web tiene la portada de la app, con la descarga de la ultima version; la
+# pagina puente de las rutinas compartidas, porque WhatsApp y compania no dejan
+# pulsar un enlace bitacora:// pero si uno https que lleve a la app; y la que
+# dibuja un entreno compartido para quien no tiene la app. Se publica al cambiar
+# la carpeta site en master, o a mano.
 on:
   push:
     branches: [master]

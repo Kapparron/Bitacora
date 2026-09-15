@@ -76,6 +76,7 @@ modules/          módulos nativos propios: notificaciones del entreno (Android)
 drizzle/          migraciones SQL generadas
 assets/data/      catálogo de ejercicios generado
 scripts/          generador del catálogo, iconos y comprobaciones
+site/             la web de GitHub Pages: portada, rutina y entreno compartidos
 docs/PLAN.md      plan de producto y fases
 ```
 
@@ -153,6 +154,39 @@ enlaces ya enviados apuntan a la antigua.
   pueda leer el enlace: la importación rechaza versiones que no conoce.
 - Lo leído de un QR no es de fiar: `parseSharedRoutine` valida cada campo antes
   de que llegue a la base de datos.
+
+El envoltorio del enlace —JSON a base64url y las comprobaciones de cada campo—
+está en `src/lib/link.ts`, y cómo se nombra un ejercicio dentro de un enlace, en
+`src/features/exercises/shared-exercise.ts`. Los dos formatos los comparten.
+
+## Compartir entrenos
+
+Un entreno acabado se comparte desde su detalle o desde el menú que sale al
+mantener pulsado en el historial. Aquí la página no es un puente sino el
+destino: la abre alguien que no tiene la app y ve el entreno dibujado como en
+ella. No se importa a ninguna parte.
+
+El enlace es `https://kapparron.github.io/Bitacora/entreno/#<entreno>`, otra vez
+detrás del `#`, que el navegador no envía. El formato lo escribe
+`src/features/workout/share.ts` y lo lee
+[`site/entreno/entreno.js`](../site/entreno/entreno.js);
+`scripts/checks/workout-share.test.ts` importa los dos extremos y los obliga a
+entenderse.
+
+- Solo viajan las series completadas, y un ejercicio sin ninguna se queda fuera:
+  no se llegó a hacer.
+- Las series son números y son muchas, así que van en una sola cadena,
+  `w20x10,60x8@8,d40x12`: `60x8` son 60 kg por 8 repeticiones, `90s` una serie
+  de 90 segundos, `1000m90s` una de distancia y tiempo, `-` una serie hecha sin
+  anotar nada; la letra de delante es calentamiento, drop o fallo, y el `@8` de
+  detrás el RPE. Un entreno de seis ejercicios cabe en medio kilobyte.
+- La página necesita el catálogo para convertir un id en nombre e imagen, pero
+  no el de 1 MB que lleva la app: `npm run build:web-catalog` genera
+  `site/entreno/catalogo.json` (69 KB) a partir de `assets/data/exercises.json`,
+  y `npm run build:catalog` lo regenera también. La comprobación falla si se
+  queda atrás.
+- Las imágenes salen del mismo CDN que en la app, y el GIF solo se descarga al
+  pulsar la miniatura.
 
 ## Iconos
 
