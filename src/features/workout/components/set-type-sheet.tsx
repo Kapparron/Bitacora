@@ -17,22 +17,36 @@ export function badgeFor(type: SetType, index: number): string {
     : (SET_TYPES.find((option) => option.value === type)?.badge ?? '');
 }
 
+/**
+ * Listed after the types so a tap on the set number is enough to find it; the
+ * long press that also deletes a set has nothing on screen that reveals it.
+ */
+const DELETE_OPTION: SheetOption<'delete'> = {
+  value: 'delete',
+  label: 'Borrar serie',
+  description: 'Quitarla del entreno',
+};
+
+const SET_ACTIONS: SheetOption<SetType | 'delete'>[] = [...SET_TYPES, DELETE_OPTION];
+
 /** Render this only while it is open; see the note in OptionSheet. */
 export function SetTypeSheet({
   current,
   onSelect,
+  onDelete,
   onClose,
 }: {
   current: SetType;
   onSelect: (type: SetType) => void;
+  onDelete: () => void;
   onClose: () => void;
 }) {
   return (
     <OptionSheet
-      title="Tipo de serie"
-      options={SET_TYPES}
+      title="Serie"
+      options={SET_ACTIONS}
       current={current}
-      onSelect={onSelect}
+      onSelect={(value) => (value === 'delete' ? onDelete() : onSelect(value))}
       onClose={onClose}
     />
   );

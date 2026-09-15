@@ -213,6 +213,10 @@ function SetRowComponent({
             setTypeSheetOpen(false);
             onChangeType(set.id, type);
           }}
+          onDelete={() => {
+            setTypeSheetOpen(false);
+            void confirmDelete();
+          }}
           onClose={() => setTypeSheetOpen(false)}
         />
       ) : null}
