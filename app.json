@@ -40,7 +40,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Bitacora usa la camara para escanear el codigo de barras de los alimentos."
+          "cameraPermission": "Bitacora usa la camara para escanear el codigo de barras de los alimentos y el codigo QR de las rutinas compartidas."
         }
       ],
       "expo-sharing",

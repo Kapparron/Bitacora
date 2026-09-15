@@ -131,6 +131,12 @@ export default function RoutineEditorScreen() {
           disabled={entries.length === 0}
           onPress={() => void start()}
         />
+        <Button
+          title="Compartir rutina"
+          variant="ghost"
+          disabled={entries.length === 0}
+          onPress={() => router.push({ pathname: '/routine/share', params: { id: routine.id } })}
+        />
       </View>
 
       </ScrollView>
