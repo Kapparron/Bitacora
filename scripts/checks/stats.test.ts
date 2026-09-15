@@ -13,9 +13,9 @@ import type { RestPlan } from '@/features/rest/rest';
 /** A Friday, so the weekday rules below are easy to read. */
 const TODAY = '2026-09-11';
 
-const NO_REST: RestPlan = { weekdays: new Set(), days: new Set() };
+const NO_REST: RestPlan = { weekdays: new Set(), cycle: null, days: new Set() };
 /** 2 is Wednesday, counting from Monday as the calendar does. */
-const WEDNESDAYS: RestPlan = { weekdays: new Set([2]), days: new Set() };
+const WEDNESDAYS: RestPlan = { weekdays: new Set([2]), cycle: null, days: new Set() };
 
 test('a streak counts the days in a row behind today', () => {
   const trained = new Set(['2026-09-11', '2026-09-10', '2026-09-09']);
@@ -39,15 +39,26 @@ test('a rest day neither adds to the streak nor ends it', () => {
 });
 
 test('two rest days in a row end the streak', () => {
-  const wednesdayAndThursday: RestPlan = { weekdays: new Set([2, 3]), days: new Set() };
+  const wednesdayAndThursday: RestPlan = { weekdays: new Set([2, 3]), cycle: null, days: new Set() };
   const trained = new Set(['2026-09-11', '2026-09-08']);
   assert.equal(currentStreak(trained, TODAY, wednesdayAndThursday), 1);
 });
 
 test('a day marked by hand rests like a weekly one', () => {
-  const marked: RestPlan = { weekdays: new Set(), days: new Set(['2026-09-09']) };
+  const marked: RestPlan = { weekdays: new Set(), cycle: null, days: new Set(['2026-09-09']) };
   const trained = new Set(['2026-09-11', '2026-09-10', '2026-09-08']);
   assert.equal(currentStreak(trained, TODAY, marked), 3);
+});
+
+test('a rest cycle keeps a streak alive over its rest days', () => {
+  // Every third day from Tuesday the 8th: the 8th and the 11th rest.
+  const cycle: RestPlan = {
+    weekdays: new Set(),
+    cycle: { everyDays: 3, anchor: '2026-09-08' },
+    days: new Set(),
+  };
+  const trained = new Set(['2026-09-10', '2026-09-09', '2026-09-07']);
+  assert.equal(currentStreak(trained, TODAY, cycle), 3);
 });
 
 test('a streak of nothing is zero', () => {

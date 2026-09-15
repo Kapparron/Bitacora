@@ -3,7 +3,13 @@ import { test } from 'node:test';
 
 import { estimateGoal } from '@/features/nutrition/calorie-goal';
 import { progressFor, tierFor } from '@/features/progress/streak';
-import { isRestDay, parseRestWeekdays, serializeRestWeekdays } from '@/features/rest/rest';
+import {
+  isRestDay,
+  parseRestCycle,
+  parseRestWeekdays,
+  serializeRestCycle,
+  serializeRestWeekdays,
+} from '@/features/rest/rest';
 import { recordsReachedBy } from '@/features/workout/set-records';
 import { estimatedOneRepMax, countsTowardsVolume, totalVolume } from '@/features/workout/volume';
 import type { WorkoutSet } from '@/db/schema';
@@ -110,11 +116,39 @@ test('an impossible weekly loss is clamped instead of obeyed', () => {
 });
 
 test('rest days come from the weekly rule and from the marked ones', () => {
-  const plan = { weekdays: new Set([2]), days: new Set(['2026-09-12']) };
+  const plan = { weekdays: new Set([2]), cycle: null, days: new Set(['2026-09-12']) };
 
   assert.equal(isRestDay(plan, '2026-09-09'), true, 'un miercoles');
   assert.equal(isRestDay(plan, '2026-09-10'), false);
   assert.equal(isRestDay(plan, '2026-09-12'), true, 'marcado a mano');
+});
+
+test('a rest cycle rests on its start day and every N days after, and replaces the weekdays', () => {
+  const plan = {
+    weekdays: new Set([2]),
+    cycle: { everyDays: 3, anchor: '2026-09-10' },
+    days: new Set(['2026-09-11']),
+  };
+
+  assert.equal(isRestDay(plan, '2026-09-10'), true, 'el dia de inicio');
+  assert.equal(isRestDay(plan, '2026-09-13'), true, 'tres dias despues');
+  assert.equal(isRestDay(plan, '2026-10-01'), true, 'siete ciclos despues, cruzando de mes');
+  assert.equal(isRestDay(plan, '2026-09-12'), false);
+  assert.equal(isRestDay(plan, '2026-09-07'), false, 'antes del inicio no hay ciclo');
+  assert.equal(isRestDay(plan, '2026-09-16'), true);
+  assert.equal(isRestDay(plan, '2026-09-09'), false, 'el miercoles ya no descansa');
+  assert.equal(isRestDay(plan, '2026-09-11'), true, 'lo marcado a mano sigue valiendo');
+});
+
+test('the rest cycle survives being written and read back', () => {
+  const cycle = { everyDays: 4, anchor: '2026-09-15' };
+
+  assert.equal(serializeRestCycle(cycle), '4@2026-09-15');
+  assert.deepEqual(parseRestCycle(serializeRestCycle(cycle)), cycle);
+  assert.equal(parseRestCycle(null), null);
+  assert.equal(parseRestCycle('1@2026-09-15'), null, 'descansar todos los dias no es un ciclo');
+  assert.equal(parseRestCycle('x@2026-09-15'), null);
+  assert.equal(parseRestCycle('3@15/09/2026'), null);
 });
 
 test('the weekly rest days survive being written and read back', () => {
