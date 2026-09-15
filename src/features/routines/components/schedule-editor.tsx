@@ -180,6 +180,7 @@ export function ScheduleEditor({
 
           {anchorPicker && draft.type === 'interval' ? (
             <AnchorPicker
+              title="Primer dia de la rotacion"
               anchor={draft.anchor}
               onSelect={(anchor) => {
                 setAnchorPicker(false);
@@ -195,14 +196,17 @@ export function ScheduleEditor({
 }
 
 /**
- * Picks the day the rotation counts from, using the same month grid the workout
+ * Picks the day a rotation counts from, using the same month grid the workout
  * tab draws. A dedicated date-picker dependency would look nothing like it.
+ * The rest cycle in the profile picks its start day with it too.
  */
-function AnchorPicker({
+export function AnchorPicker({
+  title,
   anchor,
   onSelect,
   onClose,
 }: {
+  title: string;
   anchor: string;
   onSelect: (day: string) => void;
   onClose: () => void;
@@ -220,7 +224,7 @@ function AnchorPicker({
           style={[styles.card, { backgroundColor: theme.background, borderColor: theme.border }]}
           onPress={() => {}}>
           <ThemedText type="default" style={styles.title}>
-            Primer dia de la rotacion
+            {title}
           </ThemedText>
 
           <MonthCalendar
