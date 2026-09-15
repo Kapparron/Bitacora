@@ -101,6 +101,14 @@ export function useActiveWorkout(): { contents: WorkoutContents | null; loading:
   return { contents: data ?? null, loading };
 }
 
+/**
+ * The same session, read once instead of watched. Used by what acts on a
+ * session from a list, where there is no screen subscribed to it.
+ */
+export function getWorkoutContents(workoutId: string): Promise<WorkoutContents | null> {
+  return loadContents(and(eq(workouts.id, workoutId), isNull(workouts.deletedAt)));
+}
+
 export function useWorkoutContents(workoutId: string): {
   contents: WorkoutContents | null;
   loading: boolean;
