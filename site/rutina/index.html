@@ -7,8 +7,10 @@
   <title>Rutina de Bitacora</title>
   <meta property="og:title" content="Te han pasado una rutina de Bitacora">
   <meta property="og:description" content="Abrela en la app para guardarla.">
+  <!-- Los colores salen de data/theme.json; los escribe `npm run build:data`. -->
+  <link rel="stylesheet" href="../estilo.css">
   <style>
-    :root { color-scheme: light dark; --accent: #8bb735; }
+    :root { color-scheme: light dark; }
     body {
       margin: 0; min-height: 100vh; display: grid; place-items: center;
       font-family: system-ui, sans-serif; background: Canvas; color: CanvasText;
@@ -20,7 +22,7 @@
       display: block; margin-top: 12px; padding: 14px; border-radius: 12px;
       font-weight: 700; text-decoration: none;
     }
-    .primary { background: var(--accent); color: #fff; }
+    .primary { background: var(--brand); color: #fff; }
     .secondary { border: 1px solid color-mix(in srgb, CanvasText 25%, transparent); color: inherit; }
   </style>
 </head>
@@ -30,54 +32,13 @@
     <p id="summary">Te han pasado una rutina.</p>
 
     <a id="open" class="button primary" href="#">Abrir en Bitacora</a>
-    <a id="download" class="button secondary" href="https://kapparron.github.io/Bitacora/#descargar">
+    <a id="download" class="button secondary" href="../#descargar">
       No tengo la app: descargarla
     </a>
 
     <p id="hint">Despues de instalarla, vuelve a este enlace y pulsa Abrir en Bitacora.</p>
   </main>
 
-  <script>
-    // The routine travels after the '#', which the browser never sends to the
-    // server: this page only hands it on to the app. The format is the one in
-    // src/features/routines/share.ts.
-    (function () {
-      var DOWNLOAD = 'https://kapparron.github.io/Bitacora/#descargar';
-      var encoded = location.hash.slice(1);
-      var open = document.getElementById('open');
-
-      if (!/^[A-Za-z0-9_-]+$/.test(encoded)) {
-        document.getElementById('summary').textContent =
-          'Este enlace esta incompleto. Pide que te lo vuelvan a enviar.';
-        open.style.display = 'none';
-        return;
-      }
-
-      try {
-        var binary = atob(encoded.replace(/-/g, '+').replace(/_/g, '/'));
-        var bytes = Uint8Array.from(binary, function (c) { return c.charCodeAt(0); });
-        var routine = JSON.parse(new TextDecoder().decode(bytes));
-        var count = routine.e.length;
-
-        document.getElementById('name').textContent = routine.n;
-        document.title = routine.n + ' · Bitacora';
-        document.getElementById('summary').textContent =
-          (count === 1 ? '1 ejercicio' : count + ' ejercicios') +
-          '. Abrela en Bitacora para guardarla.';
-      } catch (error) {
-        // A name that cannot be read does not stop the app from trying.
-      }
-
-      var appLink = 'bitacora://routine/import?r=' + encoded;
-
-      // On Android an intent link opens the app, and sends anyone without it
-      // straight to the download instead of failing silently.
-      open.href = /Android/i.test(navigator.userAgent)
-        ? 'intent://routine/import?r=' + encoded +
-          '#Intent;scheme=bitacora;package=com.bitacora.app;S.browser_fallback_url=' +
-          encodeURIComponent(DOWNLOAD) + ';end'
-        : appLink;
-    })();
-  </script>
+  <script type="module" src="./rutina.js"></script>
 </body>
 </html>

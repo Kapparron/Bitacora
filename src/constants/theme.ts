@@ -7,37 +7,21 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+import palette from '@/data/theme.json';
+
+/**
+ * The palette lives in `data/theme.json` so that the app, the website's
+ * stylesheet and the icon colours in `app.json` cannot drift apart:
+ * `npm run build:data` writes `site/estilo.css` from the same file, and
+ * `scripts/checks/data.test.mjs` holds `app.json` to it.
+ */
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-    border: '#D8D9E0',
-    /** Monster Energy green. */
-    accent: '#84C226',
-    /** Text and icons drawn on top of `accent`; the green is too light for white. */
-    onAccent: '#10230A',
-    /** Darker green for accent-coloured text, which needs contrast on the background. */
-    accentText: '#4E7A12',
-    success: '#5D9E1B',
-    danger: '#D93A3A',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-    border: '#33363B',
-    accent: '#96D62F',
-    onAccent: '#10230A',
-    accentText: '#96D62F',
-    success: '#96D62F',
-    danger: '#FF6B6B',
-  },
-} as const;
+  light: palette.light,
+  dark: palette.dark,
+};
+
+/** Green the launcher icon and the splash are drawn on, shared with the web. */
+export const BrandColor = palette.brand;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 

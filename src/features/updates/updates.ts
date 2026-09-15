@@ -1,3 +1,5 @@
+import { RELEASES_API, REPO } from '@/constants/project';
+
 /**
  * Deciding whether a newer build exists, with no network and no database.
  *
@@ -9,8 +11,8 @@
  * Everything here is pure so the checks can exercise it.
  */
 
-/** Repository the releases are read from. */
-export const REPO = 'Kapparron/Bitacora';
+/** Repository the releases are read from; see `data/project.json`. */
+export { REPO };
 
 /**
  * Where the newest published release is described. Public, so no token.
@@ -19,14 +21,14 @@ export const REPO = 'Kapparron/Bitacora';
  * prerelease: GitHub applies that filter itself, and a repository whose
  * releases are all preliminary answers 404 here.
  */
-export const LATEST_RELEASE_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
+export const LATEST_RELEASE_URL = `${RELEASES_API}/latest`;
 
 /**
  * Every release, newest first, preliminary ones included. Used only when the
  * user has asked for test versions, because picking among them is then up to
  * the app.
  */
-export const RELEASES_URL = `https://api.github.com/repos/${REPO}/releases?per_page=20`;
+export const RELEASES_URL = `${RELEASES_API}?per_page=20`;
 
 /**
  * How long a check stays good for.

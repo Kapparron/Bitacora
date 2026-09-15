@@ -1,0 +1,5 @@
+# `npm run build:data` writes these with LF, and scripts/checks/data.test.mjs
+# compares them byte for byte. Without this, a Windows checkout turns them into
+# CRLF and the check fails although nothing is out of date.
+site/datos.js text eol=lf
+site/estilo.css text eol=lf

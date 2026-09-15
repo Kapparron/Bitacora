@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -11,6 +12,7 @@ import { ReorderSheet } from '@/features/exercises/components/reorder-sheet';
 import { ExerciseCard } from '@/features/workout/components/exercise-card';
 import { reorderWorkoutExercises, rescheduleWorkout, updateWorkout } from '@/features/workout/mutations';
 import { useWorkoutContents } from '@/features/workout/queries';
+import { sendWorkout } from '@/features/workout/send';
 import { completedSetCount, totalVolume } from '@/features/workout/volume';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDay, formatDuration, formatNumber, formatTime } from '@/lib/format';
@@ -56,11 +58,19 @@ export default function WorkoutDetailScreen() {
         title={workout.name}
         subtitle={`${formatDay(workout.startedAt)} · ${formatTime(workout.startedAt)}`}
         right={
-          <Pressable onPress={() => setEditing(!editing)} hitSlop={8}>
-            <ThemedText type="default" style={{ color: theme.accentText, fontWeight: '700' }}>
-              {editing ? 'Hecho' : 'Editar'}
-            </ThemedText>
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => void sendWorkout(workout.id)}
+              hitSlop={8}
+              accessibilityLabel="Compartir entreno">
+              <Ionicons name="share-outline" size={22} color={theme.accentText} />
+            </Pressable>
+            <Pressable onPress={() => setEditing(!editing)} hitSlop={8}>
+              <ThemedText type="default" style={{ color: theme.accentText, fontWeight: '700' }}>
+                {editing ? 'Hecho' : 'Editar'}
+              </ThemedText>
+            </Pressable>
+          </View>
         }
       />
 
@@ -160,6 +170,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   screen: { flex: 1 },
   content: { paddingVertical: 12, paddingBottom: 48 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   stats: {
     flexDirection: 'row',
     marginHorizontal: 12,

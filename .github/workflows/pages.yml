@@ -1,13 +1,16 @@
 name: Publicar web
 
-# La web tiene la portada de la app, con la descarga de la ultima version, y la
-# pagina puente de las rutinas compartidas: WhatsApp y compania no dejan pulsar
-# un enlace bitacora://, pero si uno https que lleve a la app. Se publica al
-# cambiar la carpeta site en master, o a mano.
+# La web tiene la portada de la app, con la descarga de la ultima version; la
+# pagina puente de las rutinas compartidas, porque WhatsApp y compania no dejan
+# pulsar un enlace bitacora:// pero si uno https que lleve a la app; y la que
+# dibuja un entreno compartido para quien no tiene la app.
+#
+# Se publica al cambiar la carpeta site en master, o los datos de los que esa
+# carpeta se genera, o a mano.
 on:
   push:
     branches: [master]
-    paths: ['site/**']
+    paths: ['site/**', 'data/**']
   workflow_dispatch:
 
 concurrency:
@@ -15,7 +18,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # La web sirve ficheros que se generan desde data/. Publicar sin comprobarlo
+  # dejaba subir un catalogo viejo sin que nadie se enterase hasta la siguiente
+  # release, que era cuando corrian las comprobaciones.
+  comprobar:
+    uses: ./.github/workflows/checks.yml
+
   deploy:
+    needs: comprobar
     runs-on: ubuntu-latest
 
     permissions:

@@ -12,69 +12,31 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
+import { buildData, CATALOGUE as OUTPUT, ROOT } from './build-data.mjs';
 import { SPANISH_NAMES, SPANISH_NAMES_BY_ID } from './spanish-exercise-names.mjs';
 
 const INPUT = process.argv[2];
-const OUTPUT = resolve(process.cwd(), 'assets/data/exercises.json');
 
 if (!INPUT) {
   console.error('usage: node scripts/build-exercise-catalog.mjs <exercises.json>');
   process.exit(1);
 }
 
-/** Primary target muscle, which is what the app groups the catalogue by. */
-const TARGET_ES = {
-  abductors: 'abductores',
-  abs: 'abdominales',
-  adductors: 'aductores',
-  biceps: 'biceps',
-  calves: 'gemelos',
-  'cardiovascular system': 'cardio',
-  delts: 'hombros',
-  forearms: 'antebrazos',
-  glutes: 'gluteos',
-  hamstrings: 'femoral',
-  lats: 'dorsales',
-  'levator scapulae': 'cuello',
-  pectorals: 'pecho',
-  quads: 'cuadriceps',
-  'serratus anterior': 'serrato',
-  spine: 'lumbares',
-  traps: 'trapecio',
-  triceps: 'triceps',
-  'upper back': 'espalda alta',
-};
+/**
+ * How each upstream muscle and each piece of equipment is named in Spanish,
+ * which pieces are variants of a broader one and which ones are cardio
+ * machines: all of it in `data/vocabulary.json`, which the app's filters and
+ * `scripts/checks/catalogue.test.mjs` read too.
+ */
+const VOCABULARY = JSON.parse(
+  readFileSync(resolve(ROOT, 'data/vocabulary.json'), 'utf8')
+);
 
-const EQUIPMENT_ES = {
-  assisted: 'asistido',
-  band: 'banda',
-  barbell: 'barra',
-  'body weight': 'peso corporal',
-  'bosu ball': 'bosu',
-  cable: 'polea',
-  dumbbell: 'mancuerna',
-  'elliptical machine': 'eliptica',
-  'ez barbell': 'barra Z',
-  hammer: 'maquina hammer',
-  kettlebell: 'kettlebell',
-  'leverage machine': 'maquina',
-  'medicine ball': 'balon medicinal',
-  'olympic barbell': 'barra olimpica',
-  'resistance band': 'banda elastica',
-  roller: 'rodillo',
-  rope: 'cuerda',
-  'skierg machine': 'skierg',
-  'sled machine': 'prensa',
-  'smith machine': 'multipower',
-  'stability ball': 'fitball',
-  'stationary bike': 'bicicleta estatica',
-  'stepmill machine': 'escaladora',
-  tire: 'neumatico',
-  'trap bar': 'barra hexagonal',
-  'upper body ergometer': 'ergometro de brazos',
-  weighted: 'lastrado',
-  'wheel roller': 'rueda abdominal',
-};
+const TARGET_ES = Object.fromEntries(VOCABULARY.muscles.map((m) => [m.en, m.es]));
+const EQUIPMENT_ES = Object.fromEntries(VOCABULARY.equipment.map((e) => [e.en, e.es]));
+const CARDIO_EQUIPMENT = new Set(
+  VOCABULARY.equipment.filter((e) => e.cardio).map((e) => e.en)
+);
 
 /** Cyrillic leftovers from the upstream encoding of the degree sign. */
 function cleanName(name) {
@@ -87,15 +49,7 @@ function cleanName(name) {
  */
 function trackingTypeFor(exercise) {
   const name = exercise.name;
-  const cardioEquipment = new Set([
-    'stationary bike',
-    'elliptical machine',
-    'skierg machine',
-    'stepmill machine',
-    'upper body ergometer',
-  ]);
-
-  if (exercise.body_part === 'cardio' || cardioEquipment.has(exercise.equipment)) {
+  if (exercise.body_part === 'cardio' || CARDIO_EQUIPMENT.has(exercise.equipment)) {
     return 'distance_duration';
   }
 
@@ -154,3 +108,8 @@ const bytes = Buffer.byteLength(JSON.stringify(catalogue));
 
 console.log(`${catalogue.length} exercises, ${translated} with a Spanish name`);
 console.log(`${(bytes / 1024 / 1024).toFixed(2)} MB written to ${OUTPUT}`);
+
+// The pages name exercises by the same ids, so everything the web is served
+// out of `data/` is regenerated here and never falls behind.
+const web = buildData();
+console.log(`${(web.bytes / 1024).toFixed(0)} KB written to the web catalogue`);

@@ -1,0 +1,42 @@
+{
+  "setTypes": [
+    {
+      "id": "normal",
+      "code": "",
+      "badge": "#",
+      "label": "Serie normal",
+      "description": "Cuenta para el volumen",
+      "countsForVolume": true
+    },
+    {
+      "id": "warmup",
+      "code": "w",
+      "badge": "C",
+      "label": "Calentamiento",
+      "description": "No cuenta para el volumen",
+      "countsForVolume": false
+    },
+    {
+      "id": "drop",
+      "code": "d",
+      "badge": "D",
+      "label": "Drop set",
+      "description": "Bajada de peso sin descanso",
+      "countsForVolume": true
+    },
+    {
+      "id": "failure",
+      "code": "f",
+      "badge": "F",
+      "label": "Al fallo",
+      "description": "Hasta el fallo muscular",
+      "countsForVolume": true
+    }
+  ],
+  "trackingTypes": [
+    { "id": "weight_reps", "label": "Peso y reps" },
+    { "id": "reps", "label": "Solo reps" },
+    { "id": "duration", "label": "Tiempo" },
+    { "id": "distance_duration", "label": "Distancia y tiempo" }
+  ]
+}

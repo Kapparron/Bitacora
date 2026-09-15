@@ -10,16 +10,10 @@
   <meta property="og:description" content="Tus entrenos y tus comidas, en una sola app. Sin cuenta, sin anuncios y sin conexión.">
   <meta property="og:image" content="https://kapparron.github.io/Bitacora/icon.png">
   <link rel="icon" href="favicon.png">
+  <!-- Los colores salen de data/theme.json; los escribe `npm run build:data`. -->
+  <link rel="stylesheet" href="estilo.css">
   <style>
     :root {
-      --bg: #0b0c0a;
-      --bg-raised: #15171a;
-      --bg-line: #25282c;
-      --text: #f4f6f0;
-      --muted: #9aa097;
-      --accent: #96d62f;
-      --accent-deep: #84c226;
-      --on-accent: #0b0c0a;
       --display: "Bahnschrift", "DIN Condensed", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
       --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     }
@@ -71,7 +65,7 @@
     }
     .button:hover { transform: translateY(-2px); }
     .button.primary { background: var(--accent); color: var(--on-accent); }
-    .button.primary:hover { background: #a8e647; }
+    .button.primary:hover { background: var(--accent-hover); }
     .button.small { padding: 10px 20px; font-size: .95rem; }
     .button[aria-disabled="true"] { opacity: .6; pointer-events: none; }
     .button svg { width: 22px; height: 22px; flex: none; }
@@ -108,15 +102,15 @@
     /* Phone mockup, drawn in HTML so the page needs no screenshots. */
     .phone {
       width: min(320px, 100%); margin-inline: auto; padding: 14px; border-radius: 42px;
-      background: #1b1d20; border: 1px solid #33363b;
-      box-shadow: 0 40px 80px -30px rgba(150, 214, 47, .35), 0 0 0 8px #0f1012;
+      background: var(--bg-panel); border: 1px solid var(--border);
+      box-shadow: 0 40px 80px -30px rgba(150, 214, 47, .35), 0 0 0 8px var(--shadow-ring);
       transform: rotate(4deg);
     }
     .screen { border-radius: 30px; background: #000; padding: 22px 16px 18px; font-size: .85rem; }
     .screen .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
     .screen .top b { font-size: 1.05rem; }
     .screen .top small { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
-    .exercise { background: #212225; border-radius: 16px; padding: 12px; margin-bottom: 10px; }
+    .exercise { background: var(--surface); border-radius: 16px; padding: 12px; margin-bottom: 10px; }
     .exercise h4 { margin: 0 0 8px; font-size: .95rem; }
     .row {
       display: grid; grid-template-columns: 22px 1fr 1fr 1fr 26px; gap: 6px; align-items: center;
@@ -124,11 +118,11 @@
     }
     .row.head { color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; }
     .row .prev { color: var(--muted); font-size: .75rem; }
-    .row .val { background: #2e3135; border-radius: 6px; text-align: center; padding: 3px 0; font-weight: 700; }
-    .row .check { width: 24px; height: 24px; border-radius: 6px; background: #2e3135; display: grid; place-items: center; }
+    .row .val { background: var(--surface-strong); border-radius: 6px; text-align: center; padding: 3px 0; font-weight: 700; }
+    .row .check { width: 24px; height: 24px; border-radius: 6px; background: var(--surface-strong); display: grid; place-items: center; }
     .row.done .val { background: rgba(150, 214, 47, .18); }
     .row.done .check { background: var(--accent); color: #000; font-weight: 900; }
-    .row .num.warm { color: #f5a524; font-weight: 700; }
+    .row .num.warm { color: var(--warm); font-weight: 700; }
     .medal { margin-left: 4px; }
     .rest {
       display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 12px 14px;
@@ -174,7 +168,7 @@
     .card p { margin: 0; color: var(--muted); }
 
     .split { border-top: 1px solid var(--bg-line); }
-    .split:nth-of-type(even) { background: linear-gradient(180deg, #0f1110, var(--bg)); }
+    .split:nth-of-type(even) { background: linear-gradient(180deg, var(--bg-section), var(--bg)); }
 
     /* Principles */
     .principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--bg-line); }
@@ -447,91 +441,40 @@
     </div>
   </footer>
 
-  <script>
-    // Points the download buttons at the APK of the newest release.
-    //
-    // Test versions count until the first finished release exists: from then on
-    // only finished ones are offered. Selection mirrors parseRelease and
-    // compareVersions in src/features/updates/updates.ts. With no connection or
-    // no APK, the buttons keep linking to the releases page.
-    (function () {
-      var RELEASES_URL = 'https://api.github.com/repos/Kapparron/Bitacora/releases?per_page=30';
-      var buttons = document.querySelectorAll('.js-download');
-      var metas = document.querySelectorAll('.js-download-meta');
+  <script type="module">
+    // Apunta los botones de descarga al APK de la version mas nueva. Las reglas
+    // de eleccion viven en versiones.js, junto a las de la app.
+    import { fetchLatest } from './versiones.js';
+    import { RELEASES } from './datos.js';
 
-      function setMeta(html) {
-        metas.forEach(function (meta) { meta.innerHTML = html; });
-      }
+    const buttons = document.querySelectorAll('.js-download');
+    const metas = document.querySelectorAll('.js-download-meta');
 
-      function parseVersion(tag) {
-        return tag.trim().replace(/^v/i, '').split(/[.\-+]/).map(function (part) {
-          var number = parseInt(part, 10);
-          return isFinite(number) ? number : 0;
-        });
-      }
+    const setMeta = (html) => metas.forEach((meta) => { meta.innerHTML = html; });
+    const escapeHtml = (text) =>
+      text.replace(/[&<>"']/g, (c) => '&#' + c.charCodeAt(0) + ';');
 
-      function compareVersions(left, right) {
-        var a = parseVersion(left);
-        var b = parseVersion(right);
-        for (var i = 0; i < Math.max(a.length, b.length); i += 1) {
-          var difference = (a[i] || 0) - (b[i] || 0);
-          if (difference !== 0) return difference > 0 ? 1 : -1;
+    fetchLatest()
+      .then((best) => {
+        if (!best) {
+          setMeta('Aún no hay ninguna versión publicada.');
+          return;
         }
-        return 0;
-      }
 
-      function toRelease(payload) {
-        if (!payload || payload.draft || typeof payload.tag_name !== 'string') return null;
-        var apk = (payload.assets || []).find(function (asset) {
-          return typeof asset.name === 'string' && /\.apk$/i.test(asset.name);
+        buttons.forEach((button) => {
+          button.href = best.url;
+          button.setAttribute('download', '');
         });
-        if (!apk) return null;
-        return {
-          tag: payload.tag_name,
-          prerelease: payload.prerelease === true,
-          url: apk.browser_download_url,
-          size: apk.size || 0
-        };
-      }
 
-      function escapeHtml(text) {
-        return text.replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; });
-      }
-
-      fetch(RELEASES_URL, { headers: { Accept: 'application/vnd.github+json' } })
-        .then(function (response) {
-          if (!response.ok) throw new Error('GitHub answered ' + response.status);
-          return response.json();
-        })
-        .then(function (payloads) {
-          var releases = (Array.isArray(payloads) ? payloads : []).map(toRelease).filter(Boolean);
-          var finished = releases.filter(function (release) { return !release.prerelease; });
-          var pool = finished.length > 0 ? finished : releases;
-
-          var best = pool.reduce(function (current, release) {
-            return !current || compareVersions(release.tag, current.tag) > 0 ? release : current;
-          }, null);
-
-          if (!best) {
-            setMeta('Aún no hay ninguna versión publicada.');
-            return;
-          }
-
-          buttons.forEach(function (button) {
-            button.href = best.url;
-            button.setAttribute('download', '');
-          });
-
-          var size = best.size ? ' · ' + (best.size / 1048576).toFixed(0) + ' MB' : '';
-          setMeta(
-            'Versión ' + escapeHtml(best.tag) + size + ' · Android' +
-            (best.prerelease ? '<span class="badge">Beta</span>' : '')
-          );
-        })
-        .catch(function () {
-          setMeta('No se pudo consultar la última versión. <a href="https://github.com/Kapparron/Bitacora/releases">Ver todas las versiones</a>.');
-        });
-    })();
+        const size = best.size ? ' · ' + (best.size / 1048576).toFixed(0) + ' MB' : '';
+        setMeta(
+          'Versión ' + escapeHtml(best.tag) + size + ' · Android' +
+          (best.prerelease ? '<span class="badge">Beta</span>' : '')
+        );
+      })
+      .catch(() => {
+        setMeta('No se pudo consultar la última versión. <a href="' + RELEASES + '">Ver todas las versiones</a>.');
+      });
   </script>
 </body>
 </html>

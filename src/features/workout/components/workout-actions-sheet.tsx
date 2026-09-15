@@ -3,9 +3,11 @@ import { useRouter } from 'expo-router';
 import { useConfirm } from '@/components/confirm-dialog';
 import { OptionSheet, type SheetOption } from '@/components/option-sheet';
 import { deleteWorkout } from '@/features/workout/mutations';
+import { sendWorkout } from '@/features/workout/send';
 
-const WORKOUT_ACTIONS: SheetOption<'edit' | 'delete'>[] = [
+const WORKOUT_ACTIONS: SheetOption<'edit' | 'share' | 'delete'>[] = [
   { value: 'edit', label: 'Editar', description: 'Corregir series, ejercicios o el nombre' },
+  { value: 'share', label: 'Compartir', description: 'Un enlace para verlo sin la app' },
   { value: 'delete', label: 'Eliminar', description: 'Quitar del historial' },
 ];
 
@@ -43,6 +45,8 @@ export function WorkoutActionsSheet({
 
         if (action === 'edit') {
           router.push({ pathname: '/workout/[id]', params: { id: workout.id, edit: '1' } });
+        } else if (action === 'share') {
+          void sendWorkout(workout.id);
         } else {
           void remove();
         }

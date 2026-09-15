@@ -1,25 +1,27 @@
 import { OptionSheet, type SheetOption } from '@/components/option-sheet';
-import type { WorkoutSet } from '@/db/schema';
+import { SET_TYPES as SET_TYPE_DATA, badgeOf, countsForVolume, type SetType } from '@/constants/sets';
 
-export type SetType = WorkoutSet['type'];
+export type { SetType };
 
-export const SET_TYPES: SheetOption<SetType>[] = [
-  { value: 'normal', label: 'Serie normal', badge: '#', description: 'Cuenta para el volumen' },
-  { value: 'warmup', label: 'Calentamiento', badge: 'C', description: 'No cuenta para el volumen' },
-  { value: 'drop', label: 'Drop set', badge: 'D', description: 'Bajada de peso sin descanso' },
-  { value: 'failure', label: 'Al fallo', badge: 'F', description: 'Hasta el fallo muscular' },
-];
+/** The same four types the shared link and the web page use; see `data/sets.json`. */
+export const SET_TYPES: SheetOption<SetType>[] = SET_TYPE_DATA.map((type) => ({
+  value: type.id,
+  label: type.label,
+  badge: type.badge,
+  description: type.description,
+}));
 
 /**
- * Badge shown in the set-number column; normal sets keep their number. Warmups
- * are not counted, so the first set after them is set 1.
+ * Badge shown in the set-number column; normal sets keep their number. A type
+ * that does not count towards the volume is not counted here either, so the
+ * first set after a warm-up is set 1.
  */
 export function badgeFor(sets: readonly { type: SetType }[], index: number): string {
   const { type } = sets[index];
-  if (type !== 'normal') return SET_TYPES.find((option) => option.value === type)?.badge ?? '';
+  if (type !== 'normal') return badgeOf(type);
 
-  const warmupsBefore = sets.slice(0, index).filter((set) => set.type === 'warmup').length;
-  return String(index + 1 - warmupsBefore);
+  const uncounted = sets.slice(0, index).filter((set) => !countsForVolume(set.type)).length;
+  return String(index + 1 - uncounted);
 }
 
 /**

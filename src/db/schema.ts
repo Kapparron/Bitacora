@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
+import type { SetType, TrackingType } from '@/constants/sets';
+
 /**
  * Conventions shared by every table:
  * - `id` is a UUID string generated on the device (see `newId` in ./ids).
@@ -39,7 +41,7 @@ export const exercises = sqliteTable(
     gifPath: text('gif_path'),
     /** How a set of this exercise is measured, which decides the set input fields. */
     trackingType: text('tracking_type')
-      .$type<'weight_reps' | 'reps' | 'duration' | 'distance_duration'>()
+      .$type<TrackingType>()
       .notNull()
       .default('weight_reps'),
     notes: text('notes'),
@@ -143,7 +145,7 @@ export const sets = sqliteTable(
       .references(() => workoutExercises.id, { onDelete: 'cascade' }),
     position: integer('position').notNull(),
     type: text('type')
-      .$type<'normal' | 'warmup' | 'drop' | 'failure'>()
+      .$type<SetType>()
       .notNull()
       .default('normal'),
     /** Kilograms. */
