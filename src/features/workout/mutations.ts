@@ -184,6 +184,24 @@ export async function removeWorkoutExercise(workoutExerciseId: string): Promise<
 }
 
 /**
+ * Rewrites every position from the new order, keeping them contiguous. Only the
+ * session changes: the routine it was started from keeps its own order.
+ */
+export async function reorderWorkoutExercises(
+  workoutId: string,
+  orderedIds: readonly string[]
+): Promise<void> {
+  db.transaction((tx) => {
+    orderedIds.forEach((id, position) => {
+      tx.update(workoutExercises)
+        .set({ position, updatedAt: Date.now() })
+        .where(and(eq(workoutExercises.id, id), eq(workoutExercises.workoutId, workoutId)))
+        .run();
+    });
+  });
+}
+
+/**
  * Swaps which exercise a slot holds, keeping its sets, rest and superset group.
  * Changing your mind about the movement mid-session is common; the sets already
  * logged under it are kept because they were performed, whatever the slot now

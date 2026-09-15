@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -7,9 +8,10 @@ import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDuration, formatNumber } from '@/lib/format';
+import { ReorderSheet } from '@/features/exercises/components/reorder-sheet';
 import { ExerciseCard } from '@/features/workout/components/exercise-card';
 import { RestTimerBar } from '@/features/workout/components/rest-timer-bar';
-import { discardWorkout, finishWorkout } from '@/features/workout/mutations';
+import { discardWorkout, finishWorkout, reorderWorkoutExercises } from '@/features/workout/mutations';
 import { useActiveWorkout } from '@/features/workout/queries';
 import { RECORD_LABEL } from '@/features/workout/records';
 import { useRestTimer } from '@/features/workout/rest-timer';
@@ -23,6 +25,9 @@ export default function ActiveWorkoutScreen() {
   const stopRest = useRestTimer((state) => state.stop);
   const { contents, loading } = useActiveWorkout();
   const elapsed = useElapsed(contents?.workout.startedAt ?? null);
+  const [reordering, setReordering] = useState(false);
+  // Stable, so opening the sheet does not re-render every memoised card.
+  const openReorder = useCallback(() => setReordering(true), []);
 
   // The session can disappear from under this screen (finished or discarded), in
   // which case there is nothing left to render and going back is the only move.
@@ -127,6 +132,7 @@ export default function ActiveWorkoutScreen() {
             entry={entry}
             workoutId={workout.id}
             editable
+            onReorder={entries.length > 1 ? openReorder : undefined}
           />
         ))}
 
@@ -149,6 +155,18 @@ export default function ActiveWorkoutScreen() {
           <Button title="Descartar entreno" variant="danger" onPress={() => void confirmDiscard()} />
         </View>
       </ScrollView>
+
+      {reordering ? (
+        <ReorderSheet
+          items={entries.map((entry) => ({
+            id: entry.workoutExerciseId,
+            supersetGroup: entry.supersetGroup,
+            exercise: entry.exercise,
+          }))}
+          onReorder={(orderedIds) => void reorderWorkoutExercises(workout.id, orderedIds)}
+          onClose={() => setReordering(false)}
+        />
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
