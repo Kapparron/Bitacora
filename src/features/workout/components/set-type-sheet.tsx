@@ -10,11 +10,16 @@ export const SET_TYPES: SheetOption<SetType>[] = [
   { value: 'failure', label: 'Al fallo', badge: 'F', description: 'Hasta el fallo muscular' },
 ];
 
-/** Badge shown in the set-number column; normal sets keep their number. */
-export function badgeFor(type: SetType, index: number): string {
-  return type === 'normal'
-    ? String(index + 1)
-    : (SET_TYPES.find((option) => option.value === type)?.badge ?? '');
+/**
+ * Badge shown in the set-number column; normal sets keep their number. Warmups
+ * are not counted, so the first set after them is set 1.
+ */
+export function badgeFor(sets: readonly { type: SetType }[], index: number): string {
+  const { type } = sets[index];
+  if (type !== 'normal') return SET_TYPES.find((option) => option.value === type)?.badge ?? '';
+
+  const warmupsBefore = sets.slice(0, index).filter((set) => set.type === 'warmup').length;
+  return String(index + 1 - warmupsBefore);
 }
 
 /**

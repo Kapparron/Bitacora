@@ -25,7 +25,7 @@ import { useRestTimer } from '../rest-timer';
 import { RecordBubble } from './record-bubble';
 import { RestSheet, formatRest } from './rest-sheet';
 import { SetRow, SetRowHeader } from './set-row';
-import type { SetType } from './set-type-sheet';
+import { badgeFor, type SetType } from './set-type-sheet';
 
 function ExerciseCardComponent({
   entry,
@@ -192,7 +192,7 @@ function ExerciseCardComponent({
         <SetRow
           key={set.id}
           set={set}
-          index={index}
+          label={badgeFor(entry.sets, index)}
           record={recordsReachedBy(set, records).length > 0}
           previous={previousSets[index] ?? null}
           trackingType={entry.exercise.trackingType}

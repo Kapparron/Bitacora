@@ -134,7 +134,7 @@ function SessionCard({
                   {/* Same badge the session screen uses: a number, or the
                       letter of the set type. */}
                   <ThemedText type="small" themeColor="textSecondary" style={styles.setIndex}>
-                    {badgeFor(set.type, setIndex)}
+                    {badgeFor(exercise.sets, setIndex)}
                   </ThemedText>
 
                   <ThemedText type="small">{describeSet(set)}</ThemedText>
