@@ -21,7 +21,8 @@ Expo Go.
 
 > El escáner de códigos de barras, compartir la copia de seguridad y el selector
 > de archivos necesitan una *development build* (`npx expo run:android`): en Expo
-> Go pueden no funcionar.
+> Go pueden no funcionar. Las notificaciones del entreno y del descanso son un
+> módulo nativo propio y solo existen en esa build.
 
 ## Comandos
 
@@ -71,6 +72,7 @@ src/
                   calendar, body, rest, progress, charts, backup
   db/             cliente SQLite, esquema, migraciones y semilla
   constants/      tema y tipografías
+modules/          módulos nativos propios: notificaciones del entreno (Android)
 drizzle/          migraciones SQL generadas
 assets/data/      catálogo de ejercicios generado
 scripts/          generador del catálogo, iconos y comprobaciones
