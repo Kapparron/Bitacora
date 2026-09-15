@@ -5,29 +5,14 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { ExerciseThumbnail } from '@/features/exercises/components/exercise-thumbnail';
-import { badgeFor } from '@/features/workout/components/set-type-sheet';
 import { WorkoutActionsSheet } from '@/features/workout/components/workout-actions-sheet';
-import {
-  useHistorySessions,
-  type HistoryExercise,
-  type HistorySession,
-} from '@/features/workout/queries';
+import { useHistorySessions, type HistorySession } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDay, formatDuration, formatNumber, formatTime } from '@/lib/format';
 
-/** One set as it is read back: `60 kg × 10`, or whatever half of it was logged. */
-function describeSet(set: HistoryExercise['sets'][number]): string {
-  const weight = set.weight === null ? null : `${formatNumber(set.weight)} kg`;
-  const reps = set.reps === null ? null : `${set.reps}`;
-
-  if (weight && reps) return `${weight} × ${reps}`;
-  return weight ?? (reps ? `× ${reps}` : '-');
-}
-
 /**
  * Routines and exercises live one tap away; the page itself is the training log,
- * session by session, with the sets that were performed.
+ * one compact card per session; the sets are in the session detail.
  */
 export default function RoutinesScreen() {
   const theme = useTheme();
@@ -119,6 +104,8 @@ function SessionCard({
   const theme = useTheme();
   const duration =
     session.finishedAt === null ? null : formatDuration(session.finishedAt - session.startedAt);
+  const setCount = session.exercises.reduce((total, exercise) => total + exercise.sets.length, 0);
+  const exerciseNames = session.exercises.map((exercise) => exercise.exercise.name).join(', ');
 
   return (
     <Pressable
@@ -129,7 +116,7 @@ function SessionCard({
         { borderColor: theme.border },
         pressed && { backgroundColor: theme.backgroundElement },
       ]}>
-      <ThemedText type="default" style={styles.cardTitle}>
+      <ThemedText type="default" style={styles.cardTitle} numberOfLines={1}>
         {session.name}
       </ThemedText>
 
@@ -138,35 +125,11 @@ function SessionCard({
         {duration ? ` · ${duration}` : ''} · {formatNumber(session.volume, 0)} kg
       </ThemedText>
 
-      {session.exercises.map((exercise, index) => (
-        <View key={index} style={[styles.exercise, { borderTopColor: theme.border }]}>
-          <ExerciseThumbnail exercise={exercise.exercise} />
-
-          <View style={styles.exerciseBody}>
-            <ThemedText type="default" style={styles.exerciseName} numberOfLines={1}>
-              {exercise.exercise.name}
-            </ThemedText>
-
-            {exercise.sets.length === 0 ? (
-              <ThemedText type="small" themeColor="textSecondary">
-                Sin series
-              </ThemedText>
-            ) : (
-              exercise.sets.map((set, setIndex) => (
-                <View key={setIndex} style={styles.setRow}>
-                  {/* Same badge the session screen uses: a number, or the
-                      letter of the set type. */}
-                  <ThemedText type="small" themeColor="textSecondary" style={styles.setIndex}>
-                    {badgeFor(exercise.sets, setIndex)}
-                  </ThemedText>
-
-                  <ThemedText type="small">{describeSet(set)}</ThemedText>
-                </View>
-              ))
-            )}
-          </View>
-        </View>
-      ))}
+      <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+        {session.exercises.length} {session.exercises.length === 1 ? 'ejercicio' : 'ejercicios'} ·{' '}
+        {setCount} {setCount === 1 ? 'serie' : 'series'}
+        {exerciseNames ? ` · ${exerciseNames}` : ''}
+      </ThemedText>
     </Pressable>
   );
 }
@@ -194,17 +157,5 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   cardTitle: { fontWeight: '700' },
-  exercise: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  exerciseBody: { flex: 1, gap: 2 },
-  exerciseName: { fontWeight: '600' },
-  setRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  setIndex: { width: 14, textAlign: 'center' },
   empty: { textAlign: 'center', paddingHorizontal: 32, paddingTop: 24 },
 });
