@@ -31,10 +31,13 @@ function ExerciseCardComponent({
   entry,
   workoutId,
   editable,
+  onReorder,
 }: {
   entry: WorkoutEntry;
   workoutId: string;
   editable: boolean;
+  /** Opens the reorder sheet. Left out when there is nothing to reorder. */
+  onReorder?: () => void;
 }) {
   const theme = useTheme();
   const router = useRouter();
@@ -131,6 +134,12 @@ function ExerciseCardComponent({
 
         {editable ? (
           <View style={styles.headerActions}>
+            {onReorder ? (
+              <Pressable onPress={onReorder} hitSlop={8} accessibilityLabel="Reordenar ejercicios">
+                <Ionicons name="reorder-three" size={22} color={theme.textSecondary} />
+              </Pressable>
+            ) : null}
+
             <Pressable
               onPress={() =>
                 router.push({
@@ -215,6 +224,7 @@ export const ExerciseCard = memo(ExerciseCardComponent, (before, after) => {
   if (
     before.workoutId !== after.workoutId ||
     before.editable !== after.editable ||
+    before.onReorder !== after.onReorder ||
     before.entry.workoutExerciseId !== after.entry.workoutExerciseId ||
     before.entry.exercise.id !== after.entry.exercise.id ||
     before.entry.notes !== after.entry.notes ||

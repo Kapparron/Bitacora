@@ -109,41 +109,18 @@ export async function removeRoutineExercise(routineExerciseId: string): Promise<
   });
 }
 
-/** Swaps an exercise with its neighbour, keeping positions contiguous. */
-export async function moveRoutineExercise(
-  routineExerciseId: string,
-  direction: 'up' | 'down'
+/** Rewrites every position from the new order, keeping them contiguous. */
+export async function reorderRoutineExercises(
+  routineId: string,
+  orderedIds: readonly string[]
 ): Promise<void> {
-  const [target] = await db
-    .select()
-    .from(routineExercises)
-    .where(eq(routineExercises.id, routineExerciseId));
-  if (!target) return;
-
-  const neighbourPosition = target.position + (direction === 'up' ? -1 : 1);
-
-  const [neighbour] = await db
-    .select()
-    .from(routineExercises)
-    .where(
-      and(
-        eq(routineExercises.routineId, target.routineId),
-        eq(routineExercises.position, neighbourPosition)
-      )
-    );
-
-  if (!neighbour) return;
-
   db.transaction((tx) => {
-    tx.update(routineExercises)
-      .set({ position: target.position, updatedAt: Date.now() })
-      .where(eq(routineExercises.id, neighbour.id))
-      .run();
-
-    tx.update(routineExercises)
-      .set({ position: neighbourPosition, updatedAt: Date.now() })
-      .where(eq(routineExercises.id, target.id))
-      .run();
+    orderedIds.forEach((id, position) => {
+      tx.update(routineExercises)
+        .set({ position, updatedAt: Date.now() })
+        .where(and(eq(routineExercises.id, id), eq(routineExercises.routineId, routineId)))
+        .run();
+    });
   });
 }
 

@@ -10,10 +10,11 @@ import { ScreenHeader } from '@/components/screen-header';
 import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
 import { ExerciseThumbnail } from '@/features/exercises/components/exercise-thumbnail';
+import { ReorderSheet } from '@/features/exercises/components/reorder-sheet';
 import {
   linkWithNext,
-  moveRoutineExercise,
   removeRoutineExercise,
+  reorderRoutineExercises,
   unlinkSuperset,
   updateRoutine,
   updateRoutineExercise,
@@ -40,6 +41,7 @@ export default function RoutineEditorScreen() {
   const { contents: active } = useActiveWorkout();
   const [renaming, setRenaming] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(false);
+  const [reordering, setReordering] = useState(false);
 
   if (!contents) {
     return (
@@ -106,8 +108,7 @@ export default function RoutineEditorScreen() {
         <RoutineExerciseCard
           key={entry.routineExerciseId}
           entry={entry}
-          isFirst={index === 0}
-          isLast={index === entries.length - 1}
+          onReorder={entries.length > 1 ? () => setReordering(true) : undefined}
           canLink={index < entries.length - 1}
         />
       ))}
@@ -154,6 +155,18 @@ export default function RoutineEditorScreen() {
         />
       ) : null}
 
+      {reordering ? (
+        <ReorderSheet
+          items={entries.map((entry) => ({
+            id: entry.routineExerciseId,
+            supersetGroup: entry.supersetGroup,
+            exercise: entry.exercise,
+          }))}
+          onReorder={(orderedIds) => void reorderRoutineExercises(routine.id, orderedIds)}
+          onClose={() => setReordering(false)}
+        />
+      ) : null}
+
       {editingSchedule ? (
         <ScheduleEditor
           schedule={scheduleOf(routine)}
@@ -175,13 +188,12 @@ export default function RoutineEditorScreen() {
 
 function RoutineExerciseCard({
   entry,
-  isFirst,
-  isLast,
+  onReorder,
   canLink,
 }: {
   entry: RoutineEntry;
-  isFirst: boolean;
-  isLast: boolean;
+  /** Opens the reorder sheet. Left out when there is nothing to reorder. */
+  onReorder?: () => void;
   canLink: boolean;
 }) {
   const theme = useTheme();
@@ -223,6 +235,12 @@ function RoutineExerciseCard({
             {entry.exercise.muscleGroup} · {entry.exercise.equipment}
           </ThemedText>
         </View>
+
+        {onReorder ? (
+          <Pressable onPress={onReorder} hitSlop={8} accessibilityLabel="Reordenar ejercicios">
+            <Ionicons name="reorder-three" size={22} color={theme.textSecondary} />
+          </Pressable>
+        ) : null}
 
         <Pressable onPress={() => void remove()} hitSlop={8} accessibilityLabel="Quitar ejercicio">
           <Ionicons name="trash-outline" size={20} color={theme.textSecondary} />
@@ -268,18 +286,6 @@ function RoutineExerciseCard({
       </View>
 
       <View style={styles.tools}>
-        <Tool
-          icon="arrow-up"
-          label="Subir"
-          disabled={isFirst}
-          onPress={() => void moveRoutineExercise(entry.routineExerciseId, 'up')}
-        />
-        <Tool
-          icon="arrow-down"
-          label="Bajar"
-          disabled={isLast}
-          onPress={() => void moveRoutineExercise(entry.routineExerciseId, 'down')}
-        />
         {entry.supersetGroup === null ? (
           <Tool
             icon="link"
