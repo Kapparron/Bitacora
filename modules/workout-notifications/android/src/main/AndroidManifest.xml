@@ -1,0 +1,13 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+  <!-- The end of a rest has to ring on time with the screen locked, which only an
+       exact alarm does. Android 12 grants SCHEDULE_EXACT_ALARM on install; from
+       13 on, USE_EXACT_ALARM is the one granted without a trip to the settings. -->
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+  <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+  <application>
+    <receiver android:name="expo.modules.workoutnotifications.RestEndReceiver" android:exported="false" />
+  </application>
+</manifest>
