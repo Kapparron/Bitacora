@@ -1,9 +1,9 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { ExerciseThumbnail } from '@/features/exercises/components/exercise-thumbnail';
 import { badgeFor } from '@/features/workout/components/set-type-sheet';
@@ -44,19 +44,12 @@ export default function RoutinesScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.header}>
-            <View style={styles.headerActions}>
-              <Button
-                title="Rutinas"
-                style={styles.headerButton}
-                onPress={() => router.push('/routine')}
-              />
-              <Button
-                title="Ejercicios"
-                variant="secondary"
-                style={styles.headerButton}
-                onPress={() => router.push('/exercises')}
-              />
-            </View>
+            <LinkRow icon="list-outline" title="Mis rutinas" onPress={() => router.push('/routine')} />
+            <LinkRow
+              icon="barbell-outline"
+              title="Catálogo de ejercicios"
+              onPress={() => router.push('/exercises')}
+            />
 
             <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionTitle}>
               HISTORIAL
@@ -81,6 +74,36 @@ export default function RoutinesScreen() {
         <WorkoutActionsSheet workout={menuSession} onClose={() => setMenuSession(null)} />
       ) : null}
     </SafeAreaView>
+  );
+}
+
+/** Row that opens another screen: the chevron tells it apart from a tab. */
+function LinkRow({
+  icon,
+  title,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.linkRow,
+        { borderColor: theme.border },
+        pressed && { backgroundColor: theme.backgroundElement },
+      ]}>
+      <Ionicons name={icon} size={20} color={theme.accentText} />
+      <ThemedText type="default" style={styles.linkTitle}>
+        {title}
+      </ThemedText>
+      <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+    </Pressable>
   );
 }
 
@@ -151,10 +174,17 @@ function SessionCard({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   list: { paddingBottom: 120 },
-  header: { paddingHorizontal: 12, paddingTop: 8, gap: 12 },
-  headerActions: { flexDirection: 'row', gap: 8 },
-  headerButton: { flex: 1 },
-  sectionTitle: { paddingHorizontal: 2 },
+  header: { paddingHorizontal: 12, paddingTop: 8, gap: 8 },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  linkTitle: { flex: 1 },
+  sectionTitle: { paddingHorizontal: 2, paddingTop: 8 },
   card: {
     marginHorizontal: 12,
     marginTop: 8,
