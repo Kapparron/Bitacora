@@ -3,19 +3,38 @@
 // the TypeScript types itself.
 import { registerHooks } from 'node:module';
 
-/** Directory the alias points at. */
-const SRC = new URL('../../src/', import.meta.url).href;
+/** The same `paths` tsconfig.json declares, in the same order of preference. */
+const ROOT = new URL('../../', import.meta.url).href;
+const ALIASES = [
+  ['@/assets/', `${ROOT}assets/`],
+  ['@/data/', `${ROOT}data/`],
+  ['@/', `${ROOT}src/`],
+];
 
 const EXTENSIONS = ['.ts', '.tsx', '/index.ts'];
 
+function resolveAlias(specifier) {
+  const alias = ALIASES.find(([prefix]) => specifier.startsWith(prefix));
+  return alias ? new URL(specifier.slice(alias[0].length), alias[1]).href : specifier;
+}
+
+/**
+ * Metro and TypeScript take `import data from './x.json'` as it is; Node asks
+ * for an import attribute. Answering with it here keeps the app's imports
+ * written the way the bundler expects them.
+ */
+function withJsonAttribute(target, result) {
+  return target.endsWith('.json')
+    ? { ...result, importAttributes: { type: 'json' } }
+    : result;
+}
+
 registerHooks({
   resolve(specifier, context, next) {
-    const target = specifier.startsWith('@/')
-      ? new URL(specifier.slice(2), SRC).href
-      : specifier;
+    const target = resolveAlias(specifier);
 
     try {
-      return next(target, context);
+      return withJsonAttribute(target, next(target, context));
     } catch (cause) {
       for (const extension of EXTENSIONS) {
         try {

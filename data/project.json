@@ -1,0 +1,23 @@
+{
+  "repo": "Kapparron/Bitacora",
+  "githubApi": "https://api.github.com/repos",
+  "githubWeb": "https://github.com",
+  "package": "com.bitacora.app",
+  "scheme": "bitacora",
+  "web": {
+    "base": "https://kapparron.github.io/Bitacora/",
+    "downloadAnchor": "#descargar",
+    "routinePath": "rutina/",
+    "workoutPath": "entreno/",
+    "iconPath": "icon.png"
+  },
+  "app": {
+    "routineImport": "bitacora://routine/import?r="
+  },
+  "media": {
+    "cdn": "https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main",
+    "attribution": "© Gym visual — gymvisual.com",
+    "imageDir": "images",
+    "gifDir": "videos"
+  }
+}

@@ -1,0 +1,20 @@
+/* Generado por `npm run build:data` desde data/theme.json. No se edita a mano. */
+:root {
+  --bg: #0b0c0a;
+  --bg-raised: #15171a;
+  --bg-line: #25282c;
+  --bg-panel: #1b1d20;
+  --bg-section: #0f1110;
+  --shadow-ring: #0f1012;
+  --surface: #212225;
+  --surface-strong: #2e3135;
+  --border: #33363b;
+  --text: #f4f6f0;
+  --muted: #9aa097;
+  --accent: #96d62f;
+  --accent-deep: #84c226;
+  --accent-hover: #a8e647;
+  --on-accent: #0b0c0a;
+  --warm: #f5a524;
+  --brand: #8bb735;
+}
