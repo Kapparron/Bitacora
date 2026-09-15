@@ -6,21 +6,24 @@
 // The format is the one written in src/features/workout/share.ts, and
 // scripts/checks/workout-share.test.ts holds both ends to the same grammar.
 
-const SHARE_VERSION = 1;
-const LINK_PREFIX = 'https://kapparron.github.io/Bitacora/entreno/#';
+import {
+  CDN,
+  CUENTA_VOLUMEN,
+  DESCARGA,
+  ENLACE_ENTRENO,
+  IMAGENES,
+  INSIGNIA_SERIE,
+  TIPOS_SERIE,
+  VIDEOS,
+} from '../datos.js';
+import { formatDuration, formatNumber } from '../formato.js';
 
-const CDN = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main';
-const DOWNLOAD = 'https://kapparron.github.io/Bitacora/#descargar';
+const SHARE_VERSION = 1;
 
 /** Generous limits, only there so a hostile link cannot flood the page. */
 const MAX_TEXT = 500;
 const MAX_ENTRIES = 60;
 const MAX_SETS = 60;
-
-const SET_TYPES = { w: 'warmup', d: 'drop', f: 'failure' };
-
-/** Badge shown in the set-number column, the same letters the app uses. */
-const SET_BADGE = { warmup: 'C', drop: 'D', failure: 'F' };
 
 const DECIMAL = '\\d+(?:\\.\\d+)?';
 const MEASURES = new RegExp(`^(?:(${DECIMAL})m)?(?:(\\d+)s)?$`);
@@ -47,7 +50,7 @@ function decodePayload(encoded) {
 export function decodeSet(token) {
   let rest = String(token);
 
-  const type = SET_TYPES[rest[0]] ?? 'normal';
+  const type = TIPOS_SERIE[rest[0]] ?? 'normal';
   if (type !== 'normal') rest = rest.slice(1);
 
   const set = { type, weight: null, reps: null, distanceM: null, durationS: null, rpe: null };
@@ -115,7 +118,7 @@ export function decodeSets(text) {
  * anything, and every field here ends up on screen.
  */
 export function parseSharedWorkout(input) {
-  const encoded = input.startsWith(LINK_PREFIX) ? input.slice(LINK_PREFIX.length) : input;
+  const encoded = input.startsWith(ENLACE_ENTRENO) ? input.slice(ENLACE_ENTRENO.length) : input;
   const value = decodePayload(encoded);
 
   if (!isObject(value) || value.v !== SHARE_VERSION) return null;
@@ -196,7 +199,7 @@ export function volumeOf(entries) {
 
   for (const entry of entries) {
     for (const set of entry.sets) {
-      if (set.type === 'warmup' || set.weight === null || set.reps === null) continue;
+      if (!CUENTA_VOLUMEN[set.type] || set.weight === null || set.reps === null) continue;
       total += set.weight * set.reps;
     }
   }
@@ -211,29 +214,15 @@ export function setCountOf(entries) {
 /** Warm-ups carry a letter, so the set after them is still set 1. */
 function badgeFor(sets, index) {
   const { type } = sets[index];
-  if (type !== 'normal') return SET_BADGE[type];
+  if (type !== 'normal') return INSIGNIA_SERIE[type];
 
-  const warmups = sets.slice(0, index).filter((set) => set.type === 'warmup').length;
-  return String(index + 1 - warmups);
+  const uncounted = sets.slice(0, index).filter((set) => !CUENTA_VOLUMEN[set.type]).length;
+  return String(index + 1 - uncounted);
 }
 
 /* ---------------------------------------------------------------- formatting */
 
-/** `1:05:03` when there are hours, `5:03` otherwise, as in the app. */
-export function formatDuration(seconds) {
-  const total = Math.max(0, Math.round(seconds));
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  const pad = (value) => String(value).padStart(2, '0');
-
-  return hours > 0
-    ? `${hours}:${pad(minutes)}:${pad(total % 60)}`
-    : `${minutes}:${pad(total % 60)}`;
-}
-
-function formatNumber(value, maximumFractionDigits = 2) {
-  return new Intl.NumberFormat('es-ES', { maximumFractionDigits }).format(value);
-}
+export { formatDuration };
 
 /**
  * The day it was trained, spelled out. The app says "Hoy" or "Ayer", which a
@@ -274,12 +263,12 @@ export function formatSet(set) {
 
 /**
  * `{ "0001": ["3/4 sit-up", "0001-2gPfomN"] }`, built by
- * scripts/build-web-catalog.mjs. A session names catalogue exercises by their
+ * scripts/build-data.mjs and shared by the two pages. A session names catalogue exercises by their
  * id alone, which is what keeps the link short.
  */
 async function loadCatalogue() {
   try {
-    const response = await fetch('catalogo.json');
+    const response = await fetch('../catalogo.json');
     return response.ok ? await response.json() : {};
   } catch {
     // Offline, or the file is not there: names of custom exercises still show.
@@ -325,15 +314,15 @@ function exerciseCard(entry, catalogue) {
     figure.title = 'Ver el movimiento';
 
     const image = new Image();
-    image.src = `${CDN}/images/${slug}.jpg`;
+    image.src = `${CDN}/${IMAGENES}/${slug}.jpg`;
     image.alt = name;
     image.loading = 'lazy';
     figure.append(image);
 
     figure.addEventListener('click', () => {
-      image.src = image.src.includes('/videos/')
-        ? `${CDN}/images/${slug}.jpg`
-        : `${CDN}/videos/${slug}.gif`;
+      image.src = image.src.includes(`/${VIDEOS}/`)
+        ? `${CDN}/${IMAGENES}/${slug}.jpg`
+        : `${CDN}/${VIDEOS}/${slug}.gif`;
     });
 
     head.append(figure);
@@ -348,7 +337,7 @@ function exerciseCard(entry, catalogue) {
 
   const list = element('ol', 'sets');
   entry.sets.forEach((set, index) => {
-    const row = element('li', set.type === 'warmup' ? 'set warmup' : 'set');
+    const row = element('li', CUENTA_VOLUMEN[set.type] ? 'set' : 'set warmup');
     row.append(element('span', 'badge', badgeFor(entry.sets, index)));
     row.append(element('span', 'measures', formatSet(set)));
     row.append(element('span', 'rpe', set.rpe === null ? '' : `RPE ${formatNumber(set.rpe)}`));
@@ -399,4 +388,4 @@ export async function render() {
   for (const entry of workout.e) list.append(exerciseCard(entry, catalogue));
 }
 
-export { DOWNLOAD };
+export { DESCARGA as DOWNLOAD };

@@ -1,4 +1,5 @@
-import catalogue from '@/assets/data/exercises.json';
+import type { TrackingType } from '@/constants/sets';
+import catalogue from '@/data/exercises.json';
 
 /**
  * Built-in exercise catalogue, generated from
@@ -18,7 +19,7 @@ export type CatalogueExercise = {
   steps: string[];
   image: string;
   gif: string;
-  tracking: 'weight_reps' | 'reps' | 'duration' | 'distance_duration';
+  tracking: TrackingType;
 };
 
 export const CATALOGUE = catalogue as CatalogueExercise[];

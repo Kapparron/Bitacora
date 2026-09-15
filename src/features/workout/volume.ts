@@ -1,3 +1,4 @@
+import { countsForVolume } from '@/constants/sets';
 import type { WorkoutSet } from '@/db/schema';
 
 /**
@@ -5,7 +6,7 @@ import type { WorkoutSet } from '@/db/schema';
  * them would inflate volume and hide real progression.
  */
 export function countsTowardsVolume(set: Pick<WorkoutSet, 'completed' | 'type'>): boolean {
-  return set.completed && set.type !== 'warmup';
+  return set.completed && countsForVolume(set.type);
 }
 
 /** Weight times reps, in kilograms. Zero for sets that carry no load. */

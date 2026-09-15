@@ -10,17 +10,10 @@
   <meta property="og:description" content="Míralo aquí mismo, sin instalar nada.">
   <meta property="og:image" content="https://kapparron.github.io/Bitacora/icon.png">
   <link rel="icon" href="../favicon.png">
+  <!-- Los colores salen de data/theme.json; los escribe `npm run build:data`. -->
+  <link rel="stylesheet" href="../estilo.css">
   <style>
     :root {
-      --bg: #0b0c0a;
-      --bg-raised: #15171a;
-      --bg-line: #25282c;
-      --bg-input: #212225;
-      --text: #f4f6f0;
-      --muted: #9aa097;
-      --accent: #96d62f;
-      --warm: #f5a524;
-      --on-accent: #0b0c0a;
       --display: "Bahnschrift", "DIN Condensed", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
       --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     }
@@ -95,7 +88,7 @@
     }
     .set .badge {
       text-align: center; font-weight: 700; font-size: .8rem;
-      background: var(--bg-input); border-radius: 6px; padding: 2px 0;
+      background: var(--surface); border-radius: 6px; padding: 2px 0;
     }
     .set.warmup .badge { color: var(--warm); }
     .set .measures { font-weight: 600; }
@@ -120,11 +113,11 @@
 <body>
   <header>
     <div class="wrap">
-      <a class="brand" href="https://kapparron.github.io/Bitacora/">
+      <a class="brand" href="../">
         <img src="../icon.png" alt="">
         <span>Bitácora</span>
       </a>
-      <a class="get" href="https://kapparron.github.io/Bitacora/#descargar">Descargar la app</a>
+      <a class="get" href="../#descargar">Descargar la app</a>
     </div>
   </header>
 
@@ -145,7 +138,7 @@
 
       <div class="get-app">
         <p>Este entreno viaja entero dentro del enlace: no está guardado en ningún servidor.</p>
-        <a class="button" href="https://kapparron.github.io/Bitacora/#descargar">Registra los tuyos</a>
+        <a class="button" href="../#descargar">Registra los tuyos</a>
       </div>
     </div>
   </main>
