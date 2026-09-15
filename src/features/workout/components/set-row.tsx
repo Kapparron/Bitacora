@@ -8,7 +8,7 @@ import type { Exercise, WorkoutSet } from '@/db/schema';
 import { useTheme } from '@/hooks/use-theme';
 import { formatNumber } from '@/lib/format';
 import type { SetPatch } from '../mutations';
-import { SetTypeSheet, badgeFor, type SetType } from './set-type-sheet';
+import { SET_TYPES, SetTypeSheet, type SetType } from './set-type-sheet';
 
 /** How long typing pauses before the value reaches the database. */
 const WRITE_DELAY_MS = 400;
@@ -74,7 +74,8 @@ export function SetRowHeader({ trackingType }: { trackingType: Exercise['trackin
 
 export type SetRowProps = {
   set: WorkoutSet;
-  index: number;
+  /** Set number, or the letter of its type; see badgeFor. */
+  label: string;
   previous: WorkoutSet | null;
   /** True when this set reaches a record, which puts a medal on its number. */
   record: boolean;
@@ -89,7 +90,7 @@ export type SetRowProps = {
 
 function SetRowComponent({
   set,
-  index,
+  label,
   previous,
   record,
   trackingType,
@@ -171,14 +172,16 @@ function SetRowComponent({
   async function confirmDelete() {
     const accepted = await confirm({
       title: 'Borrar serie',
-      message: `Se borra la serie ${index + 1}.`,
+      message:
+        set.type === 'normal'
+          ? `Se borra la serie ${label}.`
+          : `Se borra la serie de tipo ${SET_TYPES.find((option) => option.value === set.type)?.label}.`,
       confirmLabel: 'Borrar',
     });
 
     if (accepted) onDelete(set.id);
   }
 
-  const label = badgeFor(set.type, index);
   const labelColor = set.type === 'normal' ? theme.text : theme.accentText;
 
   return (
@@ -212,6 +215,10 @@ function SetRowComponent({
           onSelect={(type) => {
             setTypeSheetOpen(false);
             onChangeType(set.id, type);
+          }}
+          onDelete={() => {
+            setTypeSheetOpen(false);
+            void confirmDelete();
           }}
           onClose={() => setTypeSheetOpen(false)}
         />
@@ -275,7 +282,7 @@ export const SetRow = memo(SetRowComponent, (before, after) => {
     a.reps === b.reps &&
     a.durationS === b.durationS &&
     a.distanceM === b.distanceM &&
-    before.index === after.index &&
+    before.label === after.label &&
     before.previous === after.previous &&
     before.record === after.record &&
     before.trackingType === after.trackingType &&
