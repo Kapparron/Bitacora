@@ -269,6 +269,12 @@ entenderse.
 - Las imágenes salen del mismo CDN que en la app, y el GIF solo se descarga al
   pulsar la miniatura.
 
+Al terminar un entreno, el resumen puede compartir además **una tarjeta como
+imagen**: la que está en pantalla, capturada con `react-native-view-shot` y
+entregada con `expo-sharing` (`src/features/workout/share-card.ts`). Es otra cosa
+que el enlace, que sigue en el icono de la cabecera: Android no manda bien una
+imagen y un texto a la vez.
+
 ## Iconos
 
 `npm run build:icons` genera el icono de la app, el adaptativo de Android, su

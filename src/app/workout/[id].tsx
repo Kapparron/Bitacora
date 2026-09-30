@@ -117,7 +117,7 @@ export default function WorkoutDetailScreen() {
 
         {finished === '1' ? (
           <View style={styles.summaryActions}>
-            <Button title="Compartir" onPress={() => void sendWorkout(workout.id)} />
+            {/* The carousel shares the card on screen; the link is the header's icon. */}
             <Button title="Cerrar" variant="secondary" onPress={() => router.replace('/')} />
           </View>
         ) : null}
