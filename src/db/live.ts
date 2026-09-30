@@ -1,6 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useSyncExternalStore } from 'react';
 
 import { addDatabaseChangeListener } from '@/db/client';
+
+import {
+  liveEntry,
+  liveKey,
+  liveSnapshot,
+  setReloadListener,
+  subscribeLive,
+  type LiveArgs,
+  type LiveSnapshot,
+} from './live-store';
 
 /**
  * Development only: which reads each burst of writes sets off. Once the writes
@@ -46,6 +56,7 @@ function countReload(name: string) {
 }
 
 if (COUNTING) {
+  setReloadListener(countReload);
   addDatabaseChangeListener(({ tableName }) => {
     written.add(tableName);
     scheduleReport();
@@ -60,63 +71,31 @@ if (COUNTING) {
  * so a join over workouts + workout_exercises + sets never refreshes when a set
  * or an exercise is inserted. This hook takes the watched tables explicitly.
  *
- * Writes arrive one row at a time (a transaction emits an event per row), so
- * notifications are coalesced into a single refetch on the next tick.
+ * `name` is the hook that wraps this one, and what the development counter above
+ * reports. With `args`, whatever else the query depends on, it tells one query
+ * from another: every mount of the same query shares one read and one result
+ * (see ./live-store).
  *
- * `name` is the hook that wraps this one, and is what the development counter
- * above reports.
+ * `tables` are the ones the query reads, and only those: a write to any of them
+ * runs it again, however many rows the write touched.
  */
 export function useLiveTables<T>(
   name: string,
   tables: readonly string[],
   run: () => Promise<T>,
-  deps: readonly unknown[]
-): { data: T | undefined; error: Error | null; loading: boolean } {
-  const [data, setData] = useState<T>();
-  const [error, setError] = useState<Error | null>(null);
-  const [loading, setLoading] = useState(true);
+  args: LiveArgs
+): LiveSnapshot<T> {
+  const key = liveKey(name, args);
+  liveEntry(key, name, tables, run);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const query = useCallback(run, deps);
-  const watched = tables.join(',');
-  const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const subscribe = useCallback((onChange: () => void) => subscribeLive(key, onChange), [key]);
+  const getSnapshot = useCallback(() => liveSnapshot<T>(key), [key]);
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot);
 
-  useEffect(() => {
-    let cancelled = false;
+  // While a new query (another day, another exercise) is on its way, keep
+  // showing the last one instead of flashing an empty screen.
+  const shown = useRef(snapshot);
+  if (!snapshot.loading) shown.current = snapshot;
 
-    function refetch() {
-      query()
-        .then((result) => {
-          if (cancelled) return;
-          setData(result);
-          setError(null);
-          setLoading(false);
-        })
-        .catch((cause: unknown) => {
-          if (cancelled) return;
-          setError(cause instanceof Error ? cause : new Error(String(cause)));
-          setLoading(false);
-        });
-    }
-
-    refetch();
-
-    const names = new Set(watched.split(','));
-    const listener = addDatabaseChangeListener(({ tableName }) => {
-      if (!names.has(tableName)) return;
-      if (pending.current) clearTimeout(pending.current);
-      pending.current = setTimeout(() => {
-        if (COUNTING) countReload(name);
-        refetch();
-      }, 0);
-    });
-
-    return () => {
-      cancelled = true;
-      if (pending.current) clearTimeout(pending.current);
-      listener.remove();
-    };
-  }, [name, query, watched]);
-
-  return { data, error, loading };
+  return snapshot.loading && !shown.current.loading ? shown.current : snapshot;
 }

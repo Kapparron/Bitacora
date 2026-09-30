@@ -29,6 +29,12 @@ export type DayDiary = {
 
 const NUTRITION_TABLES = ['food_entries', 'foods'] as const;
 
+// What a hook returns before its first result: the same object every time.
+const NO_FOODS: Food[] = [];
+const NO_DATES = new Set<string>();
+const NO_KCAL = new Map<string, number>();
+const NO_SUGGESTIONS = { favorites: NO_FOODS, recents: NO_FOODS };
+
 function emptyTotals(): DayTotals {
   return { kcal: 0, protein: 0, carbs: 0, fat: 0 };
 }
@@ -42,22 +48,29 @@ function add(totals: DayTotals, entry: FoodEntry): DayTotals {
   };
 }
 
-/** Everything logged on one local day, split by meal and summed. */
+/**
+ * Everything logged on one local day, split by meal and summed. An entry keeps
+ * its own copy of the food's name and values, so only `food_entries` is read.
+ */
 export function useDayDiary(date: string): { diary: DayDiary; loading: boolean } {
   const { data, loading } = useLiveTables(
     'useDayDiary',
-    NUTRITION_TABLES,
+    ['food_entries'],
     async () =>
-      db
-        .select()
-        .from(foodEntries)
-        .where(and(eq(foodEntries.date, date), isNull(foodEntries.deletedAt)))
-        .orderBy(asc(foodEntries.createdAt)),
+      diaryOf(
+        await db
+          .select()
+          .from(foodEntries)
+          .where(and(eq(foodEntries.date, date), isNull(foodEntries.deletedAt)))
+          .orderBy(asc(foodEntries.createdAt))
+      ),
     [date]
   );
 
-  const entries = data ?? [];
+  return { diary: data ?? EMPTY_DIARY, loading };
+}
 
+function diaryOf(entries: FoodEntry[]): DayDiary {
   const byMeal: Record<Meal, FoodEntry[]> = {
     breakfast: [],
     lunch: [],
@@ -80,23 +93,28 @@ export function useDayDiary(date: string): { diary: DayDiary; loading: boolean }
     totals = add(totals, entry);
   }
 
-  return { diary: { entries, byMeal, totals, mealTotals }, loading };
+  return { entries, byMeal, totals, mealTotals };
 }
+
+const EMPTY_DIARY = diaryOf([]);
 
 /** Days with something logged, for marking the calendar. */
 export function useLoggedDays(): Set<string> {
   const { data } = useLiveTables(
     'useLoggedDays',
     ['food_entries'],
-    async () =>
-      db
+    async () => {
+      const rows = await db
         .selectDistinct({ date: foodEntries.date })
         .from(foodEntries)
-        .where(isNull(foodEntries.deletedAt)),
+        .where(isNull(foodEntries.deletedAt));
+
+      return new Set(rows.map((row) => row.date));
+    },
     []
   );
 
-  return new Set((data ?? []).map((row) => row.date));
+  return data ?? NO_DATES;
 }
 
 /**
@@ -149,7 +167,7 @@ export function useSuggestedFoods(): { favorites: Food[]; recents: Food[] } {
     []
   );
 
-  return data ?? { favorites: [], recents: [] };
+  return data ?? NO_SUGGESTIONS;
 }
 
 /** Calories logged per day, for the workout tab's calendar. */
@@ -157,16 +175,19 @@ export function useDailyKcal(): Map<string, number> {
   const { data } = useLiveTables(
     'useDailyKcal',
     ['food_entries'],
-    async () =>
-      db
+    async () => {
+      const rows = await db
         .select({ date: foodEntries.date, kcal: sql<number>`sum(${foodEntries.kcal})` })
         .from(foodEntries)
         .where(isNull(foodEntries.deletedAt))
-        .groupBy(foodEntries.date),
+        .groupBy(foodEntries.date);
+
+      return new Map(rows.map((row) => [row.date, row.kcal]));
+    },
     []
   );
 
-  return new Map((data ?? []).map((row) => [row.date, row.kcal]));
+  return data ?? NO_KCAL;
 }
 
 /**
@@ -186,7 +207,7 @@ export function useLocalFoods(): Food[] {
     []
   );
 
-  return data ?? [];
+  return data ?? NO_FOODS;
 }
 
 export function useCustomFoods(): Food[] {
@@ -202,7 +223,7 @@ export function useCustomFoods(): Food[] {
     []
   );
 
-  return data ?? [];
+  return data ?? NO_FOODS;
 }
 
 export async function findFoodByBarcode(barcode: string): Promise<Food | null> {

@@ -59,7 +59,8 @@ function useDistinct(
           .where(isNull(exercises.deletedAt))
           .orderBy(asc(column))
       ).map((row) => row.value),
-    [column]
+    // The column is told apart by `name`.
+    []
   );
 
   return data ?? NO_VALUES;

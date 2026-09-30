@@ -4,6 +4,8 @@ import { db } from '@/db/client';
 import { useLiveTables } from '@/db/live';
 import { bodyMetrics, settings, type BodyMetric } from '@/db/schema';
 
+const NO_METRICS: BodyMetric[] = [];
+
 /** Every measurement, oldest first, which is the order a chart plots them in. */
 export function useBodyMetrics(): { metrics: BodyMetric[]; loading: boolean } {
   const { data, loading } = useLiveTables(
@@ -13,7 +15,7 @@ export function useBodyMetrics(): { metrics: BodyMetric[]; loading: boolean } {
     []
   );
 
-  return { metrics: data ?? [], loading };
+  return { metrics: data ?? NO_METRICS, loading };
 }
 
 /** Most recent measurement that has a weight, for the summary line. */

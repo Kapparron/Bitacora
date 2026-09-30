@@ -100,7 +100,12 @@ remota, así que `drizzle-kit push` y `drizzle-kit studio` no se usan aquí.
 
 Toda lectura pasa por `useLiveTables` (`src/db/live.ts`), que recibe el nombre
 del hook que la envuelve, las tablas que escucha y la consulta, y la vuelve a
-ejecutar cuando se escribe en alguna de esas tablas. En desarrollo, después de
+ejecutar cuando se escribe en alguna de esas tablas. Varias pantallas que montan la
+misma consulta (el mismo hook con los mismos argumentos) comparten una sola
+lectura y el mismo resultado, que mantiene su identidad mientras no cambie
+(`src/db/live-store.ts`). Por eso un hook deriva lo que necesite (un `Map`, un
+`Set`) dentro de la consulta y no en su cuerpo, y escucha solo las tablas que
+lee. En desarrollo, después de
 cada tanda de escrituras, la consola de Metro dice cuántas lecturas despertó y
 de qué hooks:
 
