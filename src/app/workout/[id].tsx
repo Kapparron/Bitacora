@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { DatePrompt } from '@/features/calendar/date-prompt';
 import { ReorderSheet } from '@/features/exercises/components/reorder-sheet';
 import { ExerciseCard } from '@/features/workout/components/exercise-card';
+import { SummaryCarousel } from '@/features/workout/components/summary/summary-carousel';
 import { reorderWorkoutExercises, rescheduleWorkout, updateWorkout } from '@/features/workout/mutations';
 import { useWorkoutContents, useWorkoutRecords } from '@/features/workout/queries';
 import { RECORD_LABEL, formatRecordValue } from '@/features/workout/records';
@@ -21,7 +22,8 @@ import { formatDay, formatDuration, formatNumber, formatTime } from '@/lib/forma
 /**
  * A finished session. Read-only by default; `edit=1` opens it for correcting
  * what was logged, which is how the history list's Editar action arrives, and
- * `finished=1` makes it the summary shown right after ending the session.
+ * `finished=1` makes it the summary shown right after ending the session, with
+ * the swipeable cards in place of the figures and the records.
  *
  * Editing changes the session only. Records already earned are left alone: they
  * are a high-water mark, and lowering one because a set was corrected would
@@ -83,35 +85,35 @@ export default function WorkoutDetailScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         {finished === '1' ? (
-          <ThemedText type="subtitle" style={styles.finishedTitle}>
-            Entreno terminado
-          </ThemedText>
-        ) : null}
+          <SummaryCarousel contents={contents} records={records} />
+        ) : (
+          <>
+            <View style={[styles.stats, { borderColor: theme.border }]}>
+              <Stat label="Duracion" value={duration === null ? '-' : formatDuration(duration)} />
+              <Stat label="Volumen" value={`${formatNumber(totalVolume(allSets), 0)} kg`} />
+              <Stat label="Series" value={String(completedSetCount(allSets))} />
+            </View>
 
-        <View style={[styles.stats, { borderColor: theme.border }]}>
-          <Stat label="Duracion" value={duration === null ? '-' : formatDuration(duration)} />
-          <Stat label="Volumen" value={`${formatNumber(totalVolume(allSets), 0)} kg`} />
-          <Stat label="Series" value={String(completedSetCount(allSets))} />
-        </View>
-
-        {records.length > 0 ? (
-          <View style={[styles.records, { borderColor: theme.border }]}>
-            <ThemedText type="smallBold" themeColor="textSecondary">
-              {records.length === 1 ? '1 RECORD' : `${records.length} RECORDS`}
-            </ThemedText>
-
-            {records.map((record) => (
-              <View key={record.id} style={styles.record}>
-                <ThemedText type="default" style={styles.recordLabel} numberOfLines={1}>
-                  {record.exerciseName} · {RECORD_LABEL[record.type]}
+            {records.length > 0 ? (
+              <View style={[styles.records, { borderColor: theme.border }]}>
+                <ThemedText type="smallBold" themeColor="textSecondary">
+                  {records.length === 1 ? '1 RECORD' : `${records.length} RECORDS`}
                 </ThemedText>
-                <ThemedText type="default" style={{ fontWeight: '700' }}>
-                  {formatRecordValue(record.type, record.value)}
-                </ThemedText>
+
+                {records.map((record) => (
+                  <View key={record.id} style={styles.record}>
+                    <ThemedText type="default" style={styles.recordLabel} numberOfLines={1}>
+                      {record.exerciseName} · {RECORD_LABEL[record.type]}
+                    </ThemedText>
+                    <ThemedText type="default" style={{ fontWeight: '700' }}>
+                      {formatRecordValue(record.type, record.value)}
+                    </ThemedText>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
-        ) : null}
+            ) : null}
+          </>
+        )}
 
         {finished === '1' ? (
           <View style={styles.summaryActions}>
@@ -221,7 +223,6 @@ const styles = StyleSheet.create({
   stat: { flex: 1, alignItems: 'center', gap: 2 },
   actions: { paddingHorizontal: 12, gap: 8 },
   summaryActions: { paddingHorizontal: 12, paddingBottom: 16, gap: 8 },
-  finishedTitle: { paddingHorizontal: 12, paddingBottom: 12 },
   records: {
     marginHorizontal: 12,
     marginBottom: 16,

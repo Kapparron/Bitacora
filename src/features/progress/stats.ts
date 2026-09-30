@@ -117,3 +117,35 @@ export function countInMonth(days: Iterable<string>, month: string): number {
   for (const day of days) if (monthOf(day) === month) count += 1;
   return count;
 }
+
+export type WeekDay = {
+  day: string;
+  /** Monday is 0, as in the rest of the app. */
+  weekday: number;
+  trained: boolean;
+  /** A rest day with nothing trained on it. */
+  resting: boolean;
+};
+
+/**
+ * The seven days ending on `day`, oldest first: the week the summary shows
+ * after a session, so the one just finished is always the last of them.
+ */
+export function weekEndingOn(
+  days: ReadonlySet<string>,
+  day: string,
+  rest: RestPlan | null = null
+): WeekDay[] {
+  return Array.from({ length: 7 }, (_, index) => {
+    const current = shiftIsoDay(day, index - 6);
+    const [year, month, date] = current.split('-').map(Number);
+    const trained = days.has(current);
+
+    return {
+      day: current,
+      weekday: (new Date(year, month - 1, date).getDay() + 6) % 7,
+      trained,
+      resting: !trained && rest !== null && isRestDay(rest, current),
+    };
+  });
+}
