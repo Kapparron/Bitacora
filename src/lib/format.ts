@@ -21,6 +21,16 @@ export function formatNumber(value: number, maximumFractionDigits = 2): string {
   return new Intl.NumberFormat('es-ES', { maximumFractionDigits }).format(value);
 }
 
+/** Rest between sets: `45s`, `2 min`, `1:30`. */
+export function formatRest(seconds: number | null): string {
+  if (seconds === null) return 'Sin descanso';
+  if (seconds < 60) return `${seconds}s`;
+
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return rest === 0 ? `${minutes} min` : `${minutes}:${rest.toString().padStart(2, '0')}`;
+}
+
 /** The same calendar day shifted by `delta` days, through a local Date. */
 function shiftDays(date: Date, delta: number): Date {
   const shifted = new Date(date);

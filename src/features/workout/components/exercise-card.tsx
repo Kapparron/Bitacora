@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import type { WorkoutSet } from '@/db/schema';
 import { ExerciseThumbnail } from '@/features/exercises/components/exercise-thumbnail';
 import { useTheme } from '@/hooks/use-theme';
+import { formatRest } from '@/lib/format';
 import {
   addSet,
   completeSet,
@@ -23,7 +24,7 @@ import { getLastPerformance, useExerciseRecords, type WorkoutEntry } from '../qu
 import { RECORD_LABEL, recordsReachedBy } from '../set-records';
 import { useRestTimer } from '../rest-timer';
 import { RecordBubble } from './record-bubble';
-import { RestSheet, formatRest } from './rest-sheet';
+import { RestSheet } from './rest-sheet';
 import { SetRow, SetRowHeader } from './set-row';
 import { badgeFor, type SetType } from './set-type-sheet';
 

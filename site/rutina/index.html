@@ -4,41 +4,63 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
-  <title>Rutina de Bitacora</title>
-  <meta property="og:title" content="Te han pasado una rutina de Bitacora">
-  <meta property="og:description" content="Abrela en la app para guardarla.">
+  <title>Rutina de Bitácora</title>
+  <meta name="theme-color" content="#0b0c0a">
+  <meta property="og:title" content="Te han pasado una rutina de Bitácora">
+  <meta property="og:description" content="Mírala aquí e impórtala en la app.">
+  <meta property="og:image" content="https://kapparron.github.io/Bitacora/icon.png">
+  <link rel="icon" href="../favicon.png">
   <!-- Los colores salen de data/theme.json; los escribe `npm run build:data`. -->
   <link rel="stylesheet" href="../estilo.css">
+  <link rel="stylesheet" href="../paginas.css">
   <style>
-    :root { color-scheme: light dark; }
-    body {
-      margin: 0; min-height: 100vh; display: grid; place-items: center;
-      font-family: system-ui, sans-serif; background: Canvas; color: CanvasText;
+    /* Lo que una rutina tiene y un entreno no: objetivos en vez de series hechas. */
+    .targets {
+      display: flex; justify-content: space-between; gap: 12px;
+      margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--bg-line);
+      font-variant-numeric: tabular-nums;
     }
-    main { max-width: 360px; padding: 24px; text-align: center; }
-    h1 { font-size: 1.5rem; margin: 0 0 4px; }
-    p { opacity: .75; line-height: 1.4; }
-    a.button {
-      display: block; margin-top: 12px; padding: 14px; border-radius: 12px;
-      font-weight: 700; text-decoration: none;
-    }
-    .primary { background: var(--brand); color: #fff; }
-    .secondary { border: 1px solid color-mix(in srgb, CanvasText 25%, transparent); color: inherit; }
+    .targets .target { font-weight: 600; }
+
+    #import { margin: 0 0 20px; }
+    .qr { display: block; width: 200px; height: 200px; margin: 0 auto; border-radius: 8px; }
+    .download { display: block; margin-top: 14px; color: var(--muted); font-size: .9rem; }
   </style>
 </head>
 <body>
-  <main>
-    <h1 id="name">Rutina de Bitacora</h1>
-    <p id="summary">Te han pasado una rutina.</p>
+  <header>
+    <div class="wrap">
+      <a class="brand" href="../">
+        <img src="../icon.png" alt="">
+        <span>Bitácora</span>
+      </a>
+      <a class="get" href="../#descargar">Descargar la app</a>
+    </div>
+  </header>
 
-    <a id="open" class="button primary" href="#">Abrir en Bitacora</a>
-    <a id="download" class="button secondary" href="../#descargar">
-      No tengo la app: descargarla
-    </a>
+  <main class="wrap">
+    <h1 id="title">Rutina</h1>
+    <p id="subtitle">Cargando...</p>
 
-    <p id="hint">Despues de instalarla, vuelve a este enlace y pulsa Abrir en Bitacora.</p>
+    <div id="routine">
+      <p id="notes" hidden></p>
+
+      <div id="import" class="get-app"></div>
+
+      <div id="exercises"></div>
+    </div>
   </main>
 
-  <script type="module" src="./rutina.js"></script>
+  <footer>
+    Imágenes de los ejercicios: © Gym visual — <a href="https://gymvisual.com">gymvisual.com</a>
+  </footer>
+
+  <script type="module">
+    import { render } from './rutina.js';
+
+    render();
+    // Un enlace abierto desde otro enlace solo cambia el fragmento.
+    addEventListener('hashchange', () => location.reload());
+  </script>
 </body>
 </html>

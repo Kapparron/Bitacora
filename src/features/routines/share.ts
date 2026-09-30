@@ -20,9 +20,9 @@ import type { RoutineContents } from './queries';
  * whole routine travels inside a link, shown as a QR code or sent as text.
  *
  * The link is `https`, because WhatsApp and most chats only let a user tap on
- * web links. It points at a static page (site/rutina/index.html) that hands the
- * routine to the app through `bitacora://routine/import?r=...`, or offers the
- * download to someone who does not have the app. The routine sits after the
+ * web links. It points at a static page (site/rutina/index.html) that draws the
+ * routine and hands it to the app through `bitacora://routine/import?r=...`, or
+ * offers the download to someone who does not have the app. The routine sits after the
  * `#`, which browsers never send to the server. See `@/lib/link`.
  *
  * A QR code holds under 3 KB and a denser one is harder to scan, so the payload

@@ -10,6 +10,10 @@ import {
   type SharedRoutine,
 } from '@/features/routines/share';
 
+// The page that shows a shared routine and offers to import it. Importing it
+// here holds both ends to the same format.
+import { formatTarget, parseSharedRoutine as parseOnWeb } from '../../site/rutina/rutina.js';
+
 const ROUTINE: SharedRoutine = {
   v: SHARE_VERSION,
   n: 'Pierna ñ',
@@ -75,4 +79,44 @@ test('a long routine still fits in a QR code', () => {
 
   // Throws when the text is past what the largest QR code holds.
   assert.doesNotThrow(() => QRCode.create(routineLink(big), { errorCorrectionLevel: 'L' }));
+});
+
+test('the web page reads a shared routine as the app does', () => {
+  const link = routineLink(ROUTINE);
+  // The page has no use for how a custom exercise is tracked, so it drops it.
+  const expected = {
+    ...ROUTINE,
+    e: ROUTINE.e.map((entry) => {
+      if ('x' in entry.e) return entry;
+      const { t: _tracking, ...exercise } = entry.e;
+      return { ...entry, e: exercise };
+    }),
+  };
+
+  assert.deepEqual(parseOnWeb(link), expected);
+  assert.deepEqual(parseOnWeb(encoded(link)), expected);
+});
+
+test('the web page refuses what the app refuses', () => {
+  const encode = (value: unknown) => encoded(routineLink(value as SharedRoutine));
+
+  for (const bad of [
+    'https://example.com',
+    encode({ ...ROUTINE, v: 99 }),
+    encode({ ...ROUTINE, e: [] }),
+    encode({ ...ROUTINE, e: [{ ...ROUTINE.e[0], s: 1.5 }] }),
+    encode({ ...ROUTINE, e: [{ ...ROUTINE.e[0], d: 7200 }] }),
+    encode({ ...ROUTINE, n: 'a'.repeat(1000) }),
+  ]) {
+    assert.equal(parseSharedRoutine(bad), null);
+    assert.equal(parseOnWeb(bad), null);
+  }
+});
+
+test('the web page writes targets the way the app shows them', () => {
+  assert.equal(formatTarget({ s: 4, r: '8-12' }), '4 × 8-12');
+  // The app shows three sets when a routine leaves them unset.
+  assert.equal(formatTarget({ s: null, r: '10' }), '3 × 10');
+  assert.equal(formatTarget({ s: 1, r: null }), '1 serie');
+  assert.equal(formatTarget({ s: 5, r: '  ' }), '5 series');
 });

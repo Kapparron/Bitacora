@@ -24,3 +24,13 @@ export function formatDuration(seconds) {
 export function formatNumber(value, maximumFractionDigits = 2) {
   return new Intl.NumberFormat('es-ES', { maximumFractionDigits }).format(value);
 }
+
+/** El descanso entre series: `45s`, `2 min`, `1:30`. */
+export function formatRest(seconds) {
+  if (seconds === null) return 'Sin descanso';
+  if (seconds < 60) return `${seconds}s`;
+
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return rest === 0 ? `${minutes} min` : `${minutes}:${String(rest).padStart(2, '0')}`;
+}
