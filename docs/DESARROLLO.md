@@ -318,6 +318,26 @@ o una nota.
   al salir.
 - Las tablas `tasks`, `task_checks`, `notes` y `events` entran en la copia de seguridad.
 
+## Notificaciones
+
+Viven en el módulo nativo `modules/workout-notifications` (solo Android, y no en
+Expo Go: hace falta un APK o una development build para probarlas).
+
+- **El entreno en curso** tiene una sola notificación, que cambia con el momento
+  (`Notifier.kt`): el entreno con su cronómetro, la cuenta atrás mientras se
+  descansa, y «Descanso terminado» al acabar, que es lo único que suena. Suena con
+  la misma campana que la app (`assets/sounds/rest-done.wav`, copiada en el
+  `res/raw` del módulo por `npm run build:sounds`), también con el móvil
+  bloqueado. Si el descanso acabó con la app en segundo plano, la campana no
+  vuelve a sonar al entrar.
+- **Los recordatorios** (`Reminders.kt`) son notificaciones normales: la rutina
+  que toca cada mañana, si no se ha entrenado ya, y los eventos, con la
+  antelación elegida o a la hora de la mañana si son de todo el día. Qué avisar y
+  cuándo lo decide `src/features/reminders/plan.ts`, con sus pruebas;
+  `ReminderScheduler` pasa al nativo los de las dos próximas semanas cada vez que
+  algo cambia o se vuelve a la app, y el nativo los programa de nuevo si el móvil
+  se reinicia. Se configuran en Perfil → Recordatorios.
+
 ## Iconos
 
 `npm run build:icons` genera el icono de la app, el adaptativo de Android, su
