@@ -11,10 +11,13 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { currentStreak, weekEndingOn } from '@/features/progress/stats';
 import { useRestPlan } from '@/features/rest/queries';
+import { bodyLoad, muscleLoad } from '@/features/workout/muscles';
 import { useTrainedDays, type WorkoutContents, type WorkoutRecord } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { toIsoDay } from '@/lib/format';
 
+import { BodyCard } from './body-card';
+import { MusclesCard } from './muscles-card';
 import { RecordsCard } from './records-card';
 import { SessionCard } from './session-card';
 import { StreakCard } from './streak-card';
@@ -56,6 +59,17 @@ export function SummaryCarousel({
 
   const pages = useMemo(() => {
     const list: Page[] = [{ key: 'session', render: (side) => <SessionCard contents={contents} size={side} /> }];
+
+    // Only when something was worked: a session of cardio has no muscles to show.
+    const body = bodyLoad(contents.entries);
+    if (body.length > 0) {
+      list.push({ key: 'body', render: (side) => <BodyCard load={body} size={side} /> });
+    }
+
+    const load = muscleLoad(contents.entries);
+    if (Object.values(load).some((sets) => sets > 0)) {
+      list.push({ key: 'muscles', render: (side) => <MusclesCard load={load} size={side} /> });
+    }
 
     if (records.length > 0) {
       list.push({ key: 'records', render: (side) => <RecordsCard records={records} size={side} /> });
