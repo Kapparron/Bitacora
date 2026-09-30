@@ -11,7 +11,8 @@ import { DatePrompt } from '@/features/calendar/date-prompt';
 import { ReorderSheet } from '@/features/exercises/components/reorder-sheet';
 import { ExerciseCard } from '@/features/workout/components/exercise-card';
 import { reorderWorkoutExercises, rescheduleWorkout, updateWorkout } from '@/features/workout/mutations';
-import { useWorkoutContents } from '@/features/workout/queries';
+import { useWorkoutContents, useWorkoutRecords } from '@/features/workout/queries';
+import { RECORD_LABEL, formatRecordValue } from '@/features/workout/records';
 import { sendWorkout } from '@/features/workout/send';
 import { completedSetCount, totalVolume } from '@/features/workout/volume';
 import { useTheme } from '@/hooks/use-theme';
@@ -19,7 +20,8 @@ import { formatDay, formatDuration, formatNumber, formatTime } from '@/lib/forma
 
 /**
  * A finished session. Read-only by default; `edit=1` opens it for correcting
- * what was logged, which is how the history list's Editar action arrives.
+ * what was logged, which is how the history list's Editar action arrives, and
+ * `finished=1` makes it the summary shown right after ending the session.
  *
  * Editing changes the session only. Records already earned are left alone: they
  * are a high-water mark, and lowering one because a set was corrected would
@@ -28,8 +30,13 @@ import { formatDay, formatDuration, formatNumber, formatTime } from '@/lib/forma
 export default function WorkoutDetailScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
+  const { id, edit, finished } = useLocalSearchParams<{
+    id: string;
+    edit?: string;
+    finished?: string;
+  }>();
   const { contents, loading } = useWorkoutContents(id);
+  const records = useWorkoutRecords(id);
 
   const [editing, setEditing] = useState(edit === '1');
   const [renaming, setRenaming] = useState(false);
@@ -75,11 +82,43 @@ export default function WorkoutDetailScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.content}>
+        {finished === '1' ? (
+          <ThemedText type="subtitle" style={styles.finishedTitle}>
+            Entreno terminado
+          </ThemedText>
+        ) : null}
+
         <View style={[styles.stats, { borderColor: theme.border }]}>
           <Stat label="Duracion" value={duration === null ? '-' : formatDuration(duration)} />
           <Stat label="Volumen" value={`${formatNumber(totalVolume(allSets), 0)} kg`} />
           <Stat label="Series" value={String(completedSetCount(allSets))} />
         </View>
+
+        {records.length > 0 ? (
+          <View style={[styles.records, { borderColor: theme.border }]}>
+            <ThemedText type="smallBold" themeColor="textSecondary">
+              {records.length === 1 ? '1 RECORD' : `${records.length} RECORDS`}
+            </ThemedText>
+
+            {records.map((record) => (
+              <View key={record.id} style={styles.record}>
+                <ThemedText type="default" style={styles.recordLabel} numberOfLines={1}>
+                  {record.exerciseName} · {RECORD_LABEL[record.type]}
+                </ThemedText>
+                <ThemedText type="default" style={{ fontWeight: '700' }}>
+                  {formatRecordValue(record.type, record.value)}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {finished === '1' ? (
+          <View style={styles.summaryActions}>
+            <Button title="Compartir" onPress={() => void sendWorkout(workout.id)} />
+            <Button title="Cerrar" variant="secondary" onPress={() => router.replace('/')} />
+          </View>
+        ) : null}
 
         {entries.map((entry) => (
           <ExerciseCard
@@ -181,4 +220,16 @@ const styles = StyleSheet.create({
   },
   stat: { flex: 1, alignItems: 'center', gap: 2 },
   actions: { paddingHorizontal: 12, gap: 8 },
+  summaryActions: { paddingHorizontal: 12, paddingBottom: 16, gap: 8 },
+  finishedTitle: { paddingHorizontal: 12, paddingBottom: 12 },
+  records: {
+    marginHorizontal: 12,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 6,
+  },
+  record: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  recordLabel: { flex: 1 },
 });

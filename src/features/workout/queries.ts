@@ -16,7 +16,7 @@ import { useMemo } from 'react';
 import { UNCOUNTED_SET_TYPES } from '@/constants/sets';
 import { db } from '@/db/client';
 import { useLiveTables } from '@/db/live';
-import type { RecordValues } from '@/features/workout/set-records';
+import type { RecordType, RecordValues } from '@/features/workout/set-records';
 import {
   exercises,
   personalRecords,
@@ -507,4 +507,37 @@ export function useExerciseRecords(exerciseId: string): RecordValues {
   );
 
   return Object.fromEntries((data ?? []).map((row) => [row.type, row.value])) as RecordValues;
+}
+
+export type WorkoutRecord = {
+  id: string;
+  exerciseName: string;
+  type: RecordType;
+  value: number;
+};
+
+/**
+ * Records a session set that still stand. Right after finishing, that is every
+ * record it beat; a later session that beats one takes it over, since only the
+ * best value per exercise and type is kept.
+ */
+export function useWorkoutRecords(workoutId: string): WorkoutRecord[] {
+  const { data } = useLiveTables(
+    ['personal_records', 'exercises'],
+    () =>
+      db
+        .select({
+          id: personalRecords.id,
+          exerciseName: exercises.name,
+          type: personalRecords.type,
+          value: personalRecords.value,
+        })
+        .from(personalRecords)
+        .innerJoin(exercises, eq(exercises.id, personalRecords.exerciseId))
+        .where(eq(personalRecords.workoutId, workoutId))
+        .orderBy(asc(exercises.name)),
+    [workoutId]
+  );
+
+  return data ?? [];
 }

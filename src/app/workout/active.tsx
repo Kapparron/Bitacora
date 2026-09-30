@@ -13,7 +13,6 @@ import { ExerciseCard } from '@/features/workout/components/exercise-card';
 import { RestTimerBar } from '@/features/workout/components/rest-timer-bar';
 import { discardWorkout, finishWorkout, reorderWorkoutExercises } from '@/features/workout/mutations';
 import { useActiveWorkout } from '@/features/workout/queries';
-import { RECORD_LABEL } from '@/features/workout/records';
 import { useRestTimer } from '@/features/workout/rest-timer';
 import { useElapsed } from '@/features/workout/use-elapsed';
 import { completedSetCount, totalVolume } from '@/features/workout/volume';
@@ -62,9 +61,9 @@ export default function ActiveWorkoutScreen() {
 
     const result = await finishWorkout(workout.id);
     stopRest();
-    router.replace('/');
 
     if (result.status === 'discarded') {
+      router.replace('/');
       await confirm({
         title: 'Entreno descartado',
         message: 'No habia ninguna serie marcada como completada.',
@@ -74,16 +73,9 @@ export default function ActiveWorkoutScreen() {
       return;
     }
 
-    if (result.records.length > 0) {
-      const names = [...new Set(result.records.map((record) => RECORD_LABEL[record.type]))];
-
-      await confirm({
-        title: `${result.records.length} records nuevos`,
-        message: names.join(', '),
-        confirmLabel: 'Bien',
-        cancelLabel: null,
-      });
-    }
+    // The summary is the session's own detail screen, so it can be reopened
+    // from the history later.
+    router.replace({ pathname: '/workout/[id]', params: { id: workout.id, finished: '1' } });
   }
 
   async function confirmDiscard() {

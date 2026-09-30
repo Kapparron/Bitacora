@@ -12,7 +12,7 @@ import { exercises, personalRecords } from '@/db/schema';
 import { LineChart } from '@/features/charts/line-chart';
 import { MEDIA_ATTRIBUTION, exerciseMediaUrl } from '@/features/exercises/media';
 import { useExerciseProgress } from '@/features/workout/queries';
-import { RECORD_LABEL } from '@/features/workout/records';
+import { RECORD_LABEL, formatRecordValue } from '@/features/workout/records';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDay, formatNumber, formatWeight } from '@/lib/format';
 
@@ -190,9 +190,7 @@ function ExerciseRecords({ exerciseId }: { exerciseId: string }) {
             {RECORD_LABEL[record.type]}
           </ThemedText>
           <ThemedText type="default" style={styles.recordValue}>
-            {record.type === 'heaviest_weight' || record.type === 'estimated_1rm'
-              ? formatWeight(record.value)
-              : `${formatNumber(record.value, 0)} kg`}
+            {formatRecordValue(record.type, record.value)}
           </ThemedText>
         </View>
       ))}
