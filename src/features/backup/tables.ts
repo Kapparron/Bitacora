@@ -1,8 +1,10 @@
 import {
   bodyMetrics,
+  events,
   exercises,
   foodEntries,
   foods,
+  notes,
   nutritionGoals,
   personalRecords,
   restDays,
@@ -10,6 +12,8 @@ import {
   routines,
   sets,
   settings,
+  taskChecks,
+  tasks,
   workoutExercises,
   workouts,
 } from '@/db/schema';
@@ -36,4 +40,8 @@ export const TABLES = [
   ['bodyMetrics', bodyMetrics],
   ['restDays', restDays],
   ['settings', settings],
+  ['notes', notes],
+  ['events', events],
+  ['tasks', tasks],
+  ['taskChecks', taskChecks],
 ] as const;

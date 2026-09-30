@@ -73,6 +73,22 @@ export function toIsoDay(date: Date = new Date()): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
+/**
+ * The Monday of the week `day` falls in, as `YYYY-MM-DD`: weeks run Monday to
+ * Sunday, as the calendar and the weekly volume have them.
+ */
+export function mondayOf(day: string): string {
+  const [year, month, date] = day.split('-').map(Number);
+  const weekday = (new Date(year, month - 1, date).getDay() + 6) % 7;
+  return shiftIsoDay(day, -weekday);
+}
+
+/** Local midnight of a `YYYY-MM-DD` day, as epoch milliseconds. */
+export function isoDayToTimestamp(day: string): number {
+  const [year, month, date] = day.split('-').map(Number);
+  return new Date(year, month - 1, date).getTime();
+}
+
 /** The calendar day `delta` days from `day`, both as `YYYY-MM-DD`. */
 export function shiftIsoDay(day: string, delta: number): string {
   const [year, month, date] = day.split('-').map(Number);

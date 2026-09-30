@@ -276,6 +276,68 @@ entregada con `expo-sharing` (`src/features/workout/share-card.ts`). Es otra cos
 que el enlace, que sigue en el icono de la cabecera: Android no manda bien una
 imagen y un texto a la vez.
 
+## Agenda
+
+La pestaña Agenda (`src/app/(tabs)/agenda.tsx`) guarda lo que no es entrenar ni
+comer: las tareas de hoy, eventos de un día, como el dentista, y notas. Los
+eventos son los de la semana en curso, de lunes a domingo, con un enlace («Ver
+próximos») a todo lo que viene; las notas son todas, de la última editada a la
+más antigua. El botón verde «+» de abajo a la derecha añade una tarea, un evento
+o una nota.
+
+- Una tarea se apunta para hoy. Si se queda sin hacer, sigue saliendo los días
+  siguientes, con el día en que se apuntó, hasta que se marca. Al marcar una
+  que venía de antes pasa a hoy, para que no desaparezca de golpe y se pueda
+  desmarcar si fue sin querer. Las hechas en días anteriores ya no salen.
+- Una tarea puede repetirse («Todos los días» o algunos días de la semana) con el
+  mismo modelo de programación que las rutinas (`src/features/routines/schedule.ts`,
+  en las mismas cuatro columnas). Sale solo los días que toca, se marca para ese
+  día en `task_checks`, y un día sin hacer no pasa al siguiente. Se crea y se
+  edita en `src/app/task.tsx`.
+
+- Un evento se crea y se edita en un formulario (`src/app/event.tsx`) con sus
+  campos a la vista: nombre, día (Hoy, Mañana u Otro día, con el calendario) y
+  hora (todo el día o una hora concreta, que lee `src/features/agenda/time.ts`).
+- Los eventos marcan el calendario de Inicio con un rombo, y los del día elegido
+  (o los de hoy) salen debajo de él. Tocar un evento, en la Agenda o en Inicio,
+  lo abre para cambiarlo o borrarlo. El calendario de Inicio lleva una leyenda
+  con sus tres marcas.
+- Una nota (`src/app/note/[id].tsx`) es como en cualquier app de notas: título y
+  texto. El texto se escribe en Markdown y se lee formateado; al tocarlo se
+  edita, con una barra sobre el teclado para **negrita**, *cursiva*, subrayado,
+  enlaces, títulos, listas y listas de tareas. El Markdown lo lee y lo edita
+  `src/features/agenda/markdown.ts`, sin librerías, con sus ejemplos en
+  `scripts/checks/markdown.test.ts`:
+  - `**negrita**`, `*cursiva*`, `++subrayado++` (no es Markdown estándar, que no
+    tiene subrayado; es la extensión habitual) y `[texto](https://...)`. Solo se
+    abren enlaces `http`, `https` y `mailto`.
+  - `# título`, `- lista`, `1. lista` y `- [ ] tarea`. Una tarea se marca con un
+    toque en la vista, e intro en una lista añade otro elemento, o la termina si
+    el elemento está vacío.
+- La nota se guarda sola mientras se escribe, y una que se deja vacía se descarta
+  al salir.
+- Las tablas `tasks`, `task_checks`, `notes` y `events` entran en la copia de seguridad.
+
+## Notificaciones
+
+Viven en el módulo nativo `modules/workout-notifications` (solo Android, y no en
+Expo Go: hace falta un APK o una development build para probarlas).
+
+- **El entreno en curso** tiene una sola notificación, que cambia con el momento
+  (`Notifier.kt`): el entreno con su cronómetro, la cuenta atrás mientras se
+  descansa, y «Descanso terminado» al acabar, que es lo único que suena. Suena con
+  la misma campana que la app (`assets/sounds/rest-done.wav`, copiada en el
+  `res/raw` del módulo por `npm run build:sounds`), también con el móvil
+  bloqueado. Si el descanso acabó con la app en segundo plano, la campana no
+  vuelve a sonar al entrar.
+- **Los recordatorios** (`Reminders.kt`) son notificaciones normales: la rutina
+  que toca cada mañana, si no se ha entrenado ya, y los eventos, con la
+  antelación elegida o a la hora de la mañana si son de todo el día. Qué avisar y
+  cuándo lo decide `src/features/reminders/plan.ts`, con sus pruebas;
+  `ReminderScheduler` pasa al nativo los de las dos próximas semanas cada vez que
+  algo cambia o se vuelve a la app, y el nativo los programa de nuevo si el móvil
+  se reinicia. Se configuran en Perfil → Recordatorios.
+
 ## Iconos
 
 `npm run build:icons` genera el icono de la app, el adaptativo de Android, su

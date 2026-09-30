@@ -29,6 +29,23 @@ function FoodMark({ color }: { color: string }) {
   );
 }
 
+/**
+ * The event mark: a diamond, a third shape beside the dot and the triangle, so
+ * the three stay apart without relying on colour alone.
+ */
+function EventMark({ color }: { color: string }) {
+  const half = MARK_SIZE / 2;
+
+  return (
+    <Svg width={MARK_SIZE} height={MARK_SIZE}>
+      <Polygon
+        points={`${half},0 ${MARK_SIZE},${half} ${half},${MARK_SIZE} 0,${half}`}
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
 /** Days of `month`, padded with nulls so the first one lands on its weekday. */
 function buildGrid(month: Date): (Date | null)[] {
   const first = new Date(month.getFullYear(), month.getMonth(), 1);
@@ -64,6 +81,10 @@ export type MonthCalendarProps = {
   loggedDays?: ReadonlySet<string>;
   /** Days kept for rest, weekly or marked by hand. */
   restDays?: ReadonlySet<string>;
+  /** Days with something on the agenda. */
+  eventDays?: ReadonlySet<string>;
+  /** Explains the marks under the grid, for the calendar that shows all of them. */
+  showLegend?: boolean;
   selectedDay: string | null;
   onSelectDay: (day: string | null) => void;
   /** Long press on a day, used to mark it as rest. */
@@ -84,6 +105,8 @@ export function MonthCalendar({
   plannedDays,
   loggedDays,
   restDays,
+  eventDays,
+  showLegend = false,
   selectedDay,
   onSelectDay,
   onLongPressDay,
@@ -129,6 +152,7 @@ export function MonthCalendar({
           const planned = !marked && (plannedDays?.has(iso) ?? false);
           const logged = loggedDays?.has(iso) ?? false;
           const resting = restDays?.has(iso) ?? false;
+          const eventful = eventDays?.has(iso) ?? false;
           const selected = iso === selectedDay;
 
           return (
@@ -172,11 +196,29 @@ export function MonthCalendar({
                   />
                 ) : null}
                 {logged ? <FoodMark color={theme.accentText} /> : null}
+                {eventful ? <EventMark color={theme.text} /> : null}
               </View>
             </Pressable>
           );
         })}
       </View>
+
+      {showLegend ? (
+        <View style={styles.legend}>
+          <View style={styles.legendItem}>
+            <View style={[styles.dot, { backgroundColor: theme.success }]} />
+            <ThemedText type="small" themeColor="textSecondary">Entreno</ThemedText>
+          </View>
+          <View style={styles.legendItem}>
+            <FoodMark color={theme.accentText} />
+            <ThemedText type="small" themeColor="textSecondary">Comida</ThemedText>
+          </View>
+          <View style={styles.legendItem}>
+            <EventMark color={theme.text} />
+            <ThemedText type="small" themeColor="textSecondary">Evento</ThemedText>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -194,6 +236,8 @@ const styles = StyleSheet.create({
   week: { flexDirection: 'row' },
   weekday: { flex: 1, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  legend: { flexDirection: 'row', justifyContent: 'center', gap: 16 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   cell: { width: `${100 / 7}%`, alignItems: 'center', paddingVertical: 3, gap: 3 },
   day: {
     width: 32,

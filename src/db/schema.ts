@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 import type { SetType, TrackingType } from '@/constants/sets';
 
@@ -289,6 +289,86 @@ export const settings = sqliteTable('settings', {
   ...auditColumns,
 });
 
+/* -------------------------------------------------------------------- agenda */
+
+/**
+ * A note, as in any notes app: a title and text. The text is Markdown, which is
+ * how it carries bold, links, lists and things to tick off (`- [ ]`); see
+ * features/agenda/markdown.ts.
+ */
+export const notes = sqliteTable(
+  'notes',
+  {
+    id: text('id').primaryKey(),
+    title: text('title').notNull().default(''),
+    body: text('body').notNull().default(''),
+    ...auditColumns,
+  },
+  (t) => [index('notes_updated_idx').on(t.updatedAt)]
+);
+
+/**
+ * A day-to-day task, such as "llamar al banco".
+ *
+ * A one-off task (`scheduleType` 'none') is set for `date`, and one left undone
+ * carries on to the next days until it is ticked off, through `done`.
+ *
+ * A repeating one, "sacar al perro" every day or "kárate" on Tuesdays and
+ * Thursdays, uses the same schedule as a routine (see
+ * src/features/routines/schedule.ts) from `date` on. It is ticked off day by
+ * day in task_checks, and a day missed does not carry over.
+ */
+export const tasks = sqliteTable(
+  'tasks',
+  {
+    id: text('id').primaryKey(),
+    /** Local calendar day as `YYYY-MM-DD`: the one it is for, or where it starts repeating. */
+    date: text('date').notNull(),
+    text: text('text').notNull(),
+    /** Only for one-off tasks; a repeating one is ticked off in task_checks. */
+    done: integer('done', { mode: 'boolean' }).notNull().default(false),
+    scheduleType: text('schedule_type')
+      .$type<'none' | 'weekdays' | 'interval'>()
+      .notNull()
+      .default('none'),
+    scheduleWeekdays: text('schedule_weekdays', { mode: 'json' }).$type<number[]>(),
+    scheduleIntervalDays: integer('schedule_interval_days'),
+    scheduleAnchor: text('schedule_anchor'),
+    ...auditColumns,
+  },
+  (t) => [index('tasks_date_idx').on(t.date)]
+);
+
+/** The days a repeating task was ticked off. */
+export const taskChecks = sqliteTable(
+  'task_checks',
+  {
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    /** Local calendar day as `YYYY-MM-DD`. */
+    date: text('date').notNull(),
+    ...auditColumns,
+  },
+  (t) => [primaryKey({ columns: [t.taskId, t.date] })]
+);
+
+/** Something on a given day that is not training: "hoy dentista". */
+export const events = sqliteTable(
+  'events',
+  {
+    id: text('id').primaryKey(),
+    /** Local calendar day as `YYYY-MM-DD`. */
+    date: text('date').notNull(),
+    /** `HH:MM`, or null for the whole day. */
+    time: text('time'),
+    title: text('title').notNull(),
+    notes: text('notes'),
+    ...auditColumns,
+  },
+  (t) => [index('events_date_idx').on(t.date)]
+);
+
 export type Exercise = typeof exercises.$inferSelect;
 export type NewExercise = typeof exercises.$inferInsert;
 export type Routine = typeof routines.$inferSelect;
@@ -298,3 +378,6 @@ export type Food = typeof foods.$inferSelect;
 export type FoodEntry = typeof foodEntries.$inferSelect;
 export type BodyMetric = typeof bodyMetrics.$inferSelect;
 export type RestDay = typeof restDays.$inferSelect;
+export type Note = typeof notes.$inferSelect;
+export type CalendarEvent = typeof events.$inferSelect;
+export type Task = typeof tasks.$inferSelect;

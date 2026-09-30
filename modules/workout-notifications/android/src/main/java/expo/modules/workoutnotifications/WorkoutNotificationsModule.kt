@@ -46,5 +46,11 @@ class WorkoutNotificationsModule : Module() {
     Function("cancelRest") {
       Notifier.cancelRest(context)
     }
+
+    // A JSON list of `{ id, at, title, text, url }`, replacing every reminder
+    // planned before. See src/features/reminders/plan.ts.
+    Function("scheduleReminders") { json: String ->
+      Reminders.schedule(context, json)
+    }
   }
 }

@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ConfirmProvider } from '@/components/confirm-dialog';
 import { DatabaseProvider } from '@/db/provider';
 import { UpdateProvider } from '@/features/updates/components/update-provider';
+import { ReminderScheduler } from '@/features/reminders/components/reminder-scheduler';
 import { SessionNotifications } from '@/features/workout/components/session-notifications';
 
 /**
@@ -39,10 +40,14 @@ export default function RootLayout() {
                   <Stack.Screen name="routine" options={{ headerShown: false }} />
                   <Stack.Screen name="exercises" />
                   <Stack.Screen name="food" options={{ headerShown: false }} />
+                  <Stack.Screen name="note" options={{ headerShown: false }} />
+                  <Stack.Screen name="event" options={{ headerShown: false }} />
+                  <Stack.Screen name="task" options={{ headerShown: false }} />
                   <Stack.Screen name="pick-exercise" options={{ presentation: 'modal' }} />
                 </Stack>
                 <StatusBar style="auto" />
                 <SessionNotifications />
+                <ReminderScheduler />
               </UpdateProvider>
             </ConfirmProvider>
           </ThemeProvider>
