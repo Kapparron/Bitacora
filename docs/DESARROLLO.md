@@ -169,11 +169,22 @@ muestra como código QR o se envía como texto. El código está en
 
 El enlace es `https://kapparron.github.io/Bitacora/rutina/#<rutina>` porque
 WhatsApp solo deja pulsar enlaces web. Lleva a una página estática,
-[`site/rutina/index.html`](../site/rutina/index.html), que enseña el nombre de
-la rutina y abre la app con `bitacora://routine/import?r=<rutina>`; en Android lo
-hace con un enlace `intent://` que, si la app no está instalada, manda a las
-releases para descargarla. La rutina va detrás del `#`, que el navegador no
-envía al servidor.
+[`site/rutina/index.html`](../site/rutina/index.html), que dibuja la rutina
+entera (ejercicios, series y repeticiones objetivo, descanso y superseries) y
+debajo ofrece importarla. En el móvil, el botón abre la app con
+`bitacora://routine/import?r=<rutina>`; en Android lo hace con un enlace
+`intent://` que, si la app no está instalada, manda a las releases para
+descargarla. En el escritorio no hay app que abrir, así que enseña el QR de la
+misma rutina para escanearlo con el móvil. La rutina va detrás del `#`, que el
+navegador no envía al servidor.
+
+La app no guarda nada al abrir el enlace: `src/app/routine/import.tsx` pregunta
+si se quiere importar, con la lista de ejercicios que se va a guardar, y avisa
+antes de pulsar nada si el catálogo del móvil no tiene alguno.
+
+[`site/rutina/rutina.js`](../site/rutina/rutina.js) lee el enlace con las mismas
+reglas que la app, y `scripts/checks/share.test.ts` importa los dos extremos para
+que no se separen.
 
 La página se publica en GitHub Pages con el flujo
 [`Publicar web`](../.github/workflows/pages.yml), al cambiar `site/` en `master`
@@ -193,7 +204,14 @@ enlaces ya enviados apuntan a la antigua.
 
 El envoltorio del enlace —JSON a base64url y las comprobaciones de cada campo—
 está en `src/lib/link.ts`, y cómo se nombra un ejercicio dentro de un enlace, en
-`src/features/exercises/shared-exercise.ts`. Los dos formatos los comparten.
+`src/features/exercises/shared-exercise.ts`. Los dos formatos los comparten. En
+la web, su copia es `site/enlace.js`, que usan las dos páginas; también
+comparten `site/tarjeta.js` (el catálogo y la cabecera de cada tarjeta de
+ejercicio) y `site/paginas.css`.
+
+El QR de la página sale de `site/vendor/qrcode.js`, la misma librería `qrcode`
+que usa la app, empaquetada y copiada en el repositorio para no cargar código de
+terceros. Cómo regenerarla está escrito al principio del fichero.
 
 ## Compartir entrenos
 

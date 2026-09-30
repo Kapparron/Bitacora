@@ -14,15 +14,6 @@ export const REST_OPTIONS: SheetOption<number | null>[] = [
   { value: 300, label: '5 minutos' },
 ];
 
-export function formatRest(seconds: number | null): string {
-  if (seconds === null) return 'Sin descanso';
-  if (seconds < 60) return `${seconds}s`;
-
-  const minutes = Math.floor(seconds / 60);
-  const rest = seconds % 60;
-  return rest === 0 ? `${minutes} min` : `${minutes}:${rest.toString().padStart(2, '0')}`;
-}
-
 /** Render this only while it is open; see the note in OptionSheet. */
 export function RestSheet({
   current,

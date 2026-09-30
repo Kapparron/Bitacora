@@ -1,4 +1,5 @@
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { useMemo } from 'react';
 
 import { db } from '@/db/client';
 import { useLiveTables } from '@/db/live';
@@ -113,4 +114,32 @@ export function useRoutineContents(routineId: string): {
   );
 
   return { contents: data ?? null, loading };
+}
+
+/**
+ * Names of the catalogue exercises a shared routine points at, by dataset id.
+ * An id left out of the map is one this version of the catalogue does not have.
+ * Null until the lookup has run.
+ */
+export function useCatalogueNames(externalIds: readonly string[]): Map<string, string> | null {
+  const key = externalIds.join(',');
+  const { data } = useLiveTables(
+    ['exercises'],
+    () =>
+      externalIds.length === 0
+        ? Promise.resolve([])
+        : db
+            .select({ externalId: exercises.externalId, name: exercises.name })
+            .from(exercises)
+            .where(inArray(exercises.externalId, [...externalIds])),
+    [key]
+  );
+
+  return useMemo(
+    () =>
+      data
+        ? new Map(data.flatMap((row) => (row.externalId ? [[row.externalId, row.name] as const] : [])))
+        : null,
+    [data]
+  );
 }

@@ -2,7 +2,14 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { describeSchedule, isScheduledOn, scheduleOf } from '@/features/routines/schedule';
-import { formatDay, formatDuration, formatNumber, shiftIsoDay, toIsoDay } from '@/lib/format';
+import {
+  formatDay,
+  formatDuration,
+  formatNumber,
+  formatRest,
+  shiftIsoDay,
+  toIsoDay,
+} from '@/lib/format';
 
 /** A day as a timestamp at midday, away from any daylight-saving edge. */
 function at(day: string): number {
@@ -87,4 +94,8 @@ test('la web escribe las duraciones y los numeros como la app', async () => {
   }
 
   assert.equal(web.formatNumber(12345.678, 0), formatNumber(12345.678, 0));
+
+  for (const seconds of [null, 0, 30, 59, 60, 90, 120, 150, 3600]) {
+    assert.equal(web.formatRest(seconds), formatRest(seconds), `descanso de ${seconds}s`);
+  }
 });
