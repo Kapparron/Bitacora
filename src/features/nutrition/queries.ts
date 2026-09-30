@@ -208,12 +208,35 @@ export async function findFoodByBarcode(barcode: string): Promise<Food | null> {
   return found ?? null;
 }
 
-export async function getEntry(entryId: string): Promise<FoodEntry | null> {
-  const [found] = await db.select().from(foodEntries).where(eq(foodEntries.id, entryId)).limit(1);
-  return found ?? null;
+/** One diary entry, or null when there is none to read. */
+export function useFoodEntry(entryId: string | null): FoodEntry | null {
+  const { data } = useLiveTables(
+    ['food_entries'],
+    async () => {
+      if (entryId === null) return null;
+      const [found] = await db.select().from(foodEntries).where(eq(foodEntries.id, entryId)).limit(1);
+      return found ?? null;
+    },
+    [entryId]
+  );
+
+  return data ?? null;
 }
 
-export async function getFood(foodId: string): Promise<Food | null> {
-  const [found] = await db.select().from(foods).where(eq(foods.id, foodId)).limit(1);
-  return found ?? null;
+/**
+ * One food, deleted or not: an entry still opens the food it was logged from.
+ * Read live, so marking it as a favourite shows at once.
+ */
+export function useFood(foodId: string | null): Food | null {
+  const { data } = useLiveTables(
+    ['foods'],
+    async () => {
+      if (foodId === null) return null;
+      const [found] = await db.select().from(foods).where(eq(foods.id, foodId)).limit(1);
+      return found ?? null;
+    },
+    [foodId]
+  );
+
+  return data ?? null;
 }

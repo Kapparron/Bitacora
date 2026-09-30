@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { addDatabaseChangeListener } from '@/db/client';
 
 /**
- * Re-runs a read whenever any of the given tables changes.
+ * Re-runs a read whenever any of the given tables changes. The one way the app
+ * reads its database: TanStack Query is only for the network.
  *
  * Drizzle's own `useLiveQuery` only listens to the primary table of the query,
  * so a join over workouts + workout_exercises + sets never refreshes when a set

@@ -1,5 +1,3 @@
-import { eq } from 'drizzle-orm';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
@@ -7,11 +5,10 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
-import { db } from '@/db/client';
-import { exercises, personalRecords } from '@/db/schema';
 import { LineChart } from '@/features/charts/line-chart';
 import { MEDIA_ATTRIBUTION, exerciseMediaUrl } from '@/features/exercises/media';
-import { useExerciseProgress } from '@/features/workout/queries';
+import { useExercise } from '@/features/exercises/queries';
+import { useExerciseProgress, usePersonalRecords } from '@/features/workout/queries';
 import { RECORD_LABEL, formatRecordValue } from '@/features/workout/records';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDay, formatNumber, formatWeight } from '@/lib/format';
@@ -20,14 +17,13 @@ export default function ExerciseDetailScreen() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { data } = useLiveQuery(db.select().from(exercises).where(eq(exercises.id, id)), [id]);
-  const exercise = data.at(0);
+  const { exercise, loading } = useExercise(id);
 
   if (!exercise) {
     return (
       <View style={[styles.centered, { backgroundColor: theme.background }]}>
         <ThemedText type="default" themeColor="textSecondary">
-          Este ejercicio ya no existe.
+          {loading ? 'Cargando...' : 'Este ejercicio ya no existe.'}
         </ThemedText>
       </View>
     );
@@ -171,10 +167,7 @@ function MetricChip({
 
 /** Best marks for this exercise, written when a session is finished. */
 function ExerciseRecords({ exerciseId }: { exerciseId: string }) {
-  const { data } = useLiveQuery(
-    db.select().from(personalRecords).where(eq(personalRecords.exerciseId, exerciseId)),
-    [exerciseId]
-  );
+  const data = usePersonalRecords(exerciseId);
 
   if (data.length === 0) return null;
 

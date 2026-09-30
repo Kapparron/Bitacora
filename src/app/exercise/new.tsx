@@ -1,5 +1,3 @@
-import { asc, isNull } from 'drizzle-orm';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
@@ -8,9 +6,9 @@ import { Button } from '@/components/button';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { TRACKING_TYPES } from '@/constants/sets';
-import { db } from '@/db/client';
-import { exercises, type Exercise } from '@/db/schema';
+import type { Exercise } from '@/db/schema';
 import { createCustomExercise } from '@/features/exercises/mutations';
+import { useEquipment, useMuscleGroups } from '@/features/exercises/queries';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
@@ -23,23 +21,8 @@ export default function NewExerciseScreen() {
   const theme = useTheme();
   const router = useRouter();
 
-  // Distinct values rather than the catalogue: the chips need some thirty rows,
-  // and reading all 1.324 to build them was the slowest thing on this screen.
-  const { data: groups } = useLiveQuery(
-    db
-      .selectDistinct({ value: exercises.muscleGroup })
-      .from(exercises)
-      .where(isNull(exercises.deletedAt))
-      .orderBy(asc(exercises.muscleGroup)),
-  );
-
-  const { data: equipmentOptions } = useLiveQuery(
-    db
-      .selectDistinct({ value: exercises.equipment })
-      .from(exercises)
-      .where(isNull(exercises.deletedAt))
-      .orderBy(asc(exercises.equipment)),
-  );
+  const groups = useMuscleGroups();
+  const equipmentOptions = useEquipment();
 
   const [name, setName] = useState('');
   const [muscleGroup, setMuscleGroup] = useState('');
@@ -79,14 +62,14 @@ export default function NewExerciseScreen() {
           placeholder="pecho"
         />
         <Chips
-          values={groups.map((row) => row.value)}
+          values={groups}
           current={muscleGroup}
           onSelect={setMuscleGroup}
         />
 
         <Field label="Material" value={equipment} onChange={setEquipment} placeholder="banda" />
         <Chips
-          values={equipmentOptions.map((row) => row.value)}
+          values={equipmentOptions}
           current={equipment}
           onSelect={setEquipment}
         />

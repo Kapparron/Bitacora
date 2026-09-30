@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { loadTrainedDays, loadWeeklyVolume } from '@/features/workout/queries';
+import { getLastPerformance, loadTrainedDays, loadWeeklyVolume } from '@/features/workout/queries';
 
 import { setDatabase } from './database-client';
 import { migratedDatabase, seedOneOfEach } from './database.mjs';
@@ -88,4 +88,34 @@ test('a session is filed under the local day it started on', async () => {
       ['2026-09-12', 2],
     ]
   );
+});
+
+test('last time is the latest finished session, with only its completed sets in order', async () => {
+  const db = migratedDatabase();
+  seedOneOfEach(db);
+  db.exec(`delete from workouts`);
+  setDatabase(db);
+
+  session(db, 'old', new Date(2026, 8, 1, 10));
+  set(db, 'old-1', 'old-we', { weight: 50, reps: 10 });
+  session(db, 'last', new Date(2026, 8, 8, 10));
+  db.exec(
+    `insert into sets (id, workout_exercise_id, position, weight, reps, completed) values
+      ('last-2','last-we',1,62.5,8,1), ('last-1','last-we',0,60,10,1), ('last-3','last-we',2,65,5,0)`
+  );
+  // The session being trained now, and a deleted one, are never "last time".
+  session(db, 'now', new Date(2026, 8, 15, 10));
+  set(db, 'now-1', 'now-we', { weight: 70, reps: 5 });
+  session(db, 'gone', new Date(2026, 8, 12, 10));
+  set(db, 'gone-1', 'gone-we', { weight: 90, reps: 1 });
+  db.exec(`update workouts set deleted_at = 1 where id = 'gone'`);
+
+  assert.deepEqual(
+    (await getLastPerformance('cat1', 'now')).map((row) => [row.id, row.weight, row.reps]),
+    [
+      ['last-1', 60, 10],
+      ['last-2', 62.5, 8],
+    ]
+  );
+  assert.deepEqual(await getLastPerformance('own1', 'now'), []);
 });
