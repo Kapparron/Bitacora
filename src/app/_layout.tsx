@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ConfirmProvider } from '@/components/confirm-dialog';
 import { DatabaseProvider } from '@/db/provider';
 import { UpdateProvider } from '@/features/updates/components/update-provider';
+import { ReminderScheduler } from '@/features/reminders/components/reminder-scheduler';
 import { SessionNotifications } from '@/features/workout/components/session-notifications';
 
 /**
@@ -46,6 +47,7 @@ export default function RootLayout() {
                 </Stack>
                 <StatusBar style="auto" />
                 <SessionNotifications />
+                <ReminderScheduler />
               </UpdateProvider>
             </ConfirmProvider>
           </ThemeProvider>
