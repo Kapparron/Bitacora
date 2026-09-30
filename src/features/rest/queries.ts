@@ -30,18 +30,24 @@ export function useRestPlan(): RestPlan {
       const value = (key: string) => rows.find((row) => row.key === key)?.value ?? null;
       const marked = await db.select().from(restDays);
 
-      return {
-        weekly: value(REST_WEEKDAYS_KEY),
-        cycle: value(REST_CYCLE_KEY),
-        marked: marked.map((row) => row.day),
-      };
+      return planOf(
+        value(REST_WEEKDAYS_KEY),
+        value(REST_CYCLE_KEY),
+        marked.map((row) => row.day)
+      );
     },
     []
   );
 
+  return data ?? NO_PLAN;
+}
+
+function planOf(weekly: string | null, cycle: string | null, marked: string[]): RestPlan {
   return {
-    weekdays: parseRestWeekdays(data?.weekly ?? null),
-    cycle: parseRestCycle(data?.cycle ?? null),
-    days: new Set(data?.marked ?? []),
+    weekdays: parseRestWeekdays(weekly),
+    cycle: parseRestCycle(cycle),
+    days: new Set(marked),
   };
 }
+
+const NO_PLAN = planOf(null, null, []);

@@ -41,7 +41,21 @@ export const db = drizzle(
 export type Database = typeof db;
 export { schema };
 
-/** Nothing listens in a check: a query runs once, when it is called. */
-export function addDatabaseChangeListener(): { remove(): void } {
-  return { remove() {} };
+type ChangeListener = (event: { tableName: string }) => void;
+
+const changeListeners = new Set<ChangeListener>();
+
+/** The same contract as expo-sqlite's; a check fires it with `emitChange`. */
+export function addDatabaseChangeListener(listener: ChangeListener): { remove(): void } {
+  changeListeners.add(listener);
+  return { remove: () => changeListeners.delete(listener) };
+}
+
+/** What expo-sqlite does after a write to one row of `tableName`. */
+export function emitChange(tableName: string): void {
+  for (const listener of changeListeners) listener({ tableName });
+}
+
+export function changeListenerCount(): number {
+  return changeListeners.size;
 }

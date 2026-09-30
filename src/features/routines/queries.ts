@@ -13,6 +13,8 @@ import {
 
 const ROUTINE_TABLES = ['routines', 'routine_exercises', 'exercises'] as const;
 
+const NO_ROUTINES: RoutineSummary[] = [];
+
 export type RoutineSummary = {
   id: string;
   name: string;
@@ -74,7 +76,7 @@ export function useRoutines(): { routines: RoutineSummary[]; loading: boolean } 
     []
   );
 
-  return { routines: data ?? [], loading };
+  return { routines: data ?? NO_ROUTINES, loading };
 }
 
 export function useRoutineContents(routineId: string): {
