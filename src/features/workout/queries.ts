@@ -11,12 +11,11 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
-import { useMemo } from 'react';
 
 import { UNCOUNTED_SET_TYPES } from '@/constants/sets';
 import { db } from '@/db/client';
 import { useLiveTables } from '@/db/live';
-import type { RecordValues } from '@/features/workout/set-records';
+import type { RecordType, RecordValues } from '@/features/workout/set-records';
 import {
   exercises,
   personalRecords,
@@ -30,6 +29,16 @@ import {
 
 /** Tables a session screen reads, and therefore has to watch for changes. */
 const SESSION_TABLES = ['workouts', 'workout_exercises', 'exercises', 'sets'] as const;
+
+/** The same, for a read that never names an exercise: totals and volumes. */
+const TOTALS_TABLES = ['workouts', 'workout_exercises', 'sets'] as const;
+
+// What a hook returns before its first result: the same object every time, so
+// nothing below re-renders or recomputes just because it was asked again.
+const NO_ROWS: never[] = [];
+const NO_PREVIEWS = new Map<string, ExercisePreview[]>();
+const NO_DAYS = new Map<string, number>();
+const NO_RECORD_VALUES: RecordValues = {};
 
 /** One exercise inside a session, with its sets in display order. */
 export type WorkoutEntry = {
@@ -106,6 +115,7 @@ async function loadContents(where: SQL | undefined): Promise<WorkoutContents | n
  */
 export function useActiveWorkout(): { contents: WorkoutContents | null; loading: boolean } {
   const { data, loading } = useLiveTables(
+    'useActiveWorkout',
     SESSION_TABLES,
     () => loadContents(and(isNull(workouts.finishedAt), isNull(workouts.deletedAt))),
     []
@@ -127,6 +137,7 @@ export function useWorkoutContents(workoutId: string): {
   loading: boolean;
 } {
   const { data, loading } = useLiveTables(
+    'useWorkoutContents',
     SESSION_TABLES,
     () => loadContents(and(eq(workouts.id, workoutId), isNull(workouts.deletedAt))),
     [workoutId]
@@ -163,11 +174,12 @@ export type ExercisePreview = {
  */
 export function useDayWorkoutPreviews(day: string | null): Map<string, ExercisePreview[]> {
   const { data } = useLiveTables(
+    'useDayWorkoutPreviews',
     SESSION_TABLES,
     async () => {
-      if (!day) return [];
+      if (!day) return NO_PREVIEWS;
 
-      return db
+      const rows = await db
         .select({
           workoutId: workouts.id,
           exerciseName: exercises.name,
@@ -187,24 +199,26 @@ export function useDayWorkoutPreviews(day: string | null): Map<string, ExerciseP
         )
         .groupBy(workoutExercises.id)
         .orderBy(asc(workoutExercises.position));
+
+      const byWorkout = new Map<string, ExercisePreview[]>();
+
+      for (const row of rows) {
+        const current = byWorkout.get(row.workoutId) ?? [];
+        current.push({
+          workoutId: row.workoutId,
+          exerciseName: row.exerciseName,
+          setCount: row.setCount,
+          topWeight: row.topWeight,
+        });
+        byWorkout.set(row.workoutId, current);
+      }
+
+      return byWorkout;
     },
     [day]
   );
 
-  const byWorkout = new Map<string, ExercisePreview[]>();
-
-  for (const row of data ?? []) {
-    const current = byWorkout.get(row.workoutId) ?? [];
-    current.push({
-      workoutId: row.workoutId,
-      exerciseName: row.exerciseName,
-      setCount: row.setCount,
-      topWeight: row.topWeight,
-    });
-    byWorkout.set(row.workoutId, current);
-  }
-
-  return byWorkout;
+  return data ?? NO_PREVIEWS;
 }
 
 /**
@@ -240,6 +254,29 @@ export async function getLastPerformance(
     .orderBy(sets.position);
 }
 
+const NO_SETS: WorkoutSet[] = [];
+
+/**
+ * `getLastPerformance`, kept up to date. It only listens to `workouts`: what was
+ * done last time changes when a session is finished, deleted or moved, not with
+ * every set written in this one, and listening to `sets` would re-run it for
+ * each card on every keystroke. Off while the session is read-only.
+ */
+export function useLastPerformance(
+  exerciseId: string,
+  excludeWorkoutId: string,
+  enabled: boolean
+): WorkoutSet[] {
+  const { data } = useLiveTables(
+    'useLastPerformance',
+    ['workouts'],
+    () => (enabled ? getLastPerformance(exerciseId, excludeWorkoutId) : Promise.resolve(NO_SETS)),
+    [exerciseId, excludeWorkoutId, enabled]
+  );
+
+  return data ?? NO_SETS;
+}
+
 export type ExerciseSessionStat = {
   /** When the session that produced these numbers started. */
   startedAt: number;
@@ -257,7 +294,8 @@ export type ExerciseSessionStat = {
  */
 export function useExerciseProgress(exerciseId: string): ExerciseSessionStat[] {
   const { data } = useLiveTables(
-    SESSION_TABLES,
+    'useExerciseProgress',
+    TOTALS_TABLES,
     async () =>
       db
         .select({
@@ -288,7 +326,7 @@ export function useExerciseProgress(exerciseId: string): ExerciseSessionStat[] {
     [exerciseId]
   );
 
-  return data ?? [];
+  return data ?? NO_ROWS;
 }
 
 export type WeeklyVolume = {
@@ -302,26 +340,24 @@ export type WeeklyVolume = {
  * Volume per calendar week, oldest first. SQLite's `weekday 0` is the coming
  * Sunday, so the week is anchored by stepping back to its Monday.
  */
-export function useWeeklyVolume(): WeeklyVolume[] {
-  const { data } = useLiveTables(
-    SESSION_TABLES,
-    async () =>
-      db
-        .select({
-          week: sql<string>`date(${workouts.startedAt} / 1000, 'unixepoch', 'localtime', 'weekday 0', '-6 days')`,
-          volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${notInArray(sets.type, UNCOUNTED_SET_TYPES)} then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
-          workouts: sql<number>`count(distinct ${workouts.id})`,
-        })
-        .from(workouts)
-        .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
-        .leftJoin(sets, eq(sets.workoutExerciseId, workoutExercises.id))
-        .where(and(isNotNull(workouts.finishedAt), isNull(workouts.deletedAt)))
-        .groupBy(sql`1`)
-        .orderBy(sql`1`),
-    []
-  );
+export function loadWeeklyVolume(): Promise<WeeklyVolume[]> {
+  return db
+    .select({
+      week: sql<string>`date(${workouts.startedAt} / 1000, 'unixepoch', 'localtime', 'weekday 0', '-6 days')`,
+      volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${notInArray(sets.type, UNCOUNTED_SET_TYPES)} then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
+      workouts: sql<number>`count(distinct ${workouts.id})`,
+    })
+    .from(workouts)
+    .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
+    .leftJoin(sets, eq(sets.workoutExerciseId, workoutExercises.id))
+    .where(and(isNotNull(workouts.finishedAt), isNull(workouts.deletedAt)))
+    .groupBy(sql`1`)
+    .orderBy(sql`1`);
+}
 
-  return data ?? [];
+export function useWeeklyVolume(): WeeklyVolume[] {
+  const { data } = useLiveTables('useWeeklyVolume', TOTALS_TABLES, loadWeeklyVolume, []);
+  return data ?? NO_ROWS;
 }
 
 /** One exercise of a past session, with the sets that were actually completed. */
@@ -347,6 +383,7 @@ export function useHistorySessions(limit = HISTORY_LIMIT): {
   loading: boolean;
 } {
   const { data, loading } = useLiveTables(
+    'useHistorySessions',
     SESSION_TABLES,
     async () => {
       const summaries = (await db
@@ -425,7 +462,7 @@ export function useHistorySessions(limit = HISTORY_LIMIT): {
     [limit]
   );
 
-  return { sessions: data ?? [], loading };
+  return { sessions: data ?? NO_ROWS, loading };
 }
 
 /**
@@ -434,22 +471,26 @@ export function useHistorySessions(limit = HISTORY_LIMIT): {
  * Grouped in SQL, so the calendar and the stats card no longer pull every
  * session and every set across just to learn which days were trained.
  */
+export function loadTrainedDays(): Promise<{ day: string; sessions: number }[]> {
+  return db
+    .select({
+      day: sql<string>`date(${workouts.startedAt} / 1000, 'unixepoch', 'localtime')`,
+      sessions: sql<number>`count(*)`,
+    })
+    .from(workouts)
+    .where(and(isNotNull(workouts.finishedAt), isNull(workouts.deletedAt)))
+    .groupBy(sql`1`);
+}
+
 export function useTrainedDays(): Map<string, number> {
   const { data } = useLiveTables(
+    'useTrainedDays',
     ['workouts'],
-    async () =>
-      db
-        .select({
-          day: sql<string>`date(${workouts.startedAt} / 1000, 'unixepoch', 'localtime')`,
-          sessions: sql<number>`count(*)`,
-        })
-        .from(workouts)
-        .where(and(isNotNull(workouts.finishedAt), isNull(workouts.deletedAt)))
-        .groupBy(sql`1`),
+    async () => new Map((await loadTrainedDays()).map((row) => [row.day, row.sessions])),
     []
   );
 
-  return new Map((data ?? []).map((row) => [row.day, row.sessions]));
+  return data ?? NO_DAYS;
 }
 
 /**
@@ -459,9 +500,10 @@ export function useTrainedDays(): Map<string, number> {
  */
 export function useDayWorkouts(day: string | null): WorkoutSummary[] {
   const { data } = useLiveTables(
-    SESSION_TABLES,
+    'useDayWorkouts',
+    TOTALS_TABLES,
     async () => {
-      if (!day) return [];
+      if (!day) return NO_ROWS;
 
       return db
         .select({
@@ -488,7 +530,7 @@ export function useDayWorkouts(day: string | null): WorkoutSummary[] {
     [day]
   );
 
-  return data ?? [];
+  return data ?? NO_ROWS;
 }
 
 /**
@@ -497,14 +539,68 @@ export function useDayWorkouts(day: string | null): WorkoutSummary[] {
  */
 export function useExerciseRecords(exerciseId: string): RecordValues {
   const { data } = useLiveTables(
+    'useExerciseRecords',
     ['personal_records'],
-    () =>
-      db
+    async () => {
+      const rows = await db
         .select({ type: personalRecords.type, value: personalRecords.value })
         .from(personalRecords)
-        .where(eq(personalRecords.exerciseId, exerciseId)),
+        .where(eq(personalRecords.exerciseId, exerciseId));
+
+      return Object.fromEntries(rows.map((row) => [row.type, row.value])) as RecordValues;
+    },
     [exerciseId]
   );
 
-  return Object.fromEntries((data ?? []).map((row) => [row.type, row.value])) as RecordValues;
+  return data ?? NO_RECORD_VALUES;
+}
+
+type PersonalRecord = typeof personalRecords.$inferSelect;
+
+const NO_RECORDS: PersonalRecord[] = [];
+
+/** Every record stored for one exercise, for the exercise screen to list. */
+export function usePersonalRecords(exerciseId: string): PersonalRecord[] {
+  const { data } = useLiveTables(
+    'usePersonalRecords',
+    ['personal_records'],
+    () => db.select().from(personalRecords).where(eq(personalRecords.exerciseId, exerciseId)),
+    [exerciseId]
+  );
+
+  return data ?? NO_RECORDS;
+}
+
+export type WorkoutRecord = {
+  id: string;
+  exerciseName: string;
+  type: RecordType;
+  value: number;
+};
+
+/**
+ * Records a session set that still stand. Right after finishing, that is every
+ * record it beat; a later session that beats one takes it over, since only the
+ * best value per exercise and type is kept.
+ */
+export function useWorkoutRecords(workoutId: string): WorkoutRecord[] {
+  const { data } = useLiveTables(
+    'useWorkoutRecords',
+    ['personal_records', 'exercises'],
+    () =>
+      db
+        .select({
+          id: personalRecords.id,
+          exerciseName: exercises.name,
+          type: personalRecords.type,
+          value: personalRecords.value,
+        })
+        .from(personalRecords)
+        .innerJoin(exercises, eq(exercises.id, personalRecords.exerciseId))
+        .where(eq(personalRecords.workoutId, workoutId))
+        .orderBy(asc(exercises.name)),
+    [workoutId]
+  );
+
+  return data ?? NO_ROWS;
 }

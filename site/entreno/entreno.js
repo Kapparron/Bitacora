@@ -6,22 +6,22 @@
 // The format is the one written in src/features/workout/share.ts, and
 // scripts/checks/workout-share.test.ts holds both ends to the same grammar.
 
+import { CUENTA_VOLUMEN, DESCARGA, ENLACE_ENTRENO, INSIGNIA_SERIE, TIPOS_SERIE } from '../datos.js';
 import {
-  CDN,
-  CUENTA_VOLUMEN,
-  DESCARGA,
-  ENLACE_ENTRENO,
-  IMAGENES,
-  INSIGNIA_SERIE,
-  TIPOS_SERIE,
-  VIDEOS,
-} from '../datos.js';
+  MAX_TEXT,
+  decodePayload,
+  isObject,
+  isOptionalInt,
+  isOptionalText,
+  isText,
+  parseSharedExercise,
+} from '../enlace.js';
 import { formatDuration, formatNumber } from '../formato.js';
+import { element, exerciseCard, loadCatalogue } from '../tarjeta.js';
 
 const SHARE_VERSION = 1;
 
 /** Generous limits, only there so a hostile link cannot flood the page. */
-const MAX_TEXT = 500;
 const MAX_ENTRIES = 60;
 const MAX_SETS = 60;
 
@@ -29,19 +29,6 @@ const DECIMAL = '\\d+(?:\\.\\d+)?';
 const MEASURES = new RegExp(`^(?:(${DECIMAL})m)?(?:(\\d+)s)?$`);
 
 /* ------------------------------------------------------------------ reading */
-
-/** The object inside an encoded payload, or null when the text is not one. */
-function decodePayload(encoded) {
-  if (!/^[A-Za-z0-9_-]+$/.test(encoded)) return null;
-
-  try {
-    const binary = atob(encoded.replace(/-/g, '+').replace(/_/g, '/'));
-    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-    return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
-  } catch {
-    return null;
-  }
-}
 
 /**
  * One set written as `w60x8@8.5`, or null when it is not a set. See the grammar
@@ -149,33 +136,6 @@ export function parseSharedWorkout(input) {
   };
 }
 
-/** A catalogue exercise by its dataset id, or one the sender created. */
-function parseSharedExercise(raw) {
-  if (!isObject(raw)) return null;
-  if ('x' in raw) return isText(raw.x) ? { x: raw.x } : null;
-  if (!isText(raw.n) || !isText(raw.m) || !isText(raw.q)) return null;
-
-  return { n: raw.n.trim(), m: raw.m, q: raw.q };
-}
-
-function isObject(value) {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isText(value) {
-  return typeof value === 'string' && value.trim().length > 0 && value.length <= MAX_TEXT;
-}
-
-function isOptionalText(value) {
-  return value === null || value === undefined ||
-    (typeof value === 'string' && value.length <= MAX_TEXT);
-}
-
-function isOptionalInt(value, min, max) {
-  return value === null || value === undefined ||
-    (Number.isInteger(value) && value >= min && value <= max);
-}
-
 function decimal(text, min, max) {
   if (!new RegExp(`^${DECIMAL}$`).test(text)) return null;
   const value = Number(text);
@@ -261,79 +221,8 @@ export function formatSet(set) {
 
 /* ------------------------------------------------------------------ drawing */
 
-/**
- * `{ "0001": ["3/4 sit-up", "0001-2gPfomN"] }`, built by
- * scripts/build-data.mjs and shared by the two pages. A session names catalogue exercises by their
- * id alone, which is what keeps the link short.
- */
-async function loadCatalogue() {
-  try {
-    const response = await fetch('../catalogo.json');
-    return response.ok ? await response.json() : {};
-  } catch {
-    // Offline, or the file is not there: names of custom exercises still show.
-    return {};
-  }
-}
-
-function element(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
-
-/** Name and picture of an exercise, whether it is in the catalogue or not. */
-function describe(exercise, catalogue) {
-  if ('x' in exercise) {
-    const known = catalogue[exercise.x];
-    return known
-      ? { name: known[0], slug: known[1], detail: null }
-      : { name: 'Ejercicio ' + exercise.x, slug: null, detail: null };
-  }
-
-  return { name: exercise.n, slug: null, detail: `${exercise.m} · ${exercise.q}` };
-}
-
-function exerciseCard(entry, catalogue) {
-  const { name, slug, detail } = describe(entry.e, catalogue);
-
-  const card = element('article', 'card');
-  if (entry.g !== null) card.classList.add('superset');
-
-  if (entry.g !== null) {
-    card.append(element('p', 'superset-label', `SUPERSERIE ${String.fromCharCode(64 + entry.g)}`));
-  }
-
-  const head = element('div', 'card-head');
-
-  if (slug) {
-    // The GIF weighs far more than the still, so it is only fetched on demand.
-    const figure = element('button', 'thumb');
-    figure.type = 'button';
-    figure.title = 'Ver el movimiento';
-
-    const image = new Image();
-    image.src = `${CDN}/${IMAGENES}/${slug}.jpg`;
-    image.alt = name;
-    image.loading = 'lazy';
-    figure.append(image);
-
-    figure.addEventListener('click', () => {
-      image.src = image.src.includes(`/${VIDEOS}/`)
-        ? `${CDN}/${IMAGENES}/${slug}.jpg`
-        : `${CDN}/${VIDEOS}/${slug}.gif`;
-    });
-
-    head.append(figure);
-  }
-
-  const heading = element('div', 'card-title');
-  heading.append(element('h3', null, name));
-  if (detail) heading.append(element('p', 'muted', detail));
-  if (entry.o) heading.append(element('p', 'note', entry.o));
-  head.append(heading);
-  card.append(head);
+function entryCard(entry, catalogue) {
+  const card = exerciseCard(entry.e, entry.g, entry.o, catalogue);
 
   const list = element('ol', 'sets');
   entry.sets.forEach((set, index) => {
@@ -385,7 +274,7 @@ export async function render() {
     return;
   }
 
-  for (const entry of workout.e) list.append(exerciseCard(entry, catalogue));
+  for (const entry of workout.e) list.append(entryCard(entry, catalogue));
 }
 
 export { DESCARGA as DOWNLOAD };

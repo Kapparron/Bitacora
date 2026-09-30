@@ -1,6 +1,10 @@
 import { DatabaseSync } from 'node:sqlite';
 import { readdirSync, readFileSync } from 'node:fs';
 
+import { getTableName } from 'drizzle-orm';
+
+import { TABLES } from '@/features/backup/tables';
+
 const MIGRATIONS = new URL('../../drizzle/', import.meta.url);
 
 /**
@@ -27,22 +31,11 @@ export function migrationFiles() {
     .sort();
 }
 
-/** The tables a backup carries, in the order it writes and restores them. */
-export const BACKUP_TABLES = [
-  'exercises',
-  'routines',
-  'routine_exercises',
-  'workouts',
-  'workout_exercises',
-  'sets',
-  'personal_records',
-  'foods',
-  'food_entries',
-  'nutrition_goals',
-  'body_metrics',
-  'rest_days',
-  'settings',
-];
+/**
+ * The tables a backup carries, in the order it writes and restores them. Read
+ * from the app, so the checks cannot drift from the list it really uses.
+ */
+export const BACKUP_TABLES = TABLES.map(([, table]) => getTableName(table));
 
 /** One row in every table, enough to prove the foreign keys hold. */
 export function seedOneOfEach(db, now = Date.now()) {

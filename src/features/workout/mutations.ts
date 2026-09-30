@@ -11,7 +11,7 @@ import {
   workouts,
   type WorkoutSet,
 } from '@/db/schema';
-import { updatePersonalRecords, type NewRecord } from './records';
+import { updatePersonalRecords } from './records';
 
 const touch = () => ({ updatedAt: Date.now() });
 
@@ -241,7 +241,7 @@ export async function updateWorkoutExerciseNotes(
 }
 
 export type FinishResult =
-  | { status: 'finished'; durationMs: number; records: NewRecord[] }
+  | { status: 'finished' }
   | { status: 'discarded'; reason: 'empty' };
 
 /**
@@ -312,7 +312,7 @@ export async function finishWorkout(workoutId: string): Promise<FinishResult> {
 
   // Records are derived from the sets, so they are computed once the session is
   // closed and its sets can no longer change.
-  const records = await updatePersonalRecords(workoutId, finishedAt);
+  await updatePersonalRecords(workoutId, finishedAt);
 
   if (workout?.routineId) {
     await db
@@ -321,11 +321,7 @@ export async function finishWorkout(workoutId: string): Promise<FinishResult> {
       .where(eq(routines.id, workout.routineId));
   }
 
-  return {
-    status: 'finished',
-    durationMs: finishedAt - (workout?.startedAt ?? finishedAt),
-    records,
-  };
+  return { status: 'finished' };
 }
 
 /**

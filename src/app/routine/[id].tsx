@@ -22,10 +22,11 @@ import {
 import { ScheduleEditor } from '@/features/routines/components/schedule-editor';
 import { useRoutineContents, type RoutineEntry } from '@/features/routines/queries';
 import { describeSchedule, scheduleOf } from '@/features/routines/schedule';
-import { RestSheet, formatRest } from '@/features/workout/components/rest-sheet';
+import { RestSheet } from '@/features/workout/components/rest-sheet';
 import { startWorkoutFromRoutine } from '@/features/workout/mutations';
 import { useActiveWorkout } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
+import { formatRest } from '@/lib/format';
 
 const SET_COUNT_OPTIONS: SheetOption<number>[] = [1, 2, 3, 4, 5, 6, 8, 10].map((value) => ({
   value,

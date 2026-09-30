@@ -10,8 +10,11 @@ import { UpdateProvider } from '@/features/updates/components/update-provider';
 import { SessionNotifications } from '@/features/workout/components/session-notifications';
 
 /**
- * Nothing is fetched from the network on a schedule: Open Food Facts lookups are
- * cached in SQLite, so a query only re-runs when the user asks for it again.
+ * Only for the network, which today is Open Food Facts. The database is read
+ * with `useLiveTables` (@/db/live), which re-runs on every write; a cache here
+ * would not hear about those writes and would serve stale rows.
+ *
+ * Nothing is fetched on a schedule: a query only re-runs when the user asks.
  */
 const queryClient = new QueryClient({
   defaultOptions: {

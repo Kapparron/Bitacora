@@ -3,22 +3,10 @@ import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
 import { db } from '@/db/client';
-import {
-  bodyMetrics,
-  exercises,
-  foodEntries,
-  foods,
-  nutritionGoals,
-  personalRecords,
-  restDays,
-  routineExercises,
-  routines,
-  sets,
-  settings,
-  workoutExercises,
-  workouts,
-} from '@/db/schema';
+import { exercises } from '@/db/schema';
 import { toIsoDay } from '@/lib/format';
+
+import { TABLES } from './tables';
 
 /**
  * Bumped when a backup written by an older version can no longer be restored as
@@ -26,27 +14,6 @@ import { toIsoDay } from '@/lib/format';
  * than half-loading it.
  */
 export const BACKUP_VERSION = 1;
-
-/**
- * Tables in dependency order: a row only references tables above it. Exporting
- * follows this order and restoring inserts in it, so foreign keys hold at every
- * step; deleting walks it backwards.
- */
-const TABLES = [
-  ['exercises', exercises],
-  ['routines', routines],
-  ['routineExercises', routineExercises],
-  ['workouts', workouts],
-  ['workoutExercises', workoutExercises],
-  ['sets', sets],
-  ['personalRecords', personalRecords],
-  ['foods', foods],
-  ['foodEntries', foodEntries],
-  ['nutritionGoals', nutritionGoals],
-  ['bodyMetrics', bodyMetrics],
-  ['restDays', restDays],
-  ['settings', settings],
-] as const;
 
 type TableName = (typeof TABLES)[number][0];
 

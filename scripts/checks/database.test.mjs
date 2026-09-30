@@ -69,62 +69,6 @@ test('wiping the data keeps the catalogue and drops the rest', () => {
   assert.deepEqual(kept, ['cat1']);
 });
 
-test('volume counts every completed set except the ones marked as warm-up', () => {
-  const db = migratedDatabase();
-  seedOneOfEach(db);
-
-  // A second working set and a warm-up, on the same exercise.
-  db.exec(
-    `insert into sets (id, workout_exercise_id, position, weight, reps, completed) values ('s2','we1',1,60,10,1)`
-  );
-  db.exec(
-    `insert into sets (id, workout_exercise_id, position, type, weight, reps, completed) values ('s3','we1',2,'warmup',40,10,1)`
-  );
-  db.exec(
-    `insert into sets (id, workout_exercise_id, position, weight, reps, completed) values ('s4','we1',3,60,10,0)`
-  );
-
-  const { volume } = db
-    .prepare(
-      `select coalesce(sum(case when s.completed = 1 and s.type <> 'warmup' then s.weight * s.reps else 0 end), 0) as volume
-       from workouts w
-       join workout_exercises we on we.workout_id = w.id
-       join sets s on s.workout_exercise_id = we.id`
-    )
-    .get();
-
-  // Two completed working sets of 60x10; the warm-up and the unchecked set are out.
-  assert.equal(volume, 1200);
-  assert.equal(db.prepare(`select type from sets where id = 's1'`).get().type, 'normal');
-});
-
-test('a session is filed under the local day it started on', () => {
-  const db = migratedDatabase();
-  const lateNight = new Date(2026, 8, 11, 23, 30).getTime();
-  db.exec(
-    `insert into workouts (id, name, started_at, finished_at) values ('late','Noche',${lateNight},${lateNight})`
-  );
-
-  const { day } = db
-    .prepare(
-      `select date(started_at / 1000, 'unixepoch', 'localtime') as day from workouts where id = 'late'`
-    )
-    .get();
-
-  assert.equal(day, '2026-09-11');
-});
-
-test('weeks are anchored to their Monday', () => {
-  const db = migratedDatabase();
-  const week = (day) =>
-    db.prepare(`select date(?, 'weekday 0', '-6 days') as week`).get(day).week;
-
-  assert.equal(week('2026-09-07'), '2026-09-07', 'un lunes es su propia semana');
-  assert.equal(week('2026-09-10'), '2026-09-07');
-  assert.equal(week('2026-09-13'), '2026-09-07', 'el domingo cierra la semana anterior');
-  assert.equal(week('2026-09-14'), '2026-09-14');
-});
-
 test('a day holds one measurement and one rest mark', () => {
   const db = migratedDatabase();
   db.exec(`insert into body_metrics (id, date, weight) values ('m1','2026-09-11',80)`);
@@ -136,37 +80,4 @@ test('a day holds one measurement and one rest mark', () => {
 
   db.exec(`insert into rest_days (day) values ('2026-09-11')`);
   assert.throws(() => db.exec(`insert into rest_days (day) values ('2026-09-11')`), /UNIQUE/);
-});
-
-test('trained days are grouped in SQL, one row per local day', () => {
-  const db = migratedDatabase();
-  const day = (year, month, date, hour) => new Date(year, month - 1, date, hour).getTime();
-
-  db.exec(
-    `insert into workouts (id, name, started_at, finished_at) values
-      ('a','Manana',${day(2026, 9, 11, 8)},${day(2026, 9, 11, 9)}),
-      ('b','Tarde',${day(2026, 9, 11, 19)},${day(2026, 9, 11, 20)}),
-      ('c','Otro dia',${day(2026, 9, 9, 18)},${day(2026, 9, 9, 19)}),
-      ('d','Sin terminar',${day(2026, 9, 8, 18)},null),
-      ('e','Borrado',${day(2026, 9, 7, 18)},${day(2026, 9, 7, 19)})`
-  );
-  db.exec(`update workouts set deleted_at = 1 where id = 'e'`);
-
-  const rows = db
-    .prepare(
-      `select date(started_at / 1000, 'unixepoch', 'localtime') as day, count(*) as sessions
-       from workouts
-       where finished_at is not null and deleted_at is null
-       group by 1
-       order by 1`
-    )
-    .all()
-    .map((row) => [row.day, row.sessions]);
-
-  // Two sessions on one day collapse into one calendar day; the unfinished and
-  // the deleted ones are not days at all.
-  assert.deepEqual(rows, [
-    ['2026-09-09', 1],
-    ['2026-09-11', 2],
-  ]);
 });

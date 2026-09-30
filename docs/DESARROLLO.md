@@ -30,7 +30,7 @@ Expo Go.
 | --- | --- |
 | `npm start` | Servidor de desarrollo de Expo |
 | `npm run android` | Abre en un dispositivo o emulador Android |
-| `npm run check` | Comprobaciones sobre las migraciones reales y la lógica pura |
+| `npm run check` | Comprobaciones sobre las migraciones reales, las consultas de la app y la lógica pura |
 | `npx tsc --noEmit` | Comprobación de tipos |
 | `npx expo export -p android` | Empaqueta para verificar que todo compila |
 | `npm run build:icons` | Regenera los iconos desde `assets/images/logo.png` |
@@ -44,9 +44,10 @@ Expo Go.
 | Framework | React Native + Expo SDK 57, TypeScript |
 | Navegación | expo-router, rutas por ficheros |
 | Base de datos | SQLite (`expo-sqlite`) con Drizzle ORM y migraciones generadas |
-| Estado de red | TanStack Query |
+| Lecturas de la base | `useLiveTables` (`src/db/live.ts`), desde el `queries.ts` de cada feature |
+| Estado de red | TanStack Query, solo para la red (Open Food Facts) |
 | Estado de UI | Zustand (temporizador de descanso) |
-| Gráficas | `react-native-svg`, dibujadas a mano |
+| Gráficas | `react-native-svg`, dibujadas a mano; el cuerpo con los músculos, con `react-native-body-highlighter` |
 
 Tres ideas gobiernan el código:
 
@@ -97,6 +98,23 @@ La migración se escribe en `drizzle/` y entra en el bundle; se aplica en el
 dispositivo al arrancar, desde `src/db/provider.tsx`. No hay base de datos
 remota, así que `drizzle-kit push` y `drizzle-kit studio` no se usan aquí.
 
+Toda lectura pasa por `useLiveTables` (`src/db/live.ts`), que recibe el nombre
+del hook que la envuelve, las tablas que escucha y la consulta, y la vuelve a
+ejecutar cuando se escribe en alguna de esas tablas. Varias pantallas que montan la
+misma consulta (el mismo hook con los mismos argumentos) comparten una sola
+lectura y el mismo resultado, que mantiene su identidad mientras no cambie
+(`src/db/live-store.ts`). Por eso un hook deriva lo que necesite (un `Map`, un
+`Set`) dentro de la consulta y no en su cuerpo, y escucha solo las tablas que
+lee. En desarrollo, después de
+cada tanda de escrituras, la consola de Metro dice cuántas lecturas despertó y
+de qué hooks:
+
+```
+[lecturas] sets -> 6: useActiveWorkout x2, useWorkoutContents x1, ...
+```
+
+Es la forma de ver si un cambio en cómo se lee la base hace más o menos trabajo.
+
 ## Comprobaciones
 
 `npm run check` aplica las migraciones reales sobre una base en memoria y
@@ -104,6 +122,16 @@ comprueba lo que no se ve en pantalla: el orden de tablas de las copias, el
 borrado de datos, el volumen sin calentamientos, el día local de una sesión
 nocturna, las rachas con días de descanso, el objetivo de calorías y la
 programación de rutinas al cambiar la hora.
+
+Las consultas se prueban tal cual las ejecuta la app, sin copiar su SQL.
+`scripts/checks/register.mjs` cambia `@/db/client`, que abre `expo-sqlite` y no
+arranca en Node, por `scripts/checks/database-client.ts`: el mismo esquema de
+Drizzle sobre `node:sqlite`, apuntado con `setDatabase()` a la base en memoria de
+cada prueba. Para probar una consulta, sácala de su hook a una función `load…`
+en el `queries.ts` de su feature e impórtala desde `scripts/checks/queries.test.ts`.
+Ese cliente solo sirve lecturas: las escrituras de la app van en transacciones
+síncronas que solo tiene el driver de Expo, así que una prueba prepara sus filas
+en SQL.
 
 Conviene ejecutarlo junto a `npx tsc --noEmit` después de tocar el esquema o
 cualquier cálculo.
@@ -116,7 +144,8 @@ ello está escrito dos veces:
 | Fichero | Qué guarda | Quién lo lee |
 | --- | --- | --- |
 | `exercises.json` | los 1.324 ejercicios del catálogo | la semilla de la base de datos y la web |
-| `vocabulary.json` | músculos y material, en inglés y en español, con sus familias y los patrones con que se reconocen en un nombre | el generador del catálogo, los filtros de la app y `catalogue.test.mjs` |
+| `vocabulary.json` | músculos y material, en inglés y en español, con sus familias y los patrones con que se reconocen en un nombre; los seis ejes del gráfico de músculos y a cuál va cada grupo (`cardio` y `cuello` a ninguno), y la parte del cuerpo dibujado donde se pinta | el generador del catálogo, los filtros, el gráfico y el cuerpo de músculos de la app, `catalogue.test.mjs` y `muscles.test.ts` |
+| `comparisons.json` | la escalera de dinosaurios del resumen (nombre, plural, kilos) con su silueta: de PhyloPic, solo CC0, optimizada con `svgo` y guardada como `viewBox` y `path` | la tarjeta de comparación del resumen y `comparison.test.ts` |
 | `sets.json` | los tipos de serie (letra del enlace, insignia, si cuenta para el volumen) y los tipos de registro | la app, el enlace compartido y la web |
 | `project.json` | el repositorio, el paquete, el esquema, los enlaces de la web y el CDN de las imágenes | `src/constants/project.ts` y la web |
 | `theme.json` | la paleta clara y oscura, el verde de marca y los colores propios de la web | `src/constants/theme.ts`, `site/estilo.css` y `app.json` |
@@ -169,11 +198,22 @@ muestra como código QR o se envía como texto. El código está en
 
 El enlace es `https://kapparron.github.io/Bitacora/rutina/#<rutina>` porque
 WhatsApp solo deja pulsar enlaces web. Lleva a una página estática,
-[`site/rutina/index.html`](../site/rutina/index.html), que enseña el nombre de
-la rutina y abre la app con `bitacora://routine/import?r=<rutina>`; en Android lo
-hace con un enlace `intent://` que, si la app no está instalada, manda a las
-releases para descargarla. La rutina va detrás del `#`, que el navegador no
-envía al servidor.
+[`site/rutina/index.html`](../site/rutina/index.html), que dibuja la rutina
+entera (ejercicios, series y repeticiones objetivo, descanso y superseries) y
+debajo ofrece importarla. En el móvil, el botón abre la app con
+`bitacora://routine/import?r=<rutina>`; en Android lo hace con un enlace
+`intent://` que, si la app no está instalada, manda a las releases para
+descargarla. En el escritorio no hay app que abrir, así que enseña el QR de la
+misma rutina para escanearlo con el móvil. La rutina va detrás del `#`, que el
+navegador no envía al servidor.
+
+La app no guarda nada al abrir el enlace: `src/app/routine/import.tsx` pregunta
+si se quiere importar, con la lista de ejercicios que se va a guardar, y avisa
+antes de pulsar nada si el catálogo del móvil no tiene alguno.
+
+[`site/rutina/rutina.js`](../site/rutina/rutina.js) lee el enlace con las mismas
+reglas que la app, y `scripts/checks/share.test.ts` importa los dos extremos para
+que no se separen.
 
 La página se publica en GitHub Pages con el flujo
 [`Publicar web`](../.github/workflows/pages.yml), al cambiar `site/` en `master`
@@ -193,7 +233,14 @@ enlaces ya enviados apuntan a la antigua.
 
 El envoltorio del enlace —JSON a base64url y las comprobaciones de cada campo—
 está en `src/lib/link.ts`, y cómo se nombra un ejercicio dentro de un enlace, en
-`src/features/exercises/shared-exercise.ts`. Los dos formatos los comparten.
+`src/features/exercises/shared-exercise.ts`. Los dos formatos los comparten. En
+la web, su copia es `site/enlace.js`, que usan las dos páginas; también
+comparten `site/tarjeta.js` (el catálogo y la cabecera de cada tarjeta de
+ejercicio) y `site/paginas.css`.
+
+El QR de la página sale de `site/vendor/qrcode.js`, la misma librería `qrcode`
+que usa la app, empaquetada y copiada en el repositorio para no cargar código de
+terceros. Cómo regenerarla está escrito al principio del fichero.
 
 ## Compartir entrenos
 
@@ -222,6 +269,12 @@ entenderse.
   regenera también. La comprobación falla si se queda atrás.
 - Las imágenes salen del mismo CDN que en la app, y el GIF solo se descarga al
   pulsar la miniatura.
+
+Al terminar un entreno, el resumen puede compartir además **una tarjeta como
+imagen**: la que está en pantalla, capturada con `react-native-view-shot` y
+entregada con `expo-sharing` (`src/features/workout/share-card.ts`). Es otra cosa
+que el enlace, que sigue en el icono de la cabecera: Android no manda bien una
+imagen y un texto a la vez.
 
 ## Iconos
 

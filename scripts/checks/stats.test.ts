@@ -7,6 +7,7 @@ import {
   currentStreak,
   longestStreakInMonth,
   monthOf,
+  weekEndingOn,
 } from '@/features/progress/stats';
 import type { RestPlan } from '@/features/rest/rest';
 
@@ -105,4 +106,21 @@ test('days are counted inside their own month', () => {
   const days = new Set(['2026-09-11', '2026-09-02', '2026-08-30']);
   assert.equal(countInMonth(days, '2026-09'), 2);
   assert.equal(monthOf('2026-09-11'), '2026-09');
+});
+
+test('the week of a summary is the seven days ending on the session, oldest first', () => {
+  const week = weekEndingOn(new Set(['2026-09-05', '2026-09-08', TODAY]), TODAY, WEDNESDAYS);
+
+  assert.deepEqual(
+    week.map((day) => [day.day, day.weekday, day.trained, day.resting]),
+    [
+      ['2026-09-05', 5, true, false],
+      ['2026-09-06', 6, false, false],
+      ['2026-09-07', 0, false, false],
+      ['2026-09-08', 1, true, false],
+      ['2026-09-09', 2, false, true],
+      ['2026-09-10', 3, false, false],
+      ['2026-09-11', 4, true, false],
+    ]
+  );
 });

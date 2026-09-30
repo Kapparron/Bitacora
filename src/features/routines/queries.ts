@@ -1,4 +1,5 @@
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { useMemo } from 'react';
 
 import { db } from '@/db/client';
 import { useLiveTables } from '@/db/live';
@@ -11,6 +12,8 @@ import {
 } from '@/db/schema';
 
 const ROUTINE_TABLES = ['routines', 'routine_exercises', 'exercises'] as const;
+
+const NO_ROUTINES: RoutineSummary[] = [];
 
 export type RoutineSummary = {
   id: string;
@@ -48,6 +51,7 @@ export type RoutineContents = {
  */
 export function useRoutines(): { routines: RoutineSummary[]; loading: boolean } {
   const { data, loading } = useLiveTables(
+    'useRoutines',
     ROUTINE_TABLES,
     async () =>
       db
@@ -72,7 +76,7 @@ export function useRoutines(): { routines: RoutineSummary[]; loading: boolean } 
     []
   );
 
-  return { routines: data ?? [], loading };
+  return { routines: data ?? NO_ROUTINES, loading };
 }
 
 export function useRoutineContents(routineId: string): {
@@ -80,6 +84,7 @@ export function useRoutineContents(routineId: string): {
   loading: boolean;
 } {
   const { data, loading } = useLiveTables(
+    'useRoutineContents',
     ROUTINE_TABLES,
     async () => {
       const [routine] = await db
@@ -113,4 +118,33 @@ export function useRoutineContents(routineId: string): {
   );
 
   return { contents: data ?? null, loading };
+}
+
+/**
+ * Names of the catalogue exercises a shared routine points at, by dataset id.
+ * An id left out of the map is one this version of the catalogue does not have.
+ * Null until the lookup has run.
+ */
+export function useCatalogueNames(externalIds: readonly string[]): Map<string, string> | null {
+  const key = externalIds.join(',');
+  const { data } = useLiveTables(
+    'useCatalogueNames',
+    ['exercises'],
+    () =>
+      externalIds.length === 0
+        ? Promise.resolve([])
+        : db
+            .select({ externalId: exercises.externalId, name: exercises.name })
+            .from(exercises)
+            .where(inArray(exercises.externalId, [...externalIds])),
+    [key]
+  );
+
+  return useMemo(
+    () =>
+      data
+        ? new Map(data.flatMap((row) => (row.externalId ? [[row.externalId, row.name] as const] : [])))
+        : null,
+    [data]
+  );
 }
