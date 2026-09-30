@@ -92,17 +92,3 @@ test('la app no vuelve a escribir su propia version', () => {
   assert.equal(pkg.version, undefined);
   assert.equal(pkg.private, true);
 });
-
-/* ----------------------------------------- las tablas del respaldo */
-
-test('el respaldo y sus comprobaciones listan las mismas tablas', async () => {
-  const { BACKUP_TABLES } = await import('./database.mjs');
-  const backup = text(repo('src/features/backup/backup.ts'));
-
-  const listed = [...backup.matchAll(/^\s*\['([a-zA-Z]+)', [a-zA-Z]+\],$/gm)].map(
-    (match) => match[1]
-  );
-  const snake = listed.map((name) => name.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase()));
-
-  assert.deepEqual(snake, BACKUP_TABLES);
-});

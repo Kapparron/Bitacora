@@ -1,5 +1,6 @@
-import { addDatabaseChangeListener } from 'expo-sqlite';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { addDatabaseChangeListener } from '@/db/client';
 
 /**
  * Re-runs a read whenever any of the given tables changes.

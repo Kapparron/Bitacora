@@ -20,3 +20,11 @@ export const db = drizzle(sqliteDb, { schema });
 
 export type Database = typeof db;
 export { schema };
+
+/**
+ * Change events come from the same connection, so they are handed out here with
+ * it. This module is the only one that opens expo-sqlite: the checks swap it
+ * for one over node:sqlite (scripts/checks/database-client.ts) and run the
+ * app's own queries against it.
+ */
+export { addDatabaseChangeListener } from 'expo-sqlite';

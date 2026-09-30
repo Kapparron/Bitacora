@@ -30,7 +30,7 @@ Expo Go.
 | --- | --- |
 | `npm start` | Servidor de desarrollo de Expo |
 | `npm run android` | Abre en un dispositivo o emulador Android |
-| `npm run check` | Comprobaciones sobre las migraciones reales y la lógica pura |
+| `npm run check` | Comprobaciones sobre las migraciones reales, las consultas de la app y la lógica pura |
 | `npx tsc --noEmit` | Comprobación de tipos |
 | `npx expo export -p android` | Empaqueta para verificar que todo compila |
 | `npm run build:icons` | Regenera los iconos desde `assets/images/logo.png` |
@@ -104,6 +104,16 @@ comprueba lo que no se ve en pantalla: el orden de tablas de las copias, el
 borrado de datos, el volumen sin calentamientos, el día local de una sesión
 nocturna, las rachas con días de descanso, el objetivo de calorías y la
 programación de rutinas al cambiar la hora.
+
+Las consultas se prueban tal cual las ejecuta la app, sin copiar su SQL.
+`scripts/checks/register.mjs` cambia `@/db/client`, que abre `expo-sqlite` y no
+arranca en Node, por `scripts/checks/database-client.ts`: el mismo esquema de
+Drizzle sobre `node:sqlite`, apuntado con `setDatabase()` a la base en memoria de
+cada prueba. Para probar una consulta, sácala de su hook a una función `load…`
+en el `queries.ts` de su feature e impórtala desde `scripts/checks/queries.test.ts`.
+Ese cliente solo sirve lecturas: las escrituras de la app van en transacciones
+síncronas que solo tiene el driver de Expo, así que una prueba prepara sus filas
+en SQL.
 
 Conviene ejecutarlo junto a `npx tsc --noEmit` después de tocar el esquema o
 cualquier cálculo.

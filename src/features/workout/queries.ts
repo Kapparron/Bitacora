@@ -302,25 +302,23 @@ export type WeeklyVolume = {
  * Volume per calendar week, oldest first. SQLite's `weekday 0` is the coming
  * Sunday, so the week is anchored by stepping back to its Monday.
  */
-export function useWeeklyVolume(): WeeklyVolume[] {
-  const { data } = useLiveTables(
-    SESSION_TABLES,
-    async () =>
-      db
-        .select({
-          week: sql<string>`date(${workouts.startedAt} / 1000, 'unixepoch', 'localtime', 'weekday 0', '-6 days')`,
-          volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${notInArray(sets.type, UNCOUNTED_SET_TYPES)} then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
-          workouts: sql<number>`count(distinct ${workouts.id})`,
-        })
-        .from(workouts)
-        .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
-        .leftJoin(sets, eq(sets.workoutExerciseId, workoutExercises.id))
-        .where(and(isNotNull(workouts.finishedAt), isNull(workouts.deletedAt)))
-        .groupBy(sql`1`)
-        .orderBy(sql`1`),
-    []
-  );
+export function loadWeeklyVolume(): Promise<WeeklyVolume[]> {
+  return db
+    .select({
+      week: sql<string>`date(${workouts.startedAt} / 1000, 'unixepoch', 'localtime', 'weekday 0', '-6 days')`,
+      volume: sql<number>`coalesce(sum(case when ${sets.completed} = 1 and ${notInArray(sets.type, UNCOUNTED_SET_TYPES)} then ${sets.weight} * ${sets.reps} else 0 end), 0)`,
+      workouts: sql<number>`count(distinct ${workouts.id})`,
+    })
+    .from(workouts)
+    .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
+    .leftJoin(sets, eq(sets.workoutExerciseId, workoutExercises.id))
+    .where(and(isNotNull(workouts.finishedAt), isNull(workouts.deletedAt)))
+    .groupBy(sql`1`)
+    .orderBy(sql`1`);
+}
 
+export function useWeeklyVolume(): WeeklyVolume[] {
+  const { data } = useLiveTables(SESSION_TABLES, loadWeeklyVolume, []);
   return data ?? [];
 }
 
@@ -434,21 +432,19 @@ export function useHistorySessions(limit = HISTORY_LIMIT): {
  * Grouped in SQL, so the calendar and the stats card no longer pull every
  * session and every set across just to learn which days were trained.
  */
-export function useTrainedDays(): Map<string, number> {
-  const { data } = useLiveTables(
-    ['workouts'],
-    async () =>
-      db
-        .select({
-          day: sql<string>`date(${workouts.startedAt} / 1000, 'unixepoch', 'localtime')`,
-          sessions: sql<number>`count(*)`,
-        })
-        .from(workouts)
-        .where(and(isNotNull(workouts.finishedAt), isNull(workouts.deletedAt)))
-        .groupBy(sql`1`),
-    []
-  );
+export function loadTrainedDays(): Promise<{ day: string; sessions: number }[]> {
+  return db
+    .select({
+      day: sql<string>`date(${workouts.startedAt} / 1000, 'unixepoch', 'localtime')`,
+      sessions: sql<number>`count(*)`,
+    })
+    .from(workouts)
+    .where(and(isNotNull(workouts.finishedAt), isNull(workouts.deletedAt)))
+    .groupBy(sql`1`);
+}
 
+export function useTrainedDays(): Map<string, number> {
+  const { data } = useLiveTables(['workouts'], loadTrainedDays, []);
   return new Map((data ?? []).map((row) => [row.day, row.sessions]));
 }
 
