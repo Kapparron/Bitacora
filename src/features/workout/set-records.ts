@@ -4,6 +4,7 @@
  * pure, and the checks import them as they are.
  */
 import { personalRecords, type WorkoutSet } from '@/db/schema';
+import { formatNumber, formatWeight } from '@/lib/format';
 
 import { countsTowardsVolume, estimatedOneRepMax, setVolume } from './volume';
 
@@ -48,4 +49,11 @@ export function recordsReachedBy(
   if (volume > 0 && bestSet !== undefined && volume >= bestSet) reached.push('best_set_volume');
 
   return reached;
+}
+
+/** A stored record as a screen shows it: loads keep their decimals, volumes do not. */
+export function formatRecordValue(type: RecordType, value: number): string {
+  return type === 'heaviest_weight' || type === 'estimated_1rm'
+    ? formatWeight(value)
+    : `${formatNumber(value, 0)} kg`;
 }

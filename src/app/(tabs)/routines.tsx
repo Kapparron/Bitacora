@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { WorkoutActionsSheet } from '@/features/workout/components/workout-actions-sheet';
 import { useHistorySessions, type HistorySession } from '@/features/workout/queries';
+import { sendWorkout } from '@/features/workout/send';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDay, formatDuration, formatNumber, formatTime } from '@/lib/format';
 
@@ -116,9 +117,17 @@ function SessionCard({
         { borderColor: theme.border },
         pressed && { backgroundColor: theme.backgroundElement },
       ]}>
-      <ThemedText type="default" style={styles.cardTitle} numberOfLines={1}>
-        {session.name}
-      </ThemedText>
+      <View style={styles.cardHeader}>
+        <ThemedText type="default" style={styles.cardTitle} numberOfLines={1}>
+          {session.name}
+        </ThemedText>
+        <Pressable
+          onPress={() => void sendWorkout(session.id)}
+          hitSlop={8}
+          accessibilityLabel="Compartir entreno">
+          <Ionicons name="share-outline" size={20} color={theme.accentText} />
+        </Pressable>
+      </View>
 
       <ThemedText type="small" themeColor="textSecondary">
         {formatDay(session.startedAt)} · {formatTime(session.startedAt)}
@@ -156,6 +165,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     gap: 4,
   },
-  cardTitle: { fontWeight: '700' },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cardTitle: { flex: 1, fontWeight: '700' },
   empty: { textAlign: 'center', paddingHorizontal: 32, paddingTop: 24 },
 });
