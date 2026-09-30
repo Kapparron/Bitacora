@@ -47,7 +47,7 @@ Expo Go.
 | Lecturas de la base | `useLiveTables` (`src/db/live.ts`), desde el `queries.ts` de cada feature |
 | Estado de red | TanStack Query, solo para la red (Open Food Facts) |
 | Estado de UI | Zustand (temporizador de descanso) |
-| Gráficas | `react-native-svg`, dibujadas a mano |
+| Gráficas | `react-native-svg`, dibujadas a mano; el cuerpo con los músculos, con `react-native-body-highlighter` |
 
 Tres ideas gobiernan el código:
 
@@ -144,7 +144,7 @@ ello está escrito dos veces:
 | Fichero | Qué guarda | Quién lo lee |
 | --- | --- | --- |
 | `exercises.json` | los 1.324 ejercicios del catálogo | la semilla de la base de datos y la web |
-| `vocabulary.json` | músculos y material, en inglés y en español, con sus familias y los patrones con que se reconocen en un nombre | el generador del catálogo, los filtros de la app y `catalogue.test.mjs` |
+| `vocabulary.json` | músculos y material, en inglés y en español, con sus familias y los patrones con que se reconocen en un nombre; los seis ejes del gráfico de músculos y a cuál va cada grupo (`cardio` y `cuello` a ninguno), y la parte del cuerpo dibujado donde se pinta | el generador del catálogo, los filtros, el gráfico y el cuerpo de músculos de la app, `catalogue.test.mjs` y `muscles.test.ts` |
 | `sets.json` | los tipos de serie (letra del enlace, insignia, si cuenta para el volumen) y los tipos de registro | la app, el enlace compartido y la web |
 | `project.json` | el repositorio, el paquete, el esquema, los enlaces de la web y el CDN de las imágenes | `src/constants/project.ts` y la web |
 | `theme.json` | la paleta clara y oscura, el verde de marca y los colores propios de la web | `src/constants/theme.ts`, `site/estilo.css` y `app.json` |

@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDuration, formatNumber } from '@/lib/format';
 import { ReorderSheet } from '@/features/exercises/components/reorder-sheet';
+import { BodyMap, useBodyLoad } from '@/features/workout/components/body-map';
 import { ExerciseCard } from '@/features/workout/components/exercise-card';
 import { RestTimerBar } from '@/features/workout/components/rest-timer-bar';
 import { discardWorkout, finishWorkout, reorderWorkoutExercises } from '@/features/workout/mutations';
@@ -27,6 +28,7 @@ export default function ActiveWorkoutScreen() {
   const [reordering, setReordering] = useState(false);
   // Stable, so opening the sheet does not re-render every memoised card.
   const openReorder = useCallback(() => setReordering(true), []);
+  const body = useBodyLoad(contents?.entries ?? NO_ENTRIES);
 
   // The session can disappear from under this screen (finished or discarded), in
   // which case there is nothing left to render and going back is the only move.
@@ -113,9 +115,13 @@ export default function ActiveWorkoutScreen() {
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={[styles.stats, { borderColor: theme.border }]}>
-          <Stat label="Duracion" value={formatDuration(elapsed)} />
-          <Stat label="Volumen" value={`${formatNumber(volume, 0)} kg`} />
-          <Stat label="Series" value={String(done)} />
+          <View style={styles.figures}>
+            <Stat label="Duracion" value={formatDuration(elapsed)} />
+            <Stat label="Volumen" value={`${formatNumber(volume, 0)} kg`} />
+            <Stat label="Series" value={String(done)} />
+          </View>
+          {/* Fills in as sets are ticked off. */}
+          <BodyMap load={body} scale={BODY_SCALE} />
         </View>
 
         {entries.map((entry) => (
@@ -176,18 +182,24 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+const NO_ENTRIES: never[] = [];
+
+/** Small enough to sit under the figures: 60 × 120 points per side. */
+const BODY_SCALE = 0.3;
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
   content: { paddingVertical: 12, paddingBottom: 48 },
   stats: {
-    flexDirection: 'row',
+    gap: 8,
     marginHorizontal: 12,
     marginBottom: 16,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
   },
+  figures: { flexDirection: 'row' },
   stat: { flex: 1, alignItems: 'center', gap: 2 },
   actions: { paddingHorizontal: 12, gap: 8 },
   empty: { textAlign: 'center', paddingHorizontal: 32, paddingBottom: 16 },

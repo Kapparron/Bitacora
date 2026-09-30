@@ -1,80 +1,144 @@
 {
+  "muscleAxes": [
+    {
+      "id": "pecho",
+      "label": "Pecho"
+    },
+    {
+      "id": "hombro",
+      "label": "Hombro"
+    },
+    {
+      "id": "brazos",
+      "label": "Brazos"
+    },
+    {
+      "id": "espalda",
+      "label": "Espalda"
+    },
+    {
+      "id": "pierna",
+      "label": "Pierna"
+    },
+    {
+      "id": "core",
+      "label": "Core"
+    }
+  ],
   "muscles": [
     {
       "en": "abductors",
-      "es": "abductores"
+      "es": "abductores",
+      "axis": "pierna",
+      "body": "gluteal"
     },
     {
       "en": "abs",
-      "es": "abdominales"
+      "es": "abdominales",
+      "axis": "core",
+      "body": "abs"
     },
     {
       "en": "adductors",
-      "es": "aductores"
+      "es": "aductores",
+      "axis": "pierna",
+      "body": "adductors"
     },
     {
       "en": "biceps",
-      "es": "biceps"
+      "es": "biceps",
+      "axis": "brazos",
+      "body": "biceps"
     },
     {
       "en": "calves",
-      "es": "gemelos"
+      "es": "gemelos",
+      "axis": "pierna",
+      "body": "calves"
     },
     {
       "en": "cardiovascular system",
-      "es": "cardio"
+      "es": "cardio",
+      "axis": null,
+      "body": null
     },
     {
       "en": "delts",
-      "es": "hombros"
+      "es": "hombros",
+      "axis": "hombro",
+      "body": "deltoids"
     },
     {
       "en": "forearms",
-      "es": "antebrazos"
+      "es": "antebrazos",
+      "axis": "brazos",
+      "body": "forearm"
     },
     {
       "en": "glutes",
-      "es": "gluteos"
+      "es": "gluteos",
+      "axis": "pierna",
+      "body": "gluteal"
     },
     {
       "en": "hamstrings",
-      "es": "femoral"
+      "es": "femoral",
+      "axis": "pierna",
+      "body": "hamstring"
     },
     {
       "en": "lats",
-      "es": "dorsales"
+      "es": "dorsales",
+      "axis": "espalda",
+      "body": "upper-back"
     },
     {
       "en": "levator scapulae",
-      "es": "cuello"
+      "es": "cuello",
+      "axis": null,
+      "body": "neck"
     },
     {
       "en": "pectorals",
-      "es": "pecho"
+      "es": "pecho",
+      "axis": "pecho",
+      "body": "chest"
     },
     {
       "en": "quads",
-      "es": "cuadriceps"
+      "es": "cuadriceps",
+      "axis": "pierna",
+      "body": "quadriceps"
     },
     {
       "en": "serratus anterior",
-      "es": "serrato"
+      "es": "serrato",
+      "axis": "pecho",
+      "body": "obliques"
     },
     {
       "en": "spine",
-      "es": "lumbares"
+      "es": "lumbares",
+      "axis": "espalda",
+      "body": "lower-back"
     },
     {
       "en": "traps",
-      "es": "trapecio"
+      "es": "trapecio",
+      "axis": "espalda",
+      "body": "trapezius"
     },
     {
       "en": "triceps",
-      "es": "triceps"
+      "es": "triceps",
+      "axis": "brazos",
+      "body": "triceps"
     },
     {
       "en": "upper back",
-      "es": "espalda alta"
+      "es": "espalda alta",
+      "axis": "espalda",
+      "body": "upper-back"
     }
   ],
   "equipment": [
