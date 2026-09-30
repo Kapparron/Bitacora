@@ -49,6 +49,7 @@ export type RoutineContents = {
  */
 export function useRoutines(): { routines: RoutineSummary[]; loading: boolean } {
   const { data, loading } = useLiveTables(
+    'useRoutines',
     ROUTINE_TABLES,
     async () =>
       db
@@ -81,6 +82,7 @@ export function useRoutineContents(routineId: string): {
   loading: boolean;
 } {
   const { data, loading } = useLiveTables(
+    'useRoutineContents',
     ROUTINE_TABLES,
     async () => {
       const [routine] = await db
@@ -124,6 +126,7 @@ export function useRoutineContents(routineId: string): {
 export function useCatalogueNames(externalIds: readonly string[]): Map<string, string> | null {
   const key = externalIds.join(',');
   const { data } = useLiveTables(
+    'useCatalogueNames',
     ['exercises'],
     () =>
       externalIds.length === 0

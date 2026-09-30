@@ -98,6 +98,18 @@ La migración se escribe en `drizzle/` y entra en el bundle; se aplica en el
 dispositivo al arrancar, desde `src/db/provider.tsx`. No hay base de datos
 remota, así que `drizzle-kit push` y `drizzle-kit studio` no se usan aquí.
 
+Toda lectura pasa por `useLiveTables` (`src/db/live.ts`), que recibe el nombre
+del hook que la envuelve, las tablas que escucha y la consulta, y la vuelve a
+ejecutar cuando se escribe en alguna de esas tablas. En desarrollo, después de
+cada tanda de escrituras, la consola de Metro dice cuántas lecturas despertó y
+de qué hooks:
+
+```
+[lecturas] sets -> 6: useActiveWorkout x2, useWorkoutContents x1, ...
+```
+
+Es la forma de ver si un cambio en cómo se lee la base hace más o menos trabajo.
+
 ## Comprobaciones
 
 `npm run check` aplica las migraciones reales sobre una base en memoria y
