@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
@@ -7,7 +6,7 @@ import { Button } from '@/components/button';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { logFood, moveEntry, toggleFavorite, updateEntryAmount } from '@/features/nutrition/mutations';
-import { MEALS, getEntry, getFood, type Meal } from '@/features/nutrition/queries';
+import { MEALS, useFood, useFoodEntry, type Meal } from '@/features/nutrition/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatNumber } from '@/lib/format';
 
@@ -35,18 +34,8 @@ export default function AmountScreen() {
 
   const editing = Boolean(entryId);
 
-  const { data: entry } = useQuery({
-    queryKey: ['food-entry', entryId],
-    queryFn: () => getEntry(entryId as string),
-    enabled: editing,
-  });
-
-  const lookupId = foodId ?? entry?.foodId ?? null;
-  const { data: food } = useQuery({
-    queryKey: ['food', lookupId],
-    queryFn: () => getFood(lookupId as string),
-    enabled: lookupId !== null,
-  });
+  const entry = useFoodEntry(entryId ?? null);
+  const food = useFood(foodId ?? entry?.foodId ?? null);
 
   const [grams, setGrams] = useState('100');
   const [meal, setMeal] = useState<Meal>(initialMeal);

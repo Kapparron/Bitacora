@@ -240,6 +240,28 @@ export async function getLastPerformance(
     .orderBy(sets.position);
 }
 
+const NO_SETS: WorkoutSet[] = [];
+
+/**
+ * `getLastPerformance`, kept up to date. It only listens to `workouts`: what was
+ * done last time changes when a session is finished, deleted or moved, not with
+ * every set written in this one, and listening to `sets` would re-run it for
+ * each card on every keystroke. Off while the session is read-only.
+ */
+export function useLastPerformance(
+  exerciseId: string,
+  excludeWorkoutId: string,
+  enabled: boolean
+): WorkoutSet[] {
+  const { data } = useLiveTables(
+    ['workouts'],
+    () => (enabled ? getLastPerformance(exerciseId, excludeWorkoutId) : Promise.resolve(NO_SETS)),
+    [exerciseId, excludeWorkoutId, enabled]
+  );
+
+  return data ?? NO_SETS;
+}
+
 export type ExerciseSessionStat = {
   /** When the session that produced these numbers started. */
   startedAt: number;
@@ -503,6 +525,21 @@ export function useExerciseRecords(exerciseId: string): RecordValues {
   );
 
   return Object.fromEntries((data ?? []).map((row) => [row.type, row.value])) as RecordValues;
+}
+
+type PersonalRecord = typeof personalRecords.$inferSelect;
+
+const NO_RECORDS: PersonalRecord[] = [];
+
+/** Every record stored for one exercise, for the exercise screen to list. */
+export function usePersonalRecords(exerciseId: string): PersonalRecord[] {
+  const { data } = useLiveTables(
+    ['personal_records'],
+    () => db.select().from(personalRecords).where(eq(personalRecords.exerciseId, exerciseId)),
+    [exerciseId]
+  );
+
+  return data ?? NO_RECORDS;
 }
 
 export type WorkoutRecord = {

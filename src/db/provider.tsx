@@ -19,7 +19,7 @@ export function useDatabaseStatus(): DatabaseStatus {
  * below this provider can assume the schema exists and the built-in catalogue is
  * present, so no screen needs its own loading branch for that.
  *
- * The connection itself lives in ./client as a module singleton; `useLiveQuery`
+ * The connection itself lives in ./client as a module singleton; `useLiveTables`
  * listens to expo-sqlite's global change events, so no SQLiteProvider is needed.
  */
 export function DatabaseProvider({ children }: { children: ReactNode }) {

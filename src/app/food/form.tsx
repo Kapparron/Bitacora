@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
@@ -7,7 +6,7 @@ import { Button } from '@/components/button';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { createCustomFood, updateFood } from '@/features/nutrition/mutations';
-import { getFood, type Meal } from '@/features/nutrition/queries';
+import { useFood, type Meal } from '@/features/nutrition/queries';
 import { useTheme } from '@/hooks/use-theme';
 
 function parse(value: string): number | null {
@@ -37,11 +36,7 @@ export default function FoodFormScreen() {
   }>();
 
   const editing = Boolean(foodId);
-  const { data: food } = useQuery({
-    queryKey: ['food', foodId],
-    queryFn: () => getFood(foodId as string),
-    enabled: editing,
-  });
+  const food = useFood(foodId ?? null);
 
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');

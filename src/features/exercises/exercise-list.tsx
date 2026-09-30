@@ -1,6 +1,4 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { asc, isNull } from 'drizzle-orm';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useState } from 'react';
@@ -9,8 +7,7 @@ import { Pressable, SectionList, StyleSheet, TextInput, View } from 'react-nativ
 import { useConfirm } from '@/components/confirm-dialog';
 import { OptionSheet, type SheetOption } from '@/components/option-sheet';
 import { ThemedText } from '@/components/themed-text';
-import { db } from '@/db/client';
-import { exercises, type Exercise } from '@/db/schema';
+import type { Exercise } from '@/db/schema';
 import {
   filterCounts,
   matchesFilters,
@@ -18,6 +15,7 @@ import {
 } from '@/features/exercises/filters';
 import { exerciseMediaUrl } from '@/features/exercises/media';
 import { deleteCustomExercise } from '@/features/exercises/mutations';
+import { useCatalogue } from '@/features/exercises/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { normalizeText } from '@/lib/text';
 
@@ -49,13 +47,7 @@ export function ExerciseList({ selectedIds, onToggle, header }: ExerciseListProp
   /** Which filter sheet is open, if any. */
   const [openFilter, setOpenFilter] = useState<keyof ExerciseFilters | null>(null);
 
-  const { data } = useLiveQuery(
-    db
-      .select()
-      .from(exercises)
-      .where(isNull(exercises.deletedAt))
-      .orderBy(asc(exercises.muscleGroup), asc(exercises.name))
-  );
+  const data = useCatalogue();
 
   // Normalising four fields of 1.324 rows on every keystroke was the other half
   // of the lag, so the searchable text is built once per catalogue change.

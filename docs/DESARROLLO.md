@@ -44,7 +44,8 @@ Expo Go.
 | Framework | React Native + Expo SDK 57, TypeScript |
 | Navegación | expo-router, rutas por ficheros |
 | Base de datos | SQLite (`expo-sqlite`) con Drizzle ORM y migraciones generadas |
-| Estado de red | TanStack Query |
+| Lecturas de la base | `useLiveTables` (`src/db/live.ts`), desde el `queries.ts` de cada feature |
+| Estado de red | TanStack Query, solo para la red (Open Food Facts) |
 | Estado de UI | Zustand (temporizador de descanso) |
 | Gráficas | `react-native-svg`, dibujadas a mano |
 
