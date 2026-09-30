@@ -10,6 +10,7 @@ const NO_VALUES: string[] = [];
 /** The whole catalogue plus the user's own exercises, grouped by muscle. */
 export function useCatalogue(): Exercise[] {
   const { data } = useLiveTables(
+    'useCatalogue',
     ['exercises'],
     () =>
       db
@@ -26,6 +27,7 @@ export function useCatalogue(): Exercise[] {
 /** One exercise, deleted or not: a past session still opens it. */
 export function useExercise(exerciseId: string): { exercise: Exercise | null; loading: boolean } {
   const { data, loading } = useLiveTables(
+    'useExercise',
     ['exercises'],
     async () => {
       const [found] = await db.select().from(exercises).where(eq(exercises.id, exerciseId));
@@ -42,8 +44,12 @@ export function useExercise(exerciseId: string): { exercise: Exercise | null; lo
  * thirty of them, and reading all 1.324 rows to build them was the slowest
  * thing on that screen.
  */
-function useDistinct(column: typeof exercises.muscleGroup | typeof exercises.equipment): string[] {
+function useDistinct(
+  name: string,
+  column: typeof exercises.muscleGroup | typeof exercises.equipment
+): string[] {
   const { data } = useLiveTables(
+    name,
     ['exercises'],
     async () =>
       (
@@ -60,9 +66,9 @@ function useDistinct(column: typeof exercises.muscleGroup | typeof exercises.equ
 }
 
 export function useMuscleGroups(): string[] {
-  return useDistinct(exercises.muscleGroup);
+  return useDistinct('useMuscleGroups', exercises.muscleGroup);
 }
 
 export function useEquipment(): string[] {
-  return useDistinct(exercises.equipment);
+  return useDistinct('useEquipment', exercises.equipment);
 }

@@ -19,6 +19,7 @@ import {
  */
 export function useRestPlan(): RestPlan {
   const { data } = useLiveTables(
+    'useRestPlan',
     ['settings', 'rest_days'],
     async () => {
       const rows = await db

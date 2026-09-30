@@ -45,6 +45,7 @@ function add(totals: DayTotals, entry: FoodEntry): DayTotals {
 /** Everything logged on one local day, split by meal and summed. */
 export function useDayDiary(date: string): { diary: DayDiary; loading: boolean } {
   const { data, loading } = useLiveTables(
+    'useDayDiary',
     NUTRITION_TABLES,
     async () =>
       db
@@ -85,6 +86,7 @@ export function useDayDiary(date: string): { diary: DayDiary; loading: boolean }
 /** Days with something logged, for marking the calendar. */
 export function useLoggedDays(): Set<string> {
   const { data } = useLiveTables(
+    'useLoggedDays',
     ['food_entries'],
     async () =>
       db
@@ -103,6 +105,7 @@ export function useLoggedDays(): Set<string> {
  */
 export function useGoalFor(date: string): typeof nutritionGoals.$inferSelect | null {
   const { data } = useLiveTables(
+    'useGoalFor',
     ['nutrition_goals'],
     async () =>
       db
@@ -123,6 +126,7 @@ export function useGoalFor(date: string): typeof nutritionGoals.$inferSelect | n
  */
 export function useSuggestedFoods(): { favorites: Food[]; recents: Food[] } {
   const { data } = useLiveTables(
+    'useSuggestedFoods',
     NUTRITION_TABLES,
     async () => {
       const favorites = await db
@@ -151,6 +155,7 @@ export function useSuggestedFoods(): { favorites: Food[]; recents: Food[] } {
 /** Calories logged per day, for the workout tab's calendar. */
 export function useDailyKcal(): Map<string, number> {
   const { data } = useLiveTables(
+    'useDailyKcal',
     ['food_entries'],
     async () =>
       db
@@ -170,6 +175,7 @@ export function useDailyKcal(): Map<string, number> {
  */
 export function useLocalFoods(): Food[] {
   const { data } = useLiveTables(
+    'useLocalFoods',
     ['foods'],
     async () =>
       db
@@ -185,6 +191,7 @@ export function useLocalFoods(): Food[] {
 
 export function useCustomFoods(): Food[] {
   const { data } = useLiveTables(
+    'useCustomFoods',
     ['foods'],
     async () =>
       db
@@ -211,6 +218,7 @@ export async function findFoodByBarcode(barcode: string): Promise<Food | null> {
 /** One diary entry, or null when there is none to read. */
 export function useFoodEntry(entryId: string | null): FoodEntry | null {
   const { data } = useLiveTables(
+    'useFoodEntry',
     ['food_entries'],
     async () => {
       if (entryId === null) return null;
@@ -229,6 +237,7 @@ export function useFoodEntry(entryId: string | null): FoodEntry | null {
  */
 export function useFood(foodId: string | null): Food | null {
   const { data } = useLiveTables(
+    'useFood',
     ['foods'],
     async () => {
       if (foodId === null) return null;

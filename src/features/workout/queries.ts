@@ -106,6 +106,7 @@ async function loadContents(where: SQL | undefined): Promise<WorkoutContents | n
  */
 export function useActiveWorkout(): { contents: WorkoutContents | null; loading: boolean } {
   const { data, loading } = useLiveTables(
+    'useActiveWorkout',
     SESSION_TABLES,
     () => loadContents(and(isNull(workouts.finishedAt), isNull(workouts.deletedAt))),
     []
@@ -127,6 +128,7 @@ export function useWorkoutContents(workoutId: string): {
   loading: boolean;
 } {
   const { data, loading } = useLiveTables(
+    'useWorkoutContents',
     SESSION_TABLES,
     () => loadContents(and(eq(workouts.id, workoutId), isNull(workouts.deletedAt))),
     [workoutId]
@@ -163,6 +165,7 @@ export type ExercisePreview = {
  */
 export function useDayWorkoutPreviews(day: string | null): Map<string, ExercisePreview[]> {
   const { data } = useLiveTables(
+    'useDayWorkoutPreviews',
     SESSION_TABLES,
     async () => {
       if (!day) return [];
@@ -254,6 +257,7 @@ export function useLastPerformance(
   enabled: boolean
 ): WorkoutSet[] {
   const { data } = useLiveTables(
+    'useLastPerformance',
     ['workouts'],
     () => (enabled ? getLastPerformance(exerciseId, excludeWorkoutId) : Promise.resolve(NO_SETS)),
     [exerciseId, excludeWorkoutId, enabled]
@@ -279,6 +283,7 @@ export type ExerciseSessionStat = {
  */
 export function useExerciseProgress(exerciseId: string): ExerciseSessionStat[] {
   const { data } = useLiveTables(
+    'useExerciseProgress',
     SESSION_TABLES,
     async () =>
       db
@@ -340,7 +345,7 @@ export function loadWeeklyVolume(): Promise<WeeklyVolume[]> {
 }
 
 export function useWeeklyVolume(): WeeklyVolume[] {
-  const { data } = useLiveTables(SESSION_TABLES, loadWeeklyVolume, []);
+  const { data } = useLiveTables('useWeeklyVolume', SESSION_TABLES, loadWeeklyVolume, []);
   return data ?? [];
 }
 
@@ -367,6 +372,7 @@ export function useHistorySessions(limit = HISTORY_LIMIT): {
   loading: boolean;
 } {
   const { data, loading } = useLiveTables(
+    'useHistorySessions',
     SESSION_TABLES,
     async () => {
       const summaries = (await db
@@ -466,7 +472,7 @@ export function loadTrainedDays(): Promise<{ day: string; sessions: number }[]> 
 }
 
 export function useTrainedDays(): Map<string, number> {
-  const { data } = useLiveTables(['workouts'], loadTrainedDays, []);
+  const { data } = useLiveTables('useTrainedDays', ['workouts'], loadTrainedDays, []);
   return new Map((data ?? []).map((row) => [row.day, row.sessions]));
 }
 
@@ -477,6 +483,7 @@ export function useTrainedDays(): Map<string, number> {
  */
 export function useDayWorkouts(day: string | null): WorkoutSummary[] {
   const { data } = useLiveTables(
+    'useDayWorkouts',
     SESSION_TABLES,
     async () => {
       if (!day) return [];
@@ -515,6 +522,7 @@ export function useDayWorkouts(day: string | null): WorkoutSummary[] {
  */
 export function useExerciseRecords(exerciseId: string): RecordValues {
   const { data } = useLiveTables(
+    'useExerciseRecords',
     ['personal_records'],
     () =>
       db
@@ -534,6 +542,7 @@ const NO_RECORDS: PersonalRecord[] = [];
 /** Every record stored for one exercise, for the exercise screen to list. */
 export function usePersonalRecords(exerciseId: string): PersonalRecord[] {
   const { data } = useLiveTables(
+    'usePersonalRecords',
     ['personal_records'],
     () => db.select().from(personalRecords).where(eq(personalRecords.exerciseId, exerciseId)),
     [exerciseId]
@@ -556,6 +565,7 @@ export type WorkoutRecord = {
  */
 export function useWorkoutRecords(workoutId: string): WorkoutRecord[] {
   const { data } = useLiveTables(
+    'useWorkoutRecords',
     ['personal_records', 'exercises'],
     () =>
       db
