@@ -12,13 +12,16 @@ import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { currentStreak, weekEndingOn } from '@/features/progress/stats';
 import { useRestPlan } from '@/features/rest/queries';
+import { compareVolume } from '@/features/workout/comparison';
 import { bodyLoad, muscleLoad } from '@/features/workout/muscles';
 import { useTrainedDays, type WorkoutContents, type WorkoutRecord } from '@/features/workout/queries';
 import { shareCardImage } from '@/features/workout/share-card';
+import { totalVolume } from '@/features/workout/volume';
 import { useTheme } from '@/hooks/use-theme';
 import { toIsoDay } from '@/lib/format';
 
 import { BodyCard } from './body-card';
+import { DinosaurCard } from './dinosaur-card';
 import { MusclesCard } from './muscles-card';
 import { RecordsCard } from './records-card';
 import { SessionCard } from './session-card';
@@ -84,6 +87,16 @@ export function SummaryCarousel({
 
     if (records.length > 0) {
       list.push({ key: 'records', render: (side) => <RecordsCard records={records} size={side} /> });
+    }
+
+    // Not below the smallest dinosaur: a few kilos are nothing to boast about.
+    const volume = totalVolume(contents.entries.flatMap((entry) => entry.sets));
+    const comparison = compareVolume(volume);
+    if (comparison) {
+      list.push({
+        key: 'dinosaur',
+        render: (side) => <DinosaurCard volume={volume} comparison={comparison} size={side} />,
+      });
     }
 
     list.push(
