@@ -145,6 +145,7 @@ ello está escrito dos veces:
 | --- | --- | --- |
 | `exercises.json` | los 1.324 ejercicios del catálogo | la semilla de la base de datos y la web |
 | `vocabulary.json` | músculos y material, en inglés y en español, con sus familias y los patrones con que se reconocen en un nombre; los seis ejes del gráfico de músculos y a cuál va cada grupo (`cardio` y `cuello` a ninguno), y la parte del cuerpo dibujado donde se pinta | el generador del catálogo, los filtros, el gráfico y el cuerpo de músculos de la app, `catalogue.test.mjs` y `muscles.test.ts` |
+| `comparisons.json` | la escalera de dinosaurios del resumen (nombre, plural, kilos) con su silueta: de PhyloPic, solo CC0, optimizada con `svgo` y guardada como `viewBox` y `path` | la tarjeta de comparación del resumen y `comparison.test.ts` |
 | `sets.json` | los tipos de serie (letra del enlace, insignia, si cuenta para el volumen) y los tipos de registro | la app, el enlace compartido y la web |
 | `project.json` | el repositorio, el paquete, el esquema, los enlaces de la web y el CDN de las imágenes | `src/constants/project.ts` y la web |
 | `theme.json` | la paleta clara y oscura, el verde de marca y los colores propios de la web | `src/constants/theme.ts`, `site/estilo.css` y `app.json` |
