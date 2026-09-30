@@ -39,6 +39,9 @@ export default function RootLayout() {
                   <Stack.Screen name="routine" options={{ headerShown: false }} />
                   <Stack.Screen name="exercises" />
                   <Stack.Screen name="food" options={{ headerShown: false }} />
+                  <Stack.Screen name="note" options={{ headerShown: false }} />
+                  <Stack.Screen name="event" options={{ headerShown: false }} />
+                  <Stack.Screen name="task" options={{ headerShown: false }} />
                   <Stack.Screen name="pick-exercise" options={{ presentation: 'modal' }} />
                 </Stack>
                 <StatusBar style="auto" />

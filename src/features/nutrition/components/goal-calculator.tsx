@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { Chip } from '@/components/chip';
 import { ThemedText } from '@/components/themed-text';
 import { recordWeight } from '@/features/body/mutations';
 import { useLatestWeight } from '@/features/body/queries';
@@ -160,34 +161,6 @@ export function GoalCalculator({ onDone, onCancel }: { onDone: () => void; onCan
   );
 }
 
-function Chip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.chip,
-        { backgroundColor: active ? theme.accent : theme.backgroundElement },
-        pressed && { opacity: 0.6 },
-      ]}>
-      <ThemedText
-        type="small"
-        style={{ color: active ? theme.onAccent : theme.text, fontWeight: '600' }}>
-        {label}
-      </ThemedText>
-    </Pressable>
-  );
-}
-
 function Field({
   label,
   value,
@@ -219,7 +192,6 @@ const styles = StyleSheet.create({
   field: { gap: 4 },
   input: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
   result: { padding: 12, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, gap: 4 },
   kcal: { fontSize: 26, lineHeight: 32 },
 });

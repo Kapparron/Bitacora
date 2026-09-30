@@ -7,6 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/button';
 import { BottomTabInset } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
+import { EventRow } from '@/features/agenda/components/event-row';
+import { useDayEvents, useEventDays } from '@/features/agenda/queries';
 import { MonthCalendar } from '@/features/calendar/month-calendar';
 import { MacroSummary } from '@/features/nutrition/components/macro-summary';
 import { setRestDay } from '@/features/rest/mutations';
@@ -27,7 +29,14 @@ import {
   type WorkoutSummary,
 } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
-import { formatDay, formatDuration, formatNumber, formatTime, toIsoDay } from '@/lib/format';
+import {
+  formatDay,
+  formatDuration,
+  formatNumber,
+  formatTime,
+  isoDayToTimestamp,
+  toIsoDay,
+} from '@/lib/format';
 
 export default function WorkoutScreen() {
   const theme = useTheme();
@@ -53,6 +62,8 @@ export default function WorkoutScreen() {
 
   const { diary } = useDayDiary(shownDay);
   const goal = useGoalFor(shownDay);
+  const eventDays = useEventDays();
+  const dayEvents = useDayEvents(shownDay);
   const previews = useDayWorkoutPreviews(selectedDay);
   // Only the picked day's sessions are loaded; the calendar needs the days, not
   // what each of them held.
@@ -149,6 +160,8 @@ export default function WorkoutScreen() {
               plannedDays={plannedDays}
               loggedDays={loggedDays}
               restDays={restDaysOfMonth}
+              eventDays={eventDays}
+              showLegend
               selectedDay={selectedDay}
               onSelectDay={setSelectedDay}
               // Long press marks a single day as rest, whatever the weekly rule
@@ -160,6 +173,28 @@ export default function WorkoutScreen() {
               <ThemedText type="small" themeColor="textSecondary" style={styles.restNote}>
                 Hoy toca descanso. Entrenar igualmente no rompe nada.
               </ThemedText>
+            ) : null}
+
+            {dayEvents.length > 0 ? (
+              <View style={[styles.events, { borderColor: theme.border }]}>
+                <View style={styles.eventsHead}>
+                  <ThemedText type="smallBold" themeColor="textSecondary">
+                    {shownDay === today ? 'HOY' : formatDay(isoDayToTimestamp(shownDay)).toUpperCase()}
+                    {' · '}
+                    {dayEvents.length === 1 ? '1 EVENTO' : `${dayEvents.length} EVENTOS`}
+                  </ThemedText>
+                  <Pressable
+                    onPress={() => router.push({ pathname: '/event', params: { date: shownDay } })}
+                    hitSlop={8}>
+                    <ThemedText type="small" style={{ color: theme.accentText, fontWeight: '700' }}>
+                      Añadir
+                    </ThemedText>
+                  </Pressable>
+                </View>
+                {dayEvents.map((event) => (
+                  <EventRow key={event.id} event={event} />
+                ))}
+              </View>
             ) : null}
 
             <View style={styles.actions}>
@@ -301,6 +336,16 @@ function WorkoutPreviewCard({
 }
 
 const styles = StyleSheet.create({
+  events: {
+    marginHorizontal: 12,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 2,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  eventsHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   container: { flex: 1 },
   header: { paddingTop: 8, gap: 12 },
   actions: { paddingHorizontal: 12, gap: 8 },
