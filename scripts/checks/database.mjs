@@ -69,6 +69,13 @@ export function seedOneOfEach(db, now = Date.now()) {
   db.exec(`insert into body_metrics (id, date, weight) values ('b1','2026-09-11',80)`);
   db.exec(`insert into rest_days (day) values ('2026-09-10')`);
   db.exec(`insert into settings (key, value) values ('target_weight','75')`);
+  db.exec(`insert into notes (id, title, body) values ('n1','Compra','- [ ] Leche')`);
+  db.exec(`insert into events (id, date, time, title) values ('e1','2026-09-12','17:30','Dentista')`);
+  db.exec(`insert into tasks (id, date, text) values ('t1','2026-09-12','Llamar al banco')`);
+  db.exec(
+    `insert into tasks (id, date, text, schedule_type, schedule_weekdays) values ('t2','2026-09-01','Kárate','weekdays','[1,3]')`
+  );
+  db.exec(`insert into task_checks (task_id, date) values ('t2','2026-09-08')`);
 }
 
 export function countRows(db, table) {

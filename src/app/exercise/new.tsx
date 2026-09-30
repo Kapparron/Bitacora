@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ScreenHeader } from '@/components/screen-header';
+import { Chip } from '@/components/chip';
 import { ThemedText } from '@/components/themed-text';
 import { TRACKING_TYPES } from '@/constants/sets';
 import type { Exercise } from '@/db/schema';
@@ -121,26 +122,6 @@ function Chips({
   );
 }
 
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  const theme = useTheme();
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.chip,
-        { backgroundColor: active ? theme.accent : theme.backgroundElement },
-        pressed && { opacity: 0.6 },
-      ]}>
-      <ThemedText
-        type="small"
-        style={{ color: active ? theme.onAccent : theme.text, fontWeight: '600' }}>
-        {label}
-      </ThemedText>
-    </Pressable>
-  );
-}
-
 function Field({
   label,
   value,
@@ -177,5 +158,4 @@ const styles = StyleSheet.create({
   field: { gap: 4 },
   input: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
   chips: { gap: 8, paddingRight: 12 },
-  chip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
 });

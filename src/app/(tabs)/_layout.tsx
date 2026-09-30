@@ -105,6 +105,13 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
+          name="agenda"
+          options={{
+            title: 'Agenda',
+            tabBarButton: (props) => <TabButton {...props} name="calendar" label="Agenda" />,
+          }}
+        />
+        <Tabs.Screen
           name="profile"
           options={{
             title: 'Perfil',
