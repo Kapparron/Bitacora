@@ -43,7 +43,10 @@ function daysBetween(from: string, to: string): number {
   return Math.round((parse(to) - parse(from)) / 86_400_000);
 }
 
-/** Just the scheduling columns, so both the row and its list summary fit. */
+/**
+ * Just the scheduling columns, so a routine, its list summary and a repeating
+ * task all fit: they keep their schedule in the same four columns.
+ */
 export type Schedulable = Pick<
   Routine,
   'scheduleType' | 'scheduleWeekdays' | 'scheduleIntervalDays' | 'scheduleAnchor'

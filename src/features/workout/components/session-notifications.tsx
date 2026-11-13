@@ -7,11 +7,14 @@ import { useRestTimer } from '../rest-timer';
 import { completedSetCount } from '../volume';
 
 /**
- * Mirrors the session in progress and its rest timer into system notifications,
- * so both can be followed with the phone locked. It renders nothing: the
- * database and the rest timer store stay the only sources of truth, and the
- * notifications follow whatever they say, including going away when the
- * session is finished or discarded.
+ * Mirrors the session in progress and its rest timer into the session's system
+ * notification, so both can be followed with the phone locked. The native side
+ * keeps it to one notification that turns into the rest countdown while
+ * resting, and only the end of the rest rings (see Notifier.kt).
+ *
+ * It renders nothing: the database and the rest timer store stay the only
+ * sources of truth, and the notification follows whatever they say, including
+ * going away when the session is finished or discarded.
  */
 export function SessionNotifications() {
   const { contents, loading } = useActiveWorkout();

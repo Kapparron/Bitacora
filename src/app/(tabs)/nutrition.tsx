@@ -10,7 +10,8 @@ import { ThemedText } from '@/components/themed-text';
 import { DayPrompt } from '@/features/calendar/date-prompt';
 import { MacroSummary } from '@/features/nutrition/components/macro-summary';
 import { deleteEntry } from '@/features/nutrition/mutations';
-import { MEALS, useDayDiary, useGoalFor, type Meal } from '@/features/nutrition/queries';
+import { mealsForDay, ORPHAN_MEAL } from '@/features/nutrition/meals';
+import { useDayDiary, useGoalFor, useMeals } from '@/features/nutrition/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDay, formatNumber, shiftIsoDay, toIsoDay } from '@/lib/format';
 import type { FoodEntry } from '@/db/schema';
@@ -25,6 +26,8 @@ export default function NutritionScreen() {
   const [pickingDay, setPickingDay] = useState(false);
 
   const { diary } = useDayDiary(date);
+  const meals = useMeals();
+  const dayMeals = mealsForDay(meals, diary.entries);
   const goal = useGoalFor(date);
 
   async function remove(entry: FoodEntry) {
@@ -58,18 +61,30 @@ export default function NutritionScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <MacroSummary totals={diary.totals} goal={goal} />
 
-        {MEALS.map(({ value, label }) => (
+        {dayMeals.map(({ id, name, hidden }) => (
           <MealSection
-            key={value}
-            label={label}
-            entries={diary.byMeal[value]}
-            kcal={diary.mealTotals[value].kcal}
-            onAdd={() =>
-              router.push({ pathname: '/food/search', params: { date, meal: value } })
+            key={id}
+            label={hidden ? `${name} (oculta)` : name}
+            entries={diary.byMeal[id] ?? []}
+            kcal={diary.mealTotals[id]?.kcal ?? 0}
+            // Entries of a deleted meal cannot take new food: there is no meal to put it in.
+            onAdd={
+              id === ORPHAN_MEAL
+                ? undefined
+                : () => router.push({ pathname: '/food/search', params: { date, meal: id } })
             }
             onLongPressEntry={setMenuEntry}
           />
         ))}
+
+        <Pressable
+          onPress={() => router.push('/meals')}
+          style={({ pressed }) => [styles.manage, pressed && { opacity: 0.6 }]}>
+          <Ionicons name="options-outline" size={18} color={theme.accentText} />
+          <ThemedText type="small" style={{ color: theme.accentText, fontWeight: '700' }}>
+            Editar comidas
+          </ThemedText>
+        </Pressable>
       </ScrollView>
 
       {pickingDay ? (
@@ -126,7 +141,7 @@ function MealSection({
   label: string;
   entries: FoodEntry[];
   kcal: number;
-  onAdd: () => void;
+  onAdd?: () => void;
   onLongPressEntry: (entry: FoodEntry) => void;
 }) {
   const theme = useTheme();
@@ -170,18 +185,20 @@ function MealSection({
         </Pressable>
       ))}
 
-      <Pressable
-        onPress={onAdd}
-        style={({ pressed }) => [
-          styles.add,
-          { borderTopColor: theme.border },
-          pressed && { backgroundColor: theme.backgroundElement },
-        ]}>
-        <Ionicons name="add" size={18} color={theme.accentText} />
-        <ThemedText type="small" style={{ color: theme.accentText, fontWeight: '700' }}>
-          Anadir alimento
-        </ThemedText>
-      </Pressable>
+      {onAdd ? (
+        <Pressable
+          onPress={onAdd}
+          style={({ pressed }) => [
+            styles.add,
+            { borderTopColor: theme.border },
+            pressed && { backgroundColor: theme.backgroundElement },
+          ]}>
+          <Ionicons name="add" size={18} color={theme.accentText} />
+          <ThemedText type="small" style={{ color: theme.accentText, fontWeight: '700' }}>
+            Anadir alimento
+          </ThemedText>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -197,6 +214,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   dayLabel: { flex: 1, alignItems: 'center' },
+  manage: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 },
   dayText: { fontWeight: '700' },
   content: { paddingBottom: 120, gap: 12 },
   meal: {

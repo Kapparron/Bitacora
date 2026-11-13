@@ -7,6 +7,7 @@ import {
   formatDuration,
   formatNumber,
   formatRest,
+  mondayOf,
   shiftIsoDay,
   toIsoDay,
 } from '@/lib/format';
@@ -98,4 +99,12 @@ test('la web escribe las duraciones y los numeros como la app', async () => {
   for (const seconds of [null, 0, 30, 59, 60, 90, 120, 150, 3600]) {
     assert.equal(web.formatRest(seconds), formatRest(seconds), `descanso de ${seconds}s`);
   }
+});
+
+test('a week runs Monday to Sunday', () => {
+  assert.equal(mondayOf('2026-09-28'), '2026-09-28', 'un lunes es su propia semana');
+  assert.equal(mondayOf('2026-09-30'), '2026-09-28');
+  assert.equal(mondayOf('2026-10-04'), '2026-09-28', 'el domingo cierra la semana');
+  assert.equal(mondayOf('2026-10-05'), '2026-10-05');
+  assert.equal(mondayOf('2026-01-01'), '2025-12-29', 'across a year');
 });

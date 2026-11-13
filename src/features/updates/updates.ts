@@ -138,7 +138,8 @@ export function parseRelease(payload: unknown): Release | null {
     (asset: { name?: unknown; browser_download_url?: unknown }) =>
       typeof asset?.name === 'string' &&
       asset.name.toLowerCase().endsWith('.apk') &&
-      typeof asset.browser_download_url === 'string'
+      typeof asset.browser_download_url === 'string' &&
+      isReleaseDownload(asset.browser_download_url)
   ) as { name: string; browser_download_url: string; size?: unknown } | undefined;
 
   if (!apk) return null;
@@ -152,6 +153,15 @@ export function parseRelease(payload: unknown): Release | null {
     apkUrl: apk.browser_download_url,
     size: typeof apk.size === 'number' ? apk.size : 0,
   };
+}
+
+/**
+ * Whether an address is a file attached to a release of this repository. The
+ * APK is installed after downloading, so nothing is fetched from anywhere else,
+ * whatever the payload says.
+ */
+export function isReleaseDownload(url: string): boolean {
+  return url.startsWith(`https://github.com/${REPO}/releases/download/`);
 }
 
 /**

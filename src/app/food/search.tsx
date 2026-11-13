@@ -14,9 +14,9 @@ import type { Food } from '@/db/schema';
 import { cacheProduct, deleteFood, repeatMeal } from '@/features/nutrition/mutations';
 import { searchProducts, type OffProduct } from '@/features/nutrition/openfoodfacts';
 import {
-  MEALS,
   useDayDiary,
   useLocalFoods,
+  useMeals,
   useSuggestedFoods,
   type Meal,
 } from '@/features/nutrition/queries';
@@ -49,12 +49,13 @@ export default function FoodSearchScreen() {
   const [webQuery, setWebQuery] = useState<string | null>(null);
 
   const localFoods = useLocalFoods();
+  const meals = useMeals();
   const { favorites, recents } = useSuggestedFoods();
 
   // The same meal on the previous day, to offer repeating it.
   const yesterday = shiftIsoDay(date, -1);
   const { diary: yesterdayDiary } = useDayDiary(yesterday);
-  const yesterdayEntries = yesterdayDiary.byMeal[meal];
+  const yesterdayEntries = yesterdayDiary.byMeal[meal] ?? [];
 
   const trimmed = query.trim();
 
@@ -109,7 +110,7 @@ export default function FoodSearchScreen() {
    * being copied: repeating the wrong meal is only undone entry by entry.
    */
   async function repeatYesterday() {
-    const mealLabel = MEALS.find((option) => option.value === meal)?.label ?? '';
+    const mealLabel = meals.find((option) => option.id === meal)?.name ?? '';
     const accepted = await confirm({
       title: `Repetir ${mealLabel.toLowerCase()} de ayer`,
       message: `Se anaden ${yesterdayEntries.length} alimentos: ${yesterdayEntries

@@ -1,17 +1,21 @@
+import { useMemo } from 'react';
 import { and, asc, desc, eq, isNull, lte, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { useLiveTables } from '@/db/live';
-import { foodEntries, foods, nutritionGoals, type Food, type FoodEntry } from '@/db/schema';
+import {
+  foodEntries,
+  foods,
+  meals as mealsTable,
+  nutritionGoals,
+  type Food,
+  type FoodEntry,
+} from '@/db/schema';
 
-export type Meal = FoodEntry['meal'];
+import { DEFAULT_MEALS, mealsOf, sectionOf, type MealInfo } from './meals';
 
-export const MEALS: { value: Meal; label: string }[] = [
-  { value: 'breakfast', label: 'Desayuno' },
-  { value: 'lunch', label: 'Comida' },
-  { value: 'dinner', label: 'Cena' },
-  { value: 'snack', label: 'Snacks' },
-];
+/** The id of a meal, as stored in `food_entries.meal`. */
+export type Meal = string;
 
 export type DayTotals = {
   kcal: number;
@@ -22,9 +26,10 @@ export type DayTotals = {
 
 export type DayDiary = {
   entries: FoodEntry[];
-  byMeal: Record<Meal, FoodEntry[]>;
+  /** Entries by meal id. A meal with nothing logged has no key. */
+  byMeal: Record<string, FoodEntry[]>;
   totals: DayTotals;
-  mealTotals: Record<Meal, DayTotals>;
+  mealTotals: Record<string, DayTotals>;
 };
 
 const NUTRITION_TABLES = ['food_entries', 'foods'] as const;
@@ -53,43 +58,37 @@ function add(totals: DayTotals, entry: FoodEntry): DayTotals {
  * its own copy of the food's name and values, so only `food_entries` is read.
  */
 export function useDayDiary(date: string): { diary: DayDiary; loading: boolean } {
+  const meals = useMeals();
   const { data, loading } = useLiveTables(
     'useDayDiary',
     ['food_entries'],
     async () =>
-      diaryOf(
-        await db
-          .select()
-          .from(foodEntries)
-          .where(and(eq(foodEntries.date, date), isNull(foodEntries.deletedAt)))
-          .orderBy(asc(foodEntries.createdAt))
-      ),
+      db
+        .select()
+        .from(foodEntries)
+        .where(and(eq(foodEntries.date, date), isNull(foodEntries.deletedAt)))
+        .orderBy(asc(foodEntries.createdAt)),
     [date]
   );
 
-  return { diary: data ?? EMPTY_DIARY, loading };
+  const diary = useMemo(() => (data ? diaryOf(data, meals) : EMPTY_DIARY), [data, meals]);
+
+  return { diary, loading };
 }
 
-function diaryOf(entries: FoodEntry[]): DayDiary {
-  const byMeal: Record<Meal, FoodEntry[]> = {
-    breakfast: [],
-    lunch: [],
-    dinner: [],
-    snack: [],
-  };
-
-  const mealTotals: Record<Meal, DayTotals> = {
-    breakfast: emptyTotals(),
-    lunch: emptyTotals(),
-    dinner: emptyTotals(),
-    snack: emptyTotals(),
-  };
-
+/**
+ * Entries are filed under their meal's id; one whose meal was deleted goes under
+ * `ORPHAN_MEAL`, so it still counts in the totals and shows in the diary.
+ */
+export function diaryOf(entries: FoodEntry[], meals: readonly MealInfo[] = DEFAULT_MEALS): DayDiary {
+  const byMeal: Record<string, FoodEntry[]> = {};
+  const mealTotals: Record<string, DayTotals> = {};
   let totals = emptyTotals();
 
   for (const entry of entries) {
-    byMeal[entry.meal].push(entry);
-    mealTotals[entry.meal] = add(mealTotals[entry.meal], entry);
+    const key = sectionOf(entry, meals);
+    (byMeal[key] ??= []).push(entry);
+    mealTotals[key] = add(mealTotals[key] ?? emptyTotals(), entry);
     totals = add(totals, entry);
   }
 
@@ -97,6 +96,20 @@ function diaryOf(entries: FoodEntry[]): DayDiary {
 }
 
 const EMPTY_DIARY = diaryOf([]);
+
+const NO_MEALS: MealInfo[] = [...DEFAULT_MEALS];
+
+/** The meals in the order the diary lists them, hidden ones included. */
+export function useMeals(): MealInfo[] {
+  const { data } = useLiveTables(
+    'useMeals',
+    ['meals'],
+    async () => mealsOf(await db.select().from(mealsTable)),
+    []
+  );
+
+  return data ?? NO_MEALS;
+}
 
 /** Days with something logged, for marking the calendar. */
 export function useLoggedDays(): Set<string> {

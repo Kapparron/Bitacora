@@ -6,6 +6,8 @@ type WorkoutNotificationsModule = {
   cancelWorkout(): void;
   showRest(endsAt: number, url: string): void;
   cancelRest(): void;
+  /** A JSON list of reminders, replacing every one planned before. See features/reminders/plan.ts. */
+  scheduleReminders(json: string): void;
 };
 
 /**

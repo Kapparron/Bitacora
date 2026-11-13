@@ -44,6 +44,7 @@
         }
       ],
       "expo-sharing",
+      "./plugins/with-release-signing",
       [
         "expo-audio",
         {

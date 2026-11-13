@@ -48,10 +48,10 @@ const RELEASE = {
   body: '  Notas  ',
   draft: false,
   assets: [
-    { name: 'source.zip', browser_download_url: 'https://example.test/source.zip', size: 10 },
+    { name: 'source.zip', browser_download_url: 'https://github.com/Kapparron/Bitacora/releases/download/v1/source.zip', size: 10 },
     {
       name: 'bitacora-v1.3.0.apk',
-      browser_download_url: 'https://example.test/bitacora.apk',
+      browser_download_url: 'https://github.com/Kapparron/Bitacora/releases/download/v1/bitacora.apk',
       size: 46_595_114,
     },
   ],
@@ -64,7 +64,7 @@ test('the APK is picked out of the release assets', () => {
     version: '1.3.0',
     name: 'Bitacora v1.3.0',
     notes: 'Notas',
-    apkUrl: 'https://example.test/bitacora.apk',
+    apkUrl: 'https://github.com/Kapparron/Bitacora/releases/download/v1/bitacora.apk',
     size: 46_595_114,
   });
 });
@@ -118,7 +118,7 @@ test('la web elige la misma version que la app', async () => {
 
   const apk = (name = 'bitacora.apk') => ({
     name,
-    browser_download_url: `https://example.test/${name}`,
+    browser_download_url: `https://github.com/Kapparron/Bitacora/releases/download/v1/${name}`,
     size: 42,
   });
 
@@ -152,4 +152,22 @@ test('la web elige la misma version que la app', async () => {
   const beta = { tag_name: 'v1.3.0-beta', prerelease: true, assets: [apk()] };
   assert.equal(web.pickLatest([beta])?.version, '1.3.0-beta');
   assert.equal(web.pickLatest([...releases, beta])?.version, '1.2.0');
+});
+
+test('an APK that is not a file of the releases of this repository is not an update', () => {
+  const release = (url: string) => ({
+    tag_name: 'v9.0.0',
+    assets: [{ name: 'bitacora.apk', browser_download_url: url, size: 1 }],
+  });
+
+  assert.equal(parseRelease(release('https://example.test/bitacora.apk')), null);
+  assert.equal(parseRelease(release('http://github.com/Kapparron/Bitacora/releases/download/v9/bitacora.apk')), null);
+  assert.equal(
+    parseRelease(release('https://github.com/Otro/Bitacora/releases/download/v9/bitacora.apk')),
+    null
+  );
+  assert.notEqual(
+    parseRelease(release('https://github.com/Kapparron/Bitacora/releases/download/v9/bitacora.apk')),
+    null
+  );
 });

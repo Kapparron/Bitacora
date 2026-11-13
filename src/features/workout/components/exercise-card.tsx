@@ -22,6 +22,7 @@ import {
 import { useExerciseRecords, useLastPerformance, type WorkoutEntry } from '../queries';
 import { RECORD_LABEL, recordsReachedBy } from '../set-records';
 import { useRestTimer } from '../rest-timer';
+import { ExerciseNote } from './exercise-note';
 import { RecordBubble } from './record-bubble';
 import { RestSheet } from './rest-sheet';
 import { SetRow, SetRowHeader } from './set-row';
@@ -178,6 +179,12 @@ function ExerciseCardComponent({
           onClose={() => setRestSheetOpen(false)}
         />
       ) : null}
+
+      <ExerciseNote
+        workoutExerciseId={entry.workoutExerciseId}
+        notes={entry.notes}
+        editable={editable}
+      />
 
       <SetRowHeader trackingType={entry.exercise.trackingType} />
 

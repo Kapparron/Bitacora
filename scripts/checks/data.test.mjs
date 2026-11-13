@@ -92,3 +92,15 @@ test('la app no vuelve a escribir su propia version', () => {
   assert.equal(pkg.version, undefined);
   assert.equal(pkg.private, true);
 });
+
+/* ------------------------------------------------ la campana del descanso */
+
+test('la notificación del fin del descanso suena con la misma campana que la app', () => {
+  const app = readFileSync(repo('assets/sounds/rest-done.wav'));
+  const notification = readFileSync(
+    repo('modules/workout-notifications/android/src/main/res/raw/rest_done.wav')
+  );
+
+  // Si se separan, `npm run build:sounds` escribe las dos otra vez.
+  assert.ok(app.equals(notification));
+});

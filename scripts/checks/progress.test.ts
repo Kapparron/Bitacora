@@ -5,6 +5,7 @@ import { estimateGoal } from '@/features/nutrition/calorie-goal';
 import { progressFor, tierFor } from '@/features/progress/streak';
 import {
   isRestDay,
+  isShownAsRest,
   parseRestCycle,
   parseRestWeekdays,
   serializeRestCycle,
@@ -121,6 +122,17 @@ test('rest days come from the weekly rule and from the marked ones', () => {
   assert.equal(isRestDay(plan, '2026-09-09'), true, 'un miercoles');
   assert.equal(isRestDay(plan, '2026-09-10'), false);
   assert.equal(isRestDay(plan, '2026-09-12'), true, 'marcado a mano');
+});
+
+test('a planned rest day with a session on it is not shown as rest', () => {
+  const plan = { weekdays: new Set([2]), cycle: null, days: new Set(['2026-09-12']) };
+  const trained = new Set(['2026-09-09', '2026-09-12']);
+
+  assert.equal(isShownAsRest(plan, '2026-09-09', trained), false, 'miercoles entrenado');
+  assert.equal(isShownAsRest(plan, '2026-09-12', trained), false, 'marcado a mano y entrenado');
+  assert.equal(isShownAsRest(plan, '2026-09-16', trained), true, 'otro miercoles sin entreno');
+  assert.equal(isShownAsRest(plan, '2026-09-10', trained), false, 'no era descanso');
+  assert.equal(isRestDay(plan, '2026-09-09'), true, 'la regla no cambia');
 });
 
 test('a rest cycle rests on its start day and every N days after, and replaces the weekdays', () => {

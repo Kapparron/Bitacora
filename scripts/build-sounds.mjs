@@ -1,5 +1,8 @@
 /**
- * Builds `assets/sounds/rest-done.wav`, the bell rung when a rest ends.
+ * Builds `assets/sounds/rest-done.wav`, the bell rung when a rest ends, and
+ * the copy the Android notification rings with the phone locked
+ * (modules/workout-notifications/.../res/raw/rest_done.wav: Android resources
+ * take no hyphens). scripts/checks/data.test.mjs holds the two to the same bytes.
  *
  * The sound is synthesised instead of shipped as a downloaded clip so it stays
  * licence-free and reproducible. A bell is a struck metal body, so it is not a
@@ -15,6 +18,10 @@
 import { writeFileSync } from 'node:fs';
 
 const OUTPUT = new URL('../assets/sounds/rest-done.wav', import.meta.url);
+const NOTIFICATION_OUTPUT = new URL(
+  '../modules/workout-notifications/android/src/main/res/raw/rest_done.wav',
+  import.meta.url
+);
 
 const SAMPLE_RATE = 44100;
 const DURATION_S = 1.2;
@@ -98,5 +105,8 @@ const raw = Array.from({ length: Math.round(SAMPLE_RATE * DURATION_S) }, (_, ind
 const peak = raw.reduce((highest, sample) => Math.max(highest, Math.abs(sample)), 0);
 const samples = raw.map((sample) => (sample / peak) * AMPLITUDE);
 
-writeFileSync(OUTPUT, encodeWav(samples));
-console.log(`Escrito ${OUTPUT.pathname}`);
+const wav = encodeWav(samples);
+for (const output of [OUTPUT, NOTIFICATION_OUTPUT]) {
+  writeFileSync(output, wav);
+  console.log(`Escrito ${output.pathname}`);
+}

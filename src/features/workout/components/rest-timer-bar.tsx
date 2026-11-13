@@ -11,6 +11,13 @@ import { useRestTimer } from '../rest-timer';
 const REST_DONE_SOUND = require('@/assets/sounds/rest-done.wav');
 
 /**
+ * How late the end of a rest may be noticed and still ring. Later than this the
+ * app was in the background when the rest ended: the notification already rang
+ * then, with the phone locked, and ringing again on coming back would be late.
+ */
+const LATE_RING_MS = 3000;
+
+/**
  * Countdown shown while resting between sets. It reads the clock on every tick
  * instead of counting down, so the remaining time stays right after the app has
  * been backgrounded and timers were throttled.
@@ -44,6 +51,7 @@ export function RestTimerBar() {
 
       // Rings once: the bar stays up afterwards so an overrun is visible.
       ringing = false;
+      if (left < -LATE_RING_MS) return;
 
       // The player keeps the position of the previous rest, so rewind before
       // playing or only the first rest of the workout rings.

@@ -6,7 +6,7 @@
 // mientras no exista ninguna acabada. `scripts/checks/updates.test.ts` pasa los
 // mismos casos por los dos lados.
 
-import { RELEASES_API } from './datos.js';
+import { RELEASES, RELEASES_API } from './datos.js';
 
 /** Quita la `v` que llevan las etiquetas y no llevan las versiones. */
 export function normalizeVersion(version) {
@@ -43,7 +43,9 @@ export function toRelease(payload) {
     (asset) =>
       typeof asset?.name === 'string' &&
       asset.name.toLowerCase().endsWith('.apk') &&
-      typeof asset.browser_download_url === 'string'
+      typeof asset.browser_download_url === 'string' &&
+      // Solo un fichero de una release de este repositorio, diga lo que diga la respuesta.
+      asset.browser_download_url.startsWith(`${RELEASES}/download/`)
   );
   if (!apk) return null;
 

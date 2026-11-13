@@ -8,13 +8,17 @@ export const DATABASE_NAME = 'bitacora.db';
 /**
  * `enableChangeListener` is what makes `useLiveTables` re-run on writes, so it
  * must stay on. Foreign keys are off by default in SQLite and the schema relies
- * on `on delete cascade`, hence the pragma.
+ * on `on delete cascade`, hence the first pragma.
  */
 export const sqliteDb = SQLite.openDatabaseSync(DATABASE_NAME, {
   enableChangeListener: true,
 });
 
 sqliteDb.execSync('PRAGMA foreign_keys = ON;');
+// Write-ahead logging: a write appends to a log instead of rewriting pages in
+// place, which is what a session full of one-row writes (a set per keystroke)
+// wants. The mode is stored in the file, so this is a no-op after the first run.
+sqliteDb.execSync('PRAGMA journal_mode = WAL;');
 
 export const db = drizzle(sqliteDb, { schema });
 

@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import {
+  loadDayEvents,
+  loadEventsBetween,
+  loadNote,
+  loadNotes,
+  loadTodayTasks,
+  loadUpcomingEvents,
+} from '@/features/agenda/queries';
 import { getLastPerformance, loadTrainedDays, loadWeeklyVolume } from '@/features/workout/queries';
 
 import { setDatabase } from './database-client';
@@ -118,4 +126,87 @@ test('last time is the latest finished session, with only its completed sets in 
     ]
   );
   assert.deepEqual(await getLastPerformance('own1', 'now'), []);
+});
+
+test('notes come last edited first, and a deleted one is gone', async () => {
+  const db = migratedDatabase();
+  setDatabase(db);
+  db.exec(
+    `insert into notes (id, title, body, updated_at) values
+      ('compra','Compra','- [ ] Leche',2000), ('ideas','Ideas','Pintar el salon',3000),
+      ('vieja','Vieja','',1000)`
+  );
+  db.exec(`update notes set deleted_at = 1 where id = 'vieja'`);
+
+  assert.deepEqual(
+    (await loadNotes()).map((note) => note.id),
+    ['ideas', 'compra']
+  );
+  assert.equal((await loadNote('compra'))?.body, '- [ ] Leche');
+  assert.equal(await loadNote('vieja'), null);
+});
+
+test('upcoming events start today, soonest first, whole-day ones before timed ones', async () => {
+  const db = migratedDatabase();
+  setDatabase(db);
+  db.exec(
+    `insert into events (id, date, time, title) values
+      ('ayer','2026-09-29',null,'Ayer'),
+      ('tarde','2026-09-30','17:30','Dentista'),
+      ('todo','2026-09-30',null,'Cumple'),
+      ('manana','2026-09-30','09:00','Gimnasio'),
+      ('luego','2026-10-02',null,'Cena'),
+      ('borrado','2026-10-01',null,'Borrado')`
+  );
+  db.exec(`update events set deleted_at = 1 where id = 'borrado'`);
+
+  assert.deepEqual(
+    (await loadUpcomingEvents('2026-09-30')).map((event) => event.id),
+    ['todo', 'manana', 'tarde', 'luego']
+  );
+  assert.deepEqual(
+    (await loadDayEvents('2026-09-30')).map((event) => event.id),
+    ['todo', 'manana', 'tarde']
+  );
+  // A week, both ends included: yesterday is in it, the deleted one is not.
+  assert.deepEqual(
+    (await loadEventsBetween('2026-09-28', '2026-10-01')).map((event) => event.id),
+    ['ayer', 'todo', 'manana', 'tarde']
+  );
+});
+
+test("today's tasks: carried ones, then the repeating ones due today, then today's own", async () => {
+  const db = migratedDatabase();
+  setDatabase(db);
+  db.exec(
+    `insert into tasks (id, date, text, done, created_at) values
+      ('hoy','2026-09-30','Comprar pan',0,3000),
+      ('hecha-hoy','2026-09-30','Llamar',1,4000),
+      ('ayer','2026-09-29','Pagar luz',0,2000),
+      ('hecha-ayer','2026-09-29','Recoger',1,1000),
+      ('antes','2026-09-20','Banco',0,500),
+      ('manana','2026-10-01','Mañana',0,100)`
+  );
+  // 2026-09-30 is a Wednesday (2); karate is on Tuesdays and Thursdays (1, 3).
+  db.exec(
+    `insert into tasks (id, date, text, schedule_type, schedule_weekdays, schedule_interval_days, schedule_anchor, created_at) values
+      ('perro','2026-09-01','Sacar al perro','weekdays','[0,1,2,3,4,5,6]',null,null,10),
+      ('karate','2026-09-01','Kárate','weekdays','[1,3]',null,null,20),
+      ('riego','2026-09-28','Regar','interval',null,2,'2026-09-28',30),
+      ('futuro','2026-10-05','Empieza el lunes','weekdays','[2]',null,null,40)`
+  );
+  // Walked today; karate was ticked yesterday, which says nothing about today.
+  db.exec(`insert into task_checks (task_id, date) values ('perro','2026-09-30'), ('karate','2026-09-29')`);
+
+  assert.deepEqual(
+    (await loadTodayTasks('2026-09-30')).map((task) => [task.id, task.repeats, task.doneToday]),
+    [
+      ['antes', false, false],
+      ['ayer', false, false],
+      ['perro', true, true],
+      ['riego', true, false],
+      ['hoy', false, false],
+      ['hecha-hoy', false, true],
+    ]
+  );
 });

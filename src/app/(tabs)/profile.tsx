@@ -15,6 +15,7 @@ import {
 } from '@/features/backup/backup';
 import { GoalCalculator } from '@/features/nutrition/components/goal-calculator';
 import { setGoal } from '@/features/nutrition/mutations';
+import { RemindersCard } from '@/features/reminders/components/reminders-card';
 import { RestWeekdaysCard } from '@/features/rest/components/rest-weekdays-card';
 import { AboutCard } from '@/features/updates/components/about-card';
 import { useGoalFor } from '@/features/nutrition/queries';
@@ -173,6 +174,8 @@ export default function ProfileScreen() {
         <BodyPanel />
 
         <RestWeekdaysCard />
+
+        <RemindersCard />
 
         <View style={[styles.card, { borderColor: theme.border }]}>
           <ThemedText type="small" themeColor="textSecondary">
