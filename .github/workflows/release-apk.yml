@@ -65,6 +65,24 @@ jobs:
           # lo que le falte, que es mas rapido que empezar de cero.
           restore-keys: gradle-${{ runner.os }}-
 
+      # Sin clave propia el APK saldria firmado con la de depuracion, que es
+      # publica: cualquiera podria firmar una "actualizacion" que Android
+      # aceptase. Se comprueba lo primero, antes de gastar minutos compilando.
+      - name: Preparar la clave de firma
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$BITACORA_KEYSTORE_PASSWORD" ] || [ -z "$BITACORA_KEY_ALIAS" ] || [ -z "$BITACORA_KEY_PASSWORD" ]; then
+            echo "::error::Faltan los secretos de firma (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD). Ver docs/DESARROLLO.md."
+            exit 1
+          fi
+
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/bitacora.keystore"
+          echo "BITACORA_KEYSTORE_FILE=$RUNNER_TEMP/bitacora.keystore" >> "$GITHUB_ENV"
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          BITACORA_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BITACORA_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          BITACORA_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
       - name: Instalar dependencias
         run: npm ci
 
@@ -109,9 +127,26 @@ jobs:
             -PreactNativeArchitectures=arm64-v8a \
             -Pandroid.enableMinifyInReleaseBuilds=true
         working-directory: android
+        env:
+          BITACORA_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BITACORA_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          BITACORA_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      # Que el plugin de firma haya hecho su trabajo: un APK con la clave de
+      # depuracion no se publica.
+      - name: Comprobar la firma
+        run: |
+          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+          "$APKSIGNER" verify --print-certs android/app/build/outputs/apk/release/app-release.apk | tee firma.txt
+          if grep -q "CN=Android Debug" firma.txt; then
+            echo "::error::El APK esta firmado con la clave de depuracion."
+            exit 1
+          fi
 
       - name: Renombrar el APK
-        run: mv android/app/build/outputs/apk/release/app-release.apk "bitacora-${{ inputs.version }}.apk"
+        run: mv android/app/build/outputs/apk/release/app-release.apk "bitacora-$VERSION.apk"
+        env:
+          VERSION: ${{ inputs.version }}
 
       # La etiqueta se crea sobre el commit que se acaba de compilar, sea de la
       # rama que sea.

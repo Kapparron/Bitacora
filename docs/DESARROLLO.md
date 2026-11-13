@@ -402,9 +402,39 @@ Requisitos que hay que respetar al tocar esto:
   que no se puede consultar desde la app.
 - Nada de esto funciona en Expo Go: el instalador necesita el APK real.
 
-> **El APK va firmado con la clave de depuración**, que es la que trae la
-> plantilla de Expo. Sirve para instalarlo a mano en tu móvil, pero no vale para
-> Google Play, y si algún día firmas con una clave propia, Android tratará la app
-> como distinta y habrá que desinstalar la anterior. Para una clave real hacen
-> falta un keystore guardado en los secretos del repositorio y un
-> `signingConfig` propio en `android/app/build.gradle`, que hoy no existe.
+### La firma del APK
+
+La plantilla de Expo firma la release con la clave de depuración, que es la
+misma para todo el mundo: cualquiera podría firmar con ella un APK que Android
+aceptase como actualización de Bitácora. Por eso `plugins/with-release-signing.js`
+reescribe `android/app/build.gradle` en cada `prebuild` para firmar con una clave
+propia, y `Publicar APK` se niega a publicar si falta o si el APK sale con la de
+depuración.
+
+La clave se crea una sola vez y **no se guarda en el repositorio**:
+
+```sh
+keytool -genkeypair -v -keystore bitacora.keystore -alias bitacora \
+  -keyalg RSA -keysize 4096 -validity 10000
+base64 -w0 bitacora.keystore   # el valor de ANDROID_KEYSTORE_BASE64
+```
+
+Secretos del repositorio (Settings → Secrets and variables → Actions):
+
+| Secreto | Valor |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | el keystore en base64 |
+| `ANDROID_KEYSTORE_PASSWORD` | contraseña del keystore |
+| `ANDROID_KEY_ALIAS` | `bitacora` |
+| `ANDROID_KEY_PASSWORD` | contraseña de la clave |
+
+Guarda el keystore y las contraseñas fuera del repositorio y con copia: si se
+pierden, no se puede volver a publicar una actualización que Android acepte.
+
+> **El primer APK con la clave nueva no se instala encima del anterior**, que iba
+> con la de depuración: Android los trata como apps distintas. Hay que exportar
+> la copia de seguridad desde Perfil, desinstalar, instalar la nueva y restaurar.
+> Es una sola vez.
+
+En local, sin `BITACORA_KEYSTORE_FILE` en el entorno, la release sigue saliendo
+con la clave de depuración, que basta para probarla en tu móvil.
