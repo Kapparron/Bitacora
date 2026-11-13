@@ -215,6 +215,20 @@ export const foods = sqliteTable(
 );
 
 /**
+ * The meals a day is split into. The four the app started with keep their old
+ * ids (`breakfast`, `lunch`, `dinner`, `snack`), which is what lets every entry
+ * logged before this table existed point at a row without being touched.
+ */
+export const meals = sqliteTable('meals', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  position: integer('position').notNull(),
+  /** Kept out of the diary and the pickers, but not deleted. */
+  hidden: integer('hidden', { mode: 'boolean' }).notNull().default(false),
+  ...auditColumns,
+});
+
+/**
  * A logged food. Macros are frozen at log time on purpose: Open Food Facts is
  * crowd-sourced, and a later correction upstream must not rewrite past days.
  */
@@ -224,7 +238,8 @@ export const foodEntries = sqliteTable(
     id: text('id').primaryKey(),
     /** Local calendar day, `YYYY-MM-DD`. */
     date: text('date').notNull(),
-    meal: text('meal').$type<'breakfast' | 'lunch' | 'dinner' | 'snack'>().notNull(),
+    /** Id of a row in `meals`. Not a foreign key: a meal that went away must not take its entries with it. */
+    meal: text('meal').notNull(),
     foodId: text('food_id').references(() => foods.id, { onDelete: 'set null' }),
     name: text('name').notNull(),
     brand: text('brand'),
@@ -376,6 +391,7 @@ export type Workout = typeof workouts.$inferSelect;
 export type WorkoutSet = typeof sets.$inferSelect;
 export type Food = typeof foods.$inferSelect;
 export type FoodEntry = typeof foodEntries.$inferSelect;
+export type MealRow = typeof meals.$inferSelect;
 export type BodyMetric = typeof bodyMetrics.$inferSelect;
 export type RestDay = typeof restDays.$inferSelect;
 export type Note = typeof notes.$inferSelect;

@@ -64,6 +64,13 @@
       "when": 1790791797133,
       "tag": "0008_remarkable_argent",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794564614010,
+      "tag": "0009_bright_ozymandias",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,8 @@ import { and, asc, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { newId } from '@/db/ids';
-import { foodEntries, foods, nutritionGoals, type Food } from '@/db/schema';
+import { foodEntries, foods, meals, nutritionGoals, type Food } from '@/db/schema';
+import { DEFAULT_MEALS } from './meals';
 import type { OffProduct } from './openfoodfacts';
 import type { Meal } from './queries';
 
@@ -246,4 +247,104 @@ export async function repeatMeal(input: {
   );
 
   return source.length;
+}
+
+/* --------------------------------------------------------------------- meals */
+
+/**
+ * Puts the four starting meals in the table when it has no rows at all, so the
+ * first edit works on real rows. Needed after a backup written before meals
+ * existed, or a wipe, which leave the table empty and the app on its defaults.
+ * Deleted rows count as rows: a user who deleted every meal keeps none.
+ */
+function seedMealsIfEmpty(tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) {
+  if (tx.select({ id: meals.id }).from(meals).limit(1).all().length > 0) return;
+
+  DEFAULT_MEALS.forEach((meal, position) => {
+    tx.insert(meals).values({ id: meal.id, name: meal.name, position }).run();
+  });
+}
+
+function liveMeals(tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) {
+  return tx
+    .select()
+    .from(meals)
+    .where(isNull(meals.deletedAt))
+    .orderBy(asc(meals.position))
+    .all();
+}
+
+export async function createMeal(name: string): Promise<void> {
+  db.transaction((tx) => {
+    seedMealsIfEmpty(tx);
+    const position = liveMeals(tx).length;
+    tx.insert(meals).values({ id: newId(), name, position }).run();
+  });
+}
+
+export async function renameMeal(id: string, name: string): Promise<void> {
+  db.transaction((tx) => {
+    seedMealsIfEmpty(tx);
+    tx.update(meals)
+      .set({ name, ...touch() })
+      .where(eq(meals.id, id))
+      .run();
+  });
+}
+
+export async function setMealHidden(id: string, hidden: boolean): Promise<void> {
+  db.transaction((tx) => {
+    seedMealsIfEmpty(tx);
+    tx.update(meals)
+      .set({ hidden, ...touch() })
+      .where(eq(meals.id, id))
+      .run();
+  });
+}
+
+/** Rewrites the positions to 0..n-1 in the order given. */
+export async function reorderMeals(orderedIds: readonly string[]): Promise<void> {
+  db.transaction((tx) => {
+    seedMealsIfEmpty(tx);
+    orderedIds.forEach((id, position) => {
+      tx.update(meals)
+        .set({ position, ...touch() })
+        .where(eq(meals.id, id))
+        .run();
+    });
+  });
+}
+
+export type RemoveMealResult = 'deleted' | 'hidden';
+
+/**
+ * Takes a meal out. One with food logged in it is only hidden: deleting it would
+ * leave those entries under a name that no longer exists. They stay in the
+ * totals and in the days they were logged, which still show the meal.
+ */
+export async function removeMeal(id: string): Promise<RemoveMealResult> {
+  return db.transaction((tx) => {
+    seedMealsIfEmpty(tx);
+
+    const used = tx
+      .select({ id: foodEntries.id })
+      .from(foodEntries)
+      .where(and(eq(foodEntries.meal, id), isNull(foodEntries.deletedAt)))
+      .limit(1)
+      .all();
+
+    if (used.length > 0) {
+      tx.update(meals)
+        .set({ hidden: true, ...touch() })
+        .where(eq(meals.id, id))
+        .run();
+      return 'hidden';
+    }
+
+    tx.update(meals)
+      .set({ deletedAt: Date.now(), ...touch() })
+      .where(eq(meals.id, id))
+      .run();
+    return 'deleted';
+  });
 }

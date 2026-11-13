@@ -10,6 +10,7 @@ import m0005 from './0005_ancient_domino.sql';
 import m0006 from './0006_medical_supernaut.sql';
 import m0007 from './0007_nasty_owl.sql';
 import m0008 from './0008_remarkable_argent.sql';
+import m0009 from './0009_bright_ozymandias.sql';
 
   export default {
     journal,
@@ -22,7 +23,8 @@ m0004,
 m0005,
 m0006,
 m0007,
-m0008
+m0008,
+m0009
     }
   }
   

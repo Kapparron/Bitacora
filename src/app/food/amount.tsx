@@ -6,7 +6,7 @@ import { Button } from '@/components/button';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { logFood, moveEntry, toggleFavorite, updateEntryAmount } from '@/features/nutrition/mutations';
-import { MEALS, useFood, useFoodEntry, type Meal } from '@/features/nutrition/queries';
+import { useFood, useFoodEntry, useMeals, type Meal } from '@/features/nutrition/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatNumber } from '@/lib/format';
 
@@ -39,6 +39,9 @@ export default function AmountScreen() {
 
   const [grams, setGrams] = useState('100');
   const [meal, setMeal] = useState<Meal>(initialMeal);
+  const allMeals = useMeals();
+  // The hidden ones are not offered, except the one this entry already sits in.
+  const mealOptions = allMeals.filter((option) => !option.hidden || option.id === meal);
 
   useEffect(() => {
     if (!entry) return;
@@ -146,13 +149,13 @@ export default function AmountScreen() {
           </ThemedText>
 
           <View style={styles.meals}>
-            {MEALS.map((option) => {
-              const active = option.value === meal;
+            {mealOptions.map((option) => {
+              const active = option.id === meal;
 
               return (
                 <Pressable
-                  key={option.value}
-                  onPress={() => setMeal(option.value)}
+                  key={option.id}
+                  onPress={() => setMeal(option.id)}
                   style={({ pressed }) => [
                     styles.mealChip,
                     { backgroundColor: active ? theme.accent : theme.backgroundElement },
@@ -161,7 +164,7 @@ export default function AmountScreen() {
                   <ThemedText
                     type="small"
                     style={{ color: active ? theme.onAccent : theme.text, fontWeight: '600' }}>
-                    {option.label}
+                    {option.name}
                   </ThemedText>
                 </Pressable>
               );

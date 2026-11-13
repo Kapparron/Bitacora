@@ -20,6 +20,17 @@ test('every migration applies in order', () => {
   for (const table of BACKUP_TABLES) assert.ok(tables.includes(table), `falta ${table}`);
 });
 
+test('the migration leaves the four starting meals under the ids entries already use', () => {
+  const db = migratedDatabase();
+  const meals = db.prepare('select id, name from meals order by position').all();
+
+  assert.deepEqual(
+    meals.map((meal) => meal.id),
+    ['breakfast', 'lunch', 'dinner', 'snack']
+  );
+  assert.equal(meals[0].name, 'Desayuno');
+});
+
 test('a backup restores every table, foreign keys included', () => {
   const db = migratedDatabase();
   seedOneOfEach(db);
