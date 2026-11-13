@@ -39,6 +39,16 @@ export function isRestDay(plan: RestPlan, day: string): boolean {
 }
 
 /**
+ * Whether the calendar shows `day` as a rest day: the plan says so and nothing
+ * was trained on it. A day planned as rest but trained reads as trained, so the
+ * calendar never says both things at once. The plan itself is left alone: the
+ * rule, the cycle and the days marked by hand stay as they were.
+ */
+export function isShownAsRest(plan: RestPlan, day: string, trained: ReadonlySet<string>): boolean {
+  return !trained.has(day) && isRestDay(plan, day);
+}
+
+/**
  * Rest days in a row that a streak survives. Two in a row is a break: one day
  * off is part of training, two is a stop.
  */

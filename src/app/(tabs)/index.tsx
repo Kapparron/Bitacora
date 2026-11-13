@@ -13,7 +13,7 @@ import { MonthCalendar } from '@/features/calendar/month-calendar';
 import { MacroSummary } from '@/features/nutrition/components/macro-summary';
 import { setRestDay } from '@/features/rest/mutations';
 import { useRestPlan } from '@/features/rest/queries';
-import { isRestDay } from '@/features/rest/rest';
+import { isRestDay, isShownAsRest } from '@/features/rest/rest';
 import { StatsCard } from '@/features/progress/stats-card';
 import { useDailyKcal, useDayDiary, useGoalFor } from '@/features/nutrition/queries';
 import { useRoutines, type RoutineSummary } from '@/features/routines/queries';
@@ -72,18 +72,21 @@ export default function WorkoutScreen() {
   /** Days the calendar marks as trained. */
   const markedDays = useMemo(() => new Set(trainedByDay.keys()), [trainedByDay]);
 
-  /** Rest days of the shown month, from the weekly rule plus the marked ones. */
+  /**
+   * Rest days of the shown month, from the weekly rule plus the marked ones. A
+   * day with a session on it is not shown as rest, even if the plan said so.
+   */
   const restDaysOfMonth = useMemo(() => {
     const days = new Set<string>();
     const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
 
     for (let day = 1; day <= daysInMonth; day += 1) {
       const iso = toIsoDay(new Date(month.getFullYear(), month.getMonth(), day));
-      if (isRestDay(rest, iso)) days.add(iso);
+      if (isShownAsRest(rest, iso, markedDays)) days.add(iso);
     }
 
     return days;
-  }, [rest, month]);
+  }, [rest, month, markedDays]);
   const loggedDays = useMemo(() => new Set(kcalByDay.keys()), [kcalByDay]);
 
   /**
