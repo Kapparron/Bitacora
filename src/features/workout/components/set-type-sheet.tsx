@@ -34,7 +34,13 @@ const DELETE_OPTION: SheetOption<'delete'> = {
   description: 'Quitarla del entreno',
 };
 
-const SET_ACTIONS: SheetOption<SetType | 'delete'>[] = [...SET_TYPES, DELETE_OPTION];
+/** Drop sets and 3/7 series are added from the menu next to "Anadir serie". */
+const ADDED_FROM_MENU: SetType[] = ['drop', 'three_seven'];
+
+const SET_ACTIONS: SheetOption<SetType | 'delete'>[] = [
+  ...SET_TYPES.filter((option) => !ADDED_FROM_MENU.includes(option.value)),
+  DELETE_OPTION,
+];
 
 /** Render this only while it is open; see the note in OptionSheet. */
 export function SetTypeSheet({
