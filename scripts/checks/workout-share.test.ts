@@ -34,6 +34,7 @@ function set(fields: Partial<WorkoutSet>): WorkoutSet {
     rpe: null,
     distanceM: null,
     durationS: null,
+    restSeconds: null,
     completed: true,
     createdAt: 0,
     updatedAt: 0,

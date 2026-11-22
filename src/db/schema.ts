@@ -155,6 +155,8 @@ export const sets = sqliteTable(
     rpe: real('rpe'),
     distanceM: real('distance_m'),
     durationS: integer('duration_s'),
+    /** Rest after this set; when null the exercise's own rest applies. */
+    restSeconds: integer('rest_seconds'),
     completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
     ...auditColumns,
   },

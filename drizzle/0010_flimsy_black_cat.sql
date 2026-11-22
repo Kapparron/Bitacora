@@ -1,0 +1,1 @@
+ALTER TABLE `sets` ADD `rest_seconds` integer;

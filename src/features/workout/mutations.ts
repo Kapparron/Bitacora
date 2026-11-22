@@ -12,6 +12,7 @@ import {
   type WorkoutSet,
 } from '@/db/schema';
 import { updatePersonalRecords } from './records';
+import { dropWeight, THREE_SEVEN_REPS, THREE_SEVEN_RESTS } from './rest-after';
 
 const touch = () => ({ updatedAt: Date.now() });
 
@@ -107,10 +108,43 @@ export async function addSet(workoutExerciseId: string): Promise<void> {
     // Copia el tipo de la anterior, salvo el calentamiento: despues de
     // calentar viene una serie de trabajo.
     type: last && countsForVolume(last.type) ? last.type : 'normal',
-    weight: last?.weight ?? null,
+    // After a drop the next one goes lighter still.
+    weight:
+      last?.type === 'drop' && last.weight !== null ? dropWeight(last.weight) : (last?.weight ?? null),
     reps: last?.reps ?? null,
     durationS: last?.durationS ?? null,
     distanceM: last?.distanceM ?? null,
+  });
+}
+
+/**
+ * One 3/7 series is five normal sets of 3 to 7 reps. Each carries its own rest,
+ * so the short pauses and the long one do not depend on the exercise's rest.
+ */
+export async function addThreeSevenSeries(workoutExerciseId: string): Promise<void> {
+  const [last] = await db
+    .select()
+    .from(sets)
+    .where(eq(sets.workoutExerciseId, workoutExerciseId))
+    .orderBy(desc(sets.position))
+    .limit(1);
+
+  const start = (last?.position ?? -1) + 1;
+
+  db.transaction((tx) => {
+    THREE_SEVEN_REPS.forEach((reps, index) => {
+      tx.insert(sets)
+        .values({
+          id: newId(),
+          workoutExerciseId,
+          position: start + index,
+          type: 'normal',
+          weight: last?.weight ?? null,
+          reps,
+          restSeconds: THREE_SEVEN_RESTS[index],
+        })
+        .run();
+    });
   });
 }
 

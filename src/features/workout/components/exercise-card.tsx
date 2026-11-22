@@ -12,6 +12,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatRest } from '@/lib/format';
 import {
   addSet,
+  addThreeSevenSeries,
   completeSet,
   deleteSet,
   removeWorkoutExercise,
@@ -21,6 +22,7 @@ import {
 } from '../mutations';
 import { useExerciseRecords, useLastPerformance, type WorkoutEntry } from '../queries';
 import { RECORD_LABEL, recordsReachedBy } from '../set-records';
+import { restAfter } from '../rest-after';
 import { useRestTimer } from '../rest-timer';
 import { ExerciseNote } from './exercise-note';
 import { RecordBubble } from './record-bubble';
@@ -60,6 +62,7 @@ function ExerciseCardComponent({
   }, []);
 
   const restSeconds = entry.restSeconds;
+  const sets = entry.sets;
 
   const handleToggleCompleted = useCallback(
     (set: WorkoutSet, previous: WorkoutSet | null) => {
@@ -74,14 +77,14 @@ function ExerciseCardComponent({
       // not, so the rest only starts on the transition into "done".
       if (set.completed) return;
 
-      if (restSeconds) startRest(restSeconds);
+      startRest(restAfter(sets, sets.findIndex((other) => other.id === set.id), restSeconds));
 
       // The set is about to count, so it is measured as completed. Only the
       // first record reached is announced: two bubbles at once read as noise.
       const reached = recordsReachedBy({ ...set, completed: true }, records);
       if (reached.length > 0) setBubble(`Record de ${RECORD_LABEL[reached[0]].toLowerCase()}`);
     },
-    [restSeconds, startRest, records]
+    [sets, restSeconds, startRest, records]
   );
 
   const handleChangeType = useCallback((setId: string, type: SetType) => {
@@ -207,12 +210,20 @@ function ExerciseCardComponent({
       ))}
 
       {editable ? (
-        <Button
-          title="Anadir serie"
-          variant="secondary"
-          style={styles.addSet}
-          onPress={() => void addSet(entry.workoutExerciseId)}
-        />
+        <View style={styles.addRow}>
+          <Button
+            title="Anadir serie"
+            variant="secondary"
+            style={styles.addSet}
+            onPress={() => void addSet(entry.workoutExerciseId)}
+          />
+          <Button
+            title="Serie 3/7"
+            variant="secondary"
+            style={styles.addSet}
+            onPress={() => void addThreeSevenSeries(entry.workoutExerciseId)}
+          />
+        </View>
       ) : null}
     </View>
   );
@@ -243,6 +254,7 @@ export const ExerciseCard = memo(ExerciseCardComponent, (before, after) => {
     return (
       set.id === other.id &&
       set.type === other.type &&
+      set.restSeconds === other.restSeconds &&
       set.completed === other.completed &&
       set.weight === other.weight &&
       set.reps === other.reps &&
@@ -267,5 +279,6 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   headerText: { flex: 1, gap: 2 },
   title: { fontWeight: '700' },
-  addSet: { marginHorizontal: 12, marginTop: 8, paddingVertical: 10 },
+  addRow: { flexDirection: 'row', gap: 8, marginHorizontal: 12, marginTop: 8 },
+  addSet: { flex: 1, paddingVertical: 10 },
 });
