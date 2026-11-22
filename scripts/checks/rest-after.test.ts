@@ -80,3 +80,14 @@ test('drops and 3/7 sets take no number, so the next set continues the count', a
     ['1', 'D', '2', 'D', '3/7', '3']
   );
 });
+
+import { closesSuperset } from '@/features/workout/rest-after';
+
+test('only the last exercise of a superset starts the rest', () => {
+  const groups = [null, 1, 1, null, 2, 2, 2];
+
+  assert.deepEqual(
+    groups.map((_, index) => closesSuperset(groups, index)),
+    [true, false, true, true, false, false, true]
+  );
+});

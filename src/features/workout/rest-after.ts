@@ -29,3 +29,15 @@ export function restAfter(
 export function dropWeight(weight: number): number {
   return Math.round(weight * DROP_FACTOR * 2) / 2;
 }
+
+/**
+ * Whether the exercise at `index` closes its superset, which is when the rest
+ * starts: the ones before it in the group are followed straight by the next
+ * exercise. An exercise that is in no superset closes itself.
+ */
+export function closesSuperset(groups: readonly (number | null)[], index: number): boolean {
+  const group = groups[index];
+  if (group === null) return true;
+
+  return !groups.slice(index + 1).includes(group);
+}

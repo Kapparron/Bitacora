@@ -12,6 +12,7 @@ import { ReorderSheet } from '@/features/exercises/components/reorder-sheet';
 import { BodyMap, useBodyLoad } from '@/features/workout/components/body-map';
 import { ExerciseCard } from '@/features/workout/components/exercise-card';
 import { RestTimerBar } from '@/features/workout/components/rest-timer-bar';
+import { closesSuperset } from '@/features/workout/rest-after';
 import { discardWorkout, finishWorkout, reorderWorkoutExercises } from '@/features/workout/mutations';
 import { useActiveWorkout } from '@/features/workout/queries';
 import { useRestTimer } from '@/features/workout/rest-timer';
@@ -124,12 +125,14 @@ export default function ActiveWorkoutScreen() {
           <BodyMap load={body} scale={BODY_SCALE} />
         </View>
 
-        {entries.map((entry) => (
+        {entries.map((entry, index) => (
           <ExerciseCard
             key={entry.workoutExerciseId}
             entry={entry}
             workoutId={workout.id}
             editable
+            closesGroup={closesSuperset(entries.map((other) => other.supersetGroup), index)}
+            canLink={index < entries.length - 1}
             onReorder={entries.length > 1 ? openReorder : undefined}
           />
         ))}

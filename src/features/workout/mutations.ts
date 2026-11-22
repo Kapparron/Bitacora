@@ -510,3 +510,70 @@ export async function rescheduleWorkout(workoutId: string, startedAt: number): P
     .set({ startedAt, finishedAt, ...touch() })
     .where(eq(workouts.id, workoutId));
 }
+
+/** Puts an exercise and the one after it in a superset, joining a group that exists. */
+export async function linkWorkoutWithNext(workoutExerciseId: string): Promise<void> {
+  const [target] = await db
+    .select()
+    .from(workoutExercises)
+    .where(eq(workoutExercises.id, workoutExerciseId));
+  if (!target) return;
+
+  const [next] = await db
+    .select()
+    .from(workoutExercises)
+    .where(
+      and(
+        eq(workoutExercises.workoutId, target.workoutId),
+        eq(workoutExercises.position, target.position + 1)
+      )
+    );
+  if (!next) return;
+
+  const [{ value } = { value: null }] = await db
+    .select({ value: max(workoutExercises.supersetGroup) })
+    .from(workoutExercises)
+    .where(eq(workoutExercises.workoutId, target.workoutId));
+
+  const group = target.supersetGroup ?? next.supersetGroup ?? (value ?? 0) + 1;
+
+  db.transaction((tx) => {
+    for (const id of [target.id, next.id]) {
+      tx.update(workoutExercises)
+        .set({ supersetGroup: group, updatedAt: Date.now() })
+        .where(eq(workoutExercises.id, id))
+        .run();
+    }
+  });
+}
+
+/** Takes an exercise out of its superset; a group left with one exercise is dissolved. */
+export async function unlinkWorkoutSuperset(workoutExerciseId: string): Promise<void> {
+  const [target] = await db
+    .select()
+    .from(workoutExercises)
+    .where(eq(workoutExercises.id, workoutExerciseId));
+  if (!target?.supersetGroup) return;
+
+  await db
+    .update(workoutExercises)
+    .set({ supersetGroup: null, ...touch() })
+    .where(eq(workoutExercises.id, workoutExerciseId));
+
+  const remaining = await db
+    .select({ id: workoutExercises.id })
+    .from(workoutExercises)
+    .where(
+      and(
+        eq(workoutExercises.workoutId, target.workoutId),
+        eq(workoutExercises.supersetGroup, target.supersetGroup)
+      )
+    );
+
+  if (remaining.length === 1) {
+    await db
+      .update(workoutExercises)
+      .set({ supersetGroup: null, ...touch() })
+      .where(eq(workoutExercises.id, remaining[0].id));
+  }
+}

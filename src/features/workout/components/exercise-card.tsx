@@ -16,6 +16,8 @@ import {
   addSet,
   addThreeSevenSeries,
   completeSet,
+  linkWorkoutWithNext,
+  unlinkWorkoutSuperset,
   deleteSet,
   removeWorkoutExercise,
   updateSet,
@@ -43,12 +45,18 @@ function ExerciseCardComponent({
   workoutId,
   editable,
   onReorder,
+  closesGroup,
+  canLink,
 }: {
   entry: WorkoutEntry;
   workoutId: string;
   editable: boolean;
   /** Opens the reorder sheet. Left out when there is nothing to reorder. */
   onReorder?: () => void;
+  /** False while this exercise is followed, in its superset, by another. */
+  closesGroup: boolean;
+  /** There is an exercise after this one to join. */
+  canLink: boolean;
 }) {
   const theme = useTheme();
   const router = useRouter();
@@ -86,14 +94,15 @@ function ExerciseCardComponent({
       // not, so the rest only starts on the transition into "done".
       if (set.completed) return;
 
-      startRest(restAfter(sets, sets.findIndex((other) => other.id === set.id), restSeconds));
+      // Inside a superset the next exercise follows straight away.
+      if (closesGroup) startRest(restAfter(sets, sets.findIndex((other) => other.id === set.id), restSeconds));
 
       // The set is about to count, so it is measured as completed. Only the
       // first record reached is announced: two bubbles at once read as noise.
       const reached = recordsReachedBy({ ...set, completed: true }, records);
       if (reached.length > 0) setBubble(`Record de ${RECORD_LABEL[reached[0]].toLowerCase()}`);
     },
-    [sets, restSeconds, startRest, records]
+    [sets, restSeconds, startRest, records, closesGroup]
   );
 
   const handleChangeType = useCallback((setId: string, type: SetType) => {
@@ -121,6 +130,8 @@ function ExerciseCardComponent({
         { backgroundColor: theme.background, borderColor: theme.border },
         // A superset is drawn as one block: its members share an accent edge.
         entry.supersetGroup !== null && { borderLeftWidth: 3, borderLeftColor: theme.accent },
+        // Members of a superset sit close together, as one block.
+        entry.supersetGroup !== null && !closesGroup && styles.inGroup,
       ]}>
       {entry.supersetGroup !== null ? (
         <ThemedText type="smallBold" style={[styles.superset, { color: theme.accentText }]}>
@@ -159,6 +170,25 @@ function ExerciseCardComponent({
               accessibilityLabel="Cambiar ejercicio">
               <Ionicons name="swap-horizontal" size={20} color={theme.textSecondary} />
             </Pressable>
+
+            {entry.supersetGroup !== null || canLink ? (
+              <Pressable
+                onPress={() =>
+                  void (entry.supersetGroup !== null
+                    ? unlinkWorkoutSuperset(entry.workoutExerciseId)
+                    : linkWorkoutWithNext(entry.workoutExerciseId))
+                }
+                hitSlop={8}
+                accessibilityLabel={
+                  entry.supersetGroup !== null ? 'Separar de la superserie' : 'Unir con el siguiente'
+                }>
+                <Ionicons
+                  name={entry.supersetGroup !== null ? 'unlink' : 'link'}
+                  size={20}
+                  color={entry.supersetGroup !== null ? theme.accentText : theme.textSecondary}
+                />
+              </Pressable>
+            ) : null}
 
             <Pressable
               onPress={() => void confirmRemove()}
@@ -283,6 +313,8 @@ export const ExerciseCard = memo(ExerciseCardComponent, (before, after) => {
     before.workoutId !== after.workoutId ||
     before.editable !== after.editable ||
     before.onReorder !== after.onReorder ||
+    before.closesGroup !== after.closesGroup ||
+    before.canLink !== after.canLink ||
     before.entry.workoutExerciseId !== after.entry.workoutExerciseId ||
     before.entry.exercise.id !== after.entry.exercise.id ||
     before.entry.notes !== after.entry.notes ||
@@ -318,6 +350,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 4,
   },
+  inGroup: { marginBottom: 4 },
   superset: { paddingHorizontal: 12, paddingBottom: 2 },
   rest: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingTop: 6 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 12 },
