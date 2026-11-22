@@ -94,6 +94,8 @@ export const routineExercises = sqliteTable(
     targetSets: integer('target_sets'),
     /** Free text so ranges like "8-12" or "AMRAP" survive. */
     targetReps: text('target_reps'),
+    /** Drops and 3/7 series planned after the normal sets, e.g. "drop,drop,three_seven". */
+    extraSets: text('extra_sets'),
     restSeconds: integer('rest_seconds'),
     notes: text('notes'),
     ...auditColumns,

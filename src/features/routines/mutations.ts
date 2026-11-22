@@ -4,6 +4,7 @@ import { db } from '@/db/client';
 import { newId } from '@/db/ids';
 import { exercises, routineExercises, routines } from '@/db/schema';
 
+import { extraOfCode, formatExtras } from './extras';
 import type { SharedRoutine } from './share';
 
 const touch = () => ({ updatedAt: Date.now() });
@@ -78,6 +79,7 @@ export async function updateRoutineExercise(
   patch: Partial<{
     targetSets: number | null;
     targetReps: string | null;
+    extraSets: string | null;
     restSeconds: number | null;
     notes: string | null;
   }>
@@ -295,6 +297,7 @@ export async function importRoutine(shared: SharedRoutine): Promise<ImportResult
           supersetGroup: entry.g,
           targetSets: entry.s,
           targetReps: entry.r,
+          extraSets: formatExtras(entry.x.flatMap((code) => extraOfCode(code) ?? [])),
           restSeconds: entry.d,
           notes: entry.o,
         })

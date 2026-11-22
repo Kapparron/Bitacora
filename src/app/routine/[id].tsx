@@ -9,6 +9,8 @@ import { OptionSheet, type SheetOption } from '@/components/option-sheet';
 import { ScreenHeader } from '@/components/screen-header';
 import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
+import { badgeOf } from '@/constants/sets';
+import { MAX_EXTRAS, formatExtras, type RoutineExtra } from '@/features/routines/extras';
 import { ExerciseThumbnail } from '@/features/exercises/components/exercise-thumbnail';
 import { ReorderSheet } from '@/features/exercises/components/reorder-sheet';
 import {
@@ -27,6 +29,11 @@ import { startWorkoutFromRoutine } from '@/features/workout/mutations';
 import { useActiveWorkout } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatRest } from '@/lib/format';
+
+const EXTRA_OPTIONS: SheetOption<RoutineExtra | null>[] = [
+  { value: 'drop', label: 'Drop set', badge: 'D', description: 'Un quinto mas ligero, sin descanso' },
+  { value: 'three_seven', label: 'Serie 3/7', badge: '3/7', description: 'De 3 a 7 reps con descansos cortos' },
+];
 
 const SET_COUNT_OPTIONS: SheetOption<number>[] = [1, 2, 3, 4, 5, 6, 8, 10].map((value) => ({
   value,
@@ -199,7 +206,7 @@ function RoutineExerciseCard({
 }) {
   const theme = useTheme();
   const confirm = useConfirm();
-  const [sheet, setSheet] = useState<'sets' | 'rest' | null>(null);
+  const [sheet, setSheet] = useState<'sets' | 'rest' | 'extra' | null>(null);
   const [reps, setReps] = useState(entry.targetReps ?? '');
 
   async function remove() {
@@ -286,6 +293,33 @@ function RoutineExerciseCard({
         </Pressable>
       </View>
 
+      <View style={styles.extras}>
+        {entry.extras.map((extra, index) => (
+          <Pressable
+            key={`${extra}-${index}`}
+            onPress={() =>
+              void updateRoutineExercise(entry.routineExerciseId, {
+                extraSets: formatExtras(entry.extras.filter((_, other) => other !== index)),
+              })
+            }
+            accessibilityLabel={`Quitar ${extra === 'drop' ? 'drop set' : 'serie 3/7'}`}
+            style={[styles.extraChip, { backgroundColor: theme.backgroundElement }]}>
+            <ThemedText type="smallBold" style={{ color: theme.accentText }}>
+              {badgeOf(extra)}
+            </ThemedText>
+            <Ionicons name="close" size={12} color={theme.textSecondary} />
+          </Pressable>
+        ))}
+
+        <Pressable
+          onPress={() => setSheet('extra')}
+          accessibilityLabel="Anadir drop set o serie 3/7"
+          style={[styles.extraChip, { backgroundColor: theme.backgroundElement }]}>
+          <Ionicons name="add" size={14} color={theme.text} />
+          <ThemedText type="small">Extra</ThemedText>
+        </Pressable>
+      </View>
+
       <View style={styles.tools}>
         {entry.supersetGroup === null ? (
           <Tool
@@ -302,6 +336,22 @@ function RoutineExerciseCard({
           />
         )}
       </View>
+
+      {sheet === 'extra' ? (
+        <OptionSheet<RoutineExtra | null>
+          title="Anadir despues de las series"
+          options={EXTRA_OPTIONS}
+          current={null}
+          onSelect={(extra) => {
+            setSheet(null);
+            if (extra === null || entry.extras.length >= MAX_EXTRAS) return;
+            void updateRoutineExercise(entry.routineExerciseId, {
+              extraSets: formatExtras([...entry.extras, extra]),
+            });
+          }}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
 
       {sheet === 'sets' ? (
         <OptionSheet
@@ -388,6 +438,15 @@ const styles = StyleSheet.create({
   fields: { flexDirection: 'row', gap: 8, paddingHorizontal: 12 },
   field: { flex: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, gap: 2 },
   repsInput: { fontSize: 16, fontWeight: '500', padding: 0 },
+  extras: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 12 },
+  extraChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
   tools: { flexDirection: 'row', gap: 8, paddingHorizontal: 12 },
   tool: { width: 40, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   actions: { paddingHorizontal: 12, gap: 8 },

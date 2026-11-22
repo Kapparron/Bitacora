@@ -13,6 +13,7 @@ import {
   isText,
 } from '@/lib/link';
 
+import { MAX_EXTRAS, codeOfExtra, extraOfCode } from './extras';
 import type { RoutineContents } from './queries';
 
 /**
@@ -42,6 +43,8 @@ export type SharedEntry = {
   s: number | null;
   /** Target reps, free text such as "8-12". */
   r: string | null;
+  /** Extras planned after the normal sets, as set-type codes (`d`, `t`). */
+  x: string[];
   /** Rest in seconds. */
   d: number | null;
   /** Superset group. */
@@ -72,6 +75,7 @@ export function toSharedRoutine({ routine, entries }: RoutineContents): SharedRo
       e: toSharedExercise(entry.exercise),
       s: entry.targetSets,
       r: entry.targetReps,
+      x: entry.extras.map(codeOfExtra),
       d: entry.restSeconds,
       g: entry.supersetGroup,
       o: entry.notes,
@@ -119,10 +123,15 @@ function parseEntry(raw: unknown): SharedEntry | null {
   if (!isOptionalInt(raw.g, 1, MAX_ENTRIES)) return null;
   if (!isOptionalText(raw.r) || !isOptionalText(raw.o)) return null;
 
+  const x = raw.x ?? [];
+  if (!Array.isArray(x) || x.length > MAX_EXTRAS) return null;
+  if (!x.every((code) => typeof code === 'string' && extraOfCode(code) !== null)) return null;
+
   return {
     e,
     s: raw.s ?? null,
     r: raw.r ?? null,
+    x: x as string[],
     d: raw.d ?? null,
     g: raw.g ?? null,
     o: raw.o ?? null,

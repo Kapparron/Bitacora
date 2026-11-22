@@ -19,11 +19,12 @@ const ROUTINE: SharedRoutine = {
   n: 'Pierna ñ',
   o: null,
   e: [
-    { e: { x: '0043' }, s: 4, r: '8-12', d: 120, g: null, o: 'Bajar lento' },
+    { e: { x: '0043' }, s: 4, r: '8-12', x: ['d', 't'], d: 120, g: null, o: 'Bajar lento' },
     {
       e: { n: 'Sentadilla búlgara', m: 'piernas', q: 'mancuernas', t: 'weight_reps' },
       s: 3,
       r: null,
+      x: [],
       d: 90,
       g: 1,
       o: null,
@@ -71,6 +72,7 @@ test('a long routine still fits in a QR code', () => {
         : { x: String(1000 + index) },
       s: 4,
       r: '8-12',
+      x: [],
       d: 90,
       g: null,
       o: null,
