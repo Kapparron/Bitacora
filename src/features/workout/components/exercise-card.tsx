@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { useConfirm } from '@/components/confirm-dialog';
+import { OptionSheet, type SheetOption } from '@/components/option-sheet';
 import { ThemedText } from '@/components/themed-text';
 import type { WorkoutSet } from '@/db/schema';
 import { ExerciseThumbnail } from '@/features/exercises/components/exercise-thumbnail';
@@ -32,6 +33,11 @@ import { RestSheet } from './rest-sheet';
 import { SetRow, SetRowHeader } from './set-row';
 import { badgeFor, type SetType } from './set-type-sheet';
 
+const ADD_OPTIONS: SheetOption<'drop' | 'three_seven' | null>[] = [
+  { value: 'drop', label: 'Drop set', badge: 'D', description: 'Un quinto mas ligero, sin descanso' },
+  { value: 'three_seven', label: 'Serie 3/7', badge: '3/7', description: 'De 3 a 7 reps con descansos cortos' },
+];
+
 function ExerciseCardComponent({
   entry,
   workoutId,
@@ -49,6 +55,7 @@ function ExerciseCardComponent({
   const confirm = useConfirm();
   const startRest = useRestTimer((state) => state.start);
   const [restSheetOpen, setRestSheetOpen] = useState(false);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
   /** What the bubble is announcing, or null while there is nothing to say. */
   const [bubble, setBubble] = useState<string | null>(null);
 
@@ -185,6 +192,20 @@ function ExerciseCardComponent({
         />
       ) : null}
 
+      {addSheetOpen ? (
+        <OptionSheet<'drop' | 'three_seven' | null>
+          title="Anadir"
+          options={ADD_OPTIONS}
+          current={null}
+          onSelect={(kind) => {
+            setAddSheetOpen(false);
+            if (kind === 'drop') void addDropSet(entry.workoutExerciseId);
+            if (kind === 'three_seven') void addThreeSevenSeries(entry.workoutExerciseId);
+          }}
+          onClose={() => setAddSheetOpen(false)}
+        />
+      ) : null}
+
       <ExerciseNote
         workoutExerciseId={entry.workoutExerciseId}
         notes={entry.notes}
@@ -237,18 +258,16 @@ function ExerciseCardComponent({
             style={styles.addSet}
             onPress={() => void addSet(entry.workoutExerciseId)}
           />
-          <Button
-            title="+ Drop"
-            variant="secondary"
-            style={styles.addSet}
-            onPress={() => void addDropSet(entry.workoutExerciseId)}
-          />
-          <Button
-            title="Serie 3/7"
-            variant="secondary"
-            style={styles.addSet}
-            onPress={() => void addThreeSevenSeries(entry.workoutExerciseId)}
-          />
+          <Pressable
+            onPress={() => setAddSheetOpen(true)}
+            accessibilityLabel="Anadir drop set o serie 3/7"
+            style={({ pressed }) => [
+              styles.addMore,
+              { backgroundColor: theme.backgroundElement },
+              pressed && { opacity: 0.6 },
+            ]}>
+            <Ionicons name="chevron-up" size={20} color={theme.text} />
+          </Pressable>
         </View>
       ) : null}
     </View>
@@ -308,4 +327,5 @@ const styles = StyleSheet.create({
   chain: { marginLeft: 8, borderLeftWidth: 3, borderRadius: 2 },
   addRow: { flexDirection: 'row', gap: 8, marginHorizontal: 12, marginTop: 8 },
   addSet: { flex: 1, paddingVertical: 10 },
+  addMore: { width: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });
