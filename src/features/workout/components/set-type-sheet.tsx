@@ -1,5 +1,6 @@
 import { OptionSheet, type SheetOption } from '@/components/option-sheet';
-import { SET_TYPES as SET_TYPE_DATA, badgeOf, countsForVolume, type SetType } from '@/constants/sets';
+import { SET_TYPES as SET_TYPE_DATA, type SetType } from '@/constants/sets';
+import { badgeFor } from '../set-badge';
 
 export type { SetType };
 
@@ -11,18 +12,7 @@ export const SET_TYPES: SheetOption<SetType>[] = SET_TYPE_DATA.map((type) => ({
   description: type.description,
 }));
 
-/**
- * Badge shown in the set-number column; normal sets keep their number. A type
- * that does not count towards the volume is not counted here either, so the
- * first set after a warm-up is set 1.
- */
-export function badgeFor(sets: readonly { type: SetType }[], index: number): string {
-  const { type } = sets[index];
-  if (type !== 'normal') return badgeOf(type);
-
-  const uncounted = sets.slice(0, index).filter((set) => !countsForVolume(set.type)).length;
-  return String(index + 1 - uncounted);
-}
+export { badgeFor };
 
 /**
  * Listed after the types so a tap on the set number is enough to find it; the

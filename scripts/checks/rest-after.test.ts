@@ -69,3 +69,14 @@ test('plain sets are chains of one, and drops at the start still chain together'
   assert.deepEqual(chainsOf([drop, drop]), [[0, 1]]);
   assert.deepEqual(chainsOf([]), []);
 });
+
+test('drops and 3/7 sets take no number, so the next set continues the count', async () => {
+  const { badgeFor } = await import('@/features/workout/set-badge');
+  const types = ['normal', 'drop', 'normal', 'drop', 'three_seven', 'normal'] as const;
+  const sets = types.map((type) => ({ type }));
+
+  assert.deepEqual(
+    sets.map((_, index) => badgeFor(sets, index)),
+    ['1', 'D', '2', 'D', '3/7', '3']
+  );
+});
