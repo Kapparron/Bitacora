@@ -23,6 +23,7 @@ import {
 import { useExerciseRecords, useLastPerformance, type WorkoutEntry } from '../queries';
 import { RECORD_LABEL, recordsReachedBy } from '../set-records';
 import { restAfter } from '../rest-after';
+import { chainsOf } from '../set-chains';
 import { useRestTimer } from '../rest-timer';
 import { ExerciseNote } from './exercise-note';
 import { RecordBubble } from './record-bubble';
@@ -193,21 +194,39 @@ function ExerciseCardComponent({
 
       {bubble ? <RecordBubble label={bubble} onDone={() => setBubble(null)} /> : null}
 
-      {entry.sets.map((set, index) => (
-        <SetRow
-          key={set.id}
-          set={set}
-          label={badgeFor(entry.sets, index)}
-          record={recordsReachedBy(set, records).length > 0}
-          previous={previousSets[index] ?? null}
-          trackingType={entry.exercise.trackingType}
-          editable={editable}
-          onChange={handleChange}
-          onToggleCompleted={handleToggleCompleted}
-          onChangeType={handleChangeType}
-          onDelete={handleDelete}
-        />
-      ))}
+      {chainsOf(entry.sets).map((chain) => {
+        const rows = chain.map((index) => {
+          const set = entry.sets[index];
+
+          return (
+            <SetRow
+              key={set.id}
+              set={set}
+              label={badgeFor(entry.sets, index)}
+              record={recordsReachedBy(set, records).length > 0}
+              previous={previousSets[index] ?? null}
+              trackingType={entry.exercise.trackingType}
+              editable={editable}
+              onChange={handleChange}
+              onToggleCompleted={handleToggleCompleted}
+              onChangeType={handleChangeType}
+              onDelete={handleDelete}
+            />
+          );
+        });
+
+        // Sets done one after another share an accent edge, so they read as one
+        // block apart from the next set of the exercise.
+        return chain.length > 1 ? (
+          <View
+            key={entry.sets[chain[0]].id}
+            style={[styles.chain, { borderLeftColor: theme.accent }]}>
+            {rows}
+          </View>
+        ) : (
+          rows[0]
+        );
+      })}
 
       {editable ? (
         <View style={styles.addRow}>
@@ -279,6 +298,7 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   headerText: { flex: 1, gap: 2 },
   title: { fontWeight: '700' },
+  chain: { marginLeft: 8, borderLeftWidth: 3, borderRadius: 2 },
   addRow: { flexDirection: 'row', gap: 8, marginHorizontal: 12, marginTop: 8 },
   addSet: { flex: 1, paddingVertical: 10 },
 });

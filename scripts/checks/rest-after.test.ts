@@ -46,3 +46,26 @@ test('a 3/7 set has its own badge, counts for the volume and travels as a letter
   assert.equal(countsForVolume('three_seven'), true);
   assert.equal(typeOfCode(codeOf('three_seven')), 'three_seven');
 });
+
+import { chainsOf } from '@/features/workout/set-chains';
+
+const seven = (restSeconds: number) => ({ type: 'three_seven', restSeconds }) as const;
+
+test('a set and its drops are one chain, the next set starts another', () => {
+  assert.deepEqual(chainsOf([normal, drop, drop, normal, normal]), [[0, 1, 2], [3], [4]]);
+});
+
+test('two 3/7 series are two chains, split by the long rest', () => {
+  const series = [seven(15), seven(15), seven(15), seven(15), seven(150)];
+
+  assert.deepEqual(chainsOf([...series, ...series]), [
+    [0, 1, 2, 3, 4],
+    [5, 6, 7, 8, 9],
+  ]);
+});
+
+test('plain sets are chains of one, and drops at the start still chain together', () => {
+  assert.deepEqual(chainsOf([normal, normal]), [[0], [1]]);
+  assert.deepEqual(chainsOf([drop, drop]), [[0, 1]]);
+  assert.deepEqual(chainsOf([]), []);
+});
