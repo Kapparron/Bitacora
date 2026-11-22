@@ -152,10 +152,18 @@ jobs:
       # rama que sea.
       - name: Publicar la release
         run: |
+          # Las notas se escriben a mano en docs/releases/<version>.md; si esa
+          # version no tiene, GitHub genera las suyas desde los PR.
+          if [ -f "docs/releases/$VERSION.md" ]; then
+            NOTES=(--notes-file "docs/releases/$VERSION.md")
+          else
+            NOTES=(--generate-notes)
+          fi
+
           gh release create "$VERSION" "bitacora-$VERSION.apk" \
             --target "$GITHUB_SHA" \
             --title "Bitacora $VERSION" \
-            --generate-notes \
+            "${NOTES[@]}" \
             $PRERELEASE
         env:
           GH_TOKEN: ${{ github.token }}
