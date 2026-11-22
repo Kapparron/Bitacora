@@ -30,7 +30,9 @@ import { useActiveWorkout } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatRest } from '@/lib/format';
 
-const EXTRA_OPTIONS: SheetOption<RoutineExtra | null>[] = [
+type AddChoice = RoutineExtra | 'link' | 'unlink';
+
+const EXTRA_OPTIONS: SheetOption<AddChoice | null>[] = [
   { value: 'drop', label: 'Drop set', badge: 'D', description: 'Un quinto mas ligero, sin descanso' },
   { value: 'three_seven', label: 'Serie 3/7', badge: '3/7', description: 'De 3 a 7 reps con descansos cortos' },
 ];
@@ -219,6 +221,13 @@ function RoutineExerciseCard({
     if (accepted) await removeRoutineExercise(entry.routineExerciseId);
   }
 
+  const superset: SheetOption<AddChoice | null>[] =
+    entry.supersetGroup !== null
+      ? [{ value: 'unlink', label: 'Separar de la superserie', description: 'Dejar de alternarlo con el siguiente' }]
+      : canLink
+        ? [{ value: 'link', label: 'Superserie con el siguiente', description: 'Alternar los dos ejercicios sin descanso' }]
+        : [];
+
   return (
     <View
       style={[
@@ -313,41 +322,27 @@ function RoutineExerciseCard({
 
         <Pressable
           onPress={() => setSheet('extra')}
-          accessibilityLabel="Anadir drop set o serie 3/7"
+          accessibilityLabel="Anadir drop set, serie 3/7 o superserie"
           style={[styles.extraChip, { backgroundColor: theme.backgroundElement }]}>
           <Ionicons name="add" size={14} color={theme.text} />
-          <ThemedText type="small">Extra</ThemedText>
+          <ThemedText type="small">Anadir</ThemedText>
         </Pressable>
       </View>
 
-      <View style={styles.tools}>
-        {entry.supersetGroup === null ? (
-          <Tool
-            icon="link"
-            label="Unir con el siguiente"
-            disabled={!canLink}
-            onPress={() => void linkWithNext(entry.routineExerciseId)}
-          />
-        ) : (
-          <Tool
-            icon="unlink"
-            label="Separar"
-            onPress={() => void unlinkSuperset(entry.routineExerciseId)}
-          />
-        )}
-      </View>
-
       {sheet === 'extra' ? (
-        <OptionSheet<RoutineExtra | null>
-          title="Anadir despues de las series"
-          options={EXTRA_OPTIONS}
+        <OptionSheet<AddChoice | null>
+          title="Anadir"
+          options={[...EXTRA_OPTIONS, ...superset]}
           current={null}
-          onSelect={(extra) => {
+          onSelect={(choice) => {
             setSheet(null);
-            if (extra === null || entry.extras.length >= MAX_EXTRAS) return;
-            void updateRoutineExercise(entry.routineExerciseId, {
-              extraSets: formatExtras([...entry.extras, extra]),
-            });
+            if (choice === 'link') void linkWithNext(entry.routineExerciseId);
+            else if (choice === 'unlink') void unlinkSuperset(entry.routineExerciseId);
+            else if (choice !== null && entry.extras.length < MAX_EXTRAS) {
+              void updateRoutineExercise(entry.routineExerciseId, {
+                extraSets: formatExtras([...entry.extras, choice]),
+              });
+            }
           }}
           onClose={() => setSheet(null)}
         />
@@ -377,34 +372,6 @@ function RoutineExerciseCard({
         />
       ) : null}
     </View>
-  );
-}
-
-function Tool({
-  icon,
-  label,
-  disabled,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  disabled?: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityLabel={label}
-      style={({ pressed }) => [
-        styles.tool,
-        { backgroundColor: theme.backgroundElement },
-        (pressed || disabled) && { opacity: 0.4 },
-      ]}>
-      <Ionicons name={icon} size={16} color={theme.text} />
-    </Pressable>
   );
 }
 
@@ -447,8 +414,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  tools: { flexDirection: 'row', gap: 8, paddingHorizontal: 12 },
-  tool: { width: 40, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   actions: { paddingHorizontal: 12, gap: 8 },
   empty: { textAlign: 'center', paddingHorizontal: 32, paddingBottom: 16 },
 });
