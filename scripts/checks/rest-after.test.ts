@@ -38,3 +38,11 @@ test('a drop goes to four fifths of the weight, to the half kilo', () => {
   assert.equal(dropWeight(62.5), 50);
   assert.equal(dropWeight(27), 21.5);
 });
+
+test('a 3/7 set has its own badge, counts for the volume and travels as a letter', async () => {
+  const { badgeOf, codeOf, countsForVolume, typeOfCode } = await import('@/constants/sets');
+
+  assert.equal(badgeOf('three_seven'), '3/7');
+  assert.equal(countsForVolume('three_seven'), true);
+  assert.equal(typeOfCode(codeOf('three_seven')), 'three_seven');
+});

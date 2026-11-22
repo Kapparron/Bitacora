@@ -105,9 +105,9 @@ export async function addSet(workoutExerciseId: string): Promise<void> {
     id: newId(),
     workoutExerciseId,
     position: (last?.position ?? -1) + 1,
-    // Copia el tipo de la anterior, salvo el calentamiento: despues de
-    // calentar viene una serie de trabajo.
-    type: last && countsForVolume(last.type) ? last.type : 'normal',
+    // Copia el tipo de la anterior, salvo el calentamiento (despues de calentar
+    // viene una serie de trabajo) y la 3/7, que solo se crea de cinco en cinco.
+    type: last && last.type !== 'three_seven' && countsForVolume(last.type) ? last.type : 'normal',
     // After a drop the next one goes lighter still.
     weight:
       last?.type === 'drop' && last.weight !== null ? dropWeight(last.weight) : (last?.weight ?? null),
@@ -118,8 +118,9 @@ export async function addSet(workoutExerciseId: string): Promise<void> {
 }
 
 /**
- * One 3/7 series is five normal sets of 3 to 7 reps. Each carries its own rest,
- * so the short pauses and the long one do not depend on the exercise's rest.
+ * One 3/7 series is five sets of type `three_seven`, with 3 to 7 reps. Each carries
+ * its own rest, so the short pauses and the long one do not depend on the
+ * exercise's rest.
  */
 export async function addThreeSevenSeries(workoutExerciseId: string): Promise<void> {
   const [last] = await db
@@ -138,7 +139,7 @@ export async function addThreeSevenSeries(workoutExerciseId: string): Promise<vo
           id: newId(),
           workoutExerciseId,
           position: start + index,
-          type: 'normal',
+          type: 'three_seven',
           weight: last?.weight ?? null,
           reps,
           restSeconds: THREE_SEVEN_RESTS[index],

@@ -21,8 +21,8 @@ export const VIDEOS = "videos";
 export const ATRIBUCION = "© Gym visual — gymvisual.com";
 
 /** La letra con la que viaja cada tipo de serie, y la que se enseña. */
-export const TIPOS_SERIE = {"w":"warmup","d":"drop","f":"failure"};
-export const INSIGNIA_SERIE = {"warmup":"C","drop":"D","failure":"F"};
+export const TIPOS_SERIE = {"w":"warmup","d":"drop","f":"failure","t":"three_seven"};
+export const INSIGNIA_SERIE = {"warmup":"C","drop":"D","failure":"F","three_seven":"3/7"};
 
 /** Que tipos cuentan para el volumen: el calentamiento no. */
-export const CUENTA_VOLUMEN = {"normal":true,"warmup":false,"drop":true,"failure":true};
+export const CUENTA_VOLUMEN = {"normal":true,"warmup":false,"drop":true,"failure":true,"three_seven":true};

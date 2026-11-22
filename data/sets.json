@@ -31,6 +31,14 @@
       "label": "Al fallo",
       "description": "Hasta el fallo muscular",
       "countsForVolume": true
+    },
+    {
+      "id": "three_seven",
+      "code": "t",
+      "badge": "3/7",
+      "label": "Serie 3/7",
+      "description": "De 3 a 7 reps con descansos cortos",
+      "countsForVolume": true
     }
   ],
   "trackingTypes": [
