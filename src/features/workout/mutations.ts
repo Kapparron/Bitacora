@@ -475,17 +475,6 @@ export async function deleteWorkout(workoutId: string): Promise<void> {
     .where(eq(workouts.id, workoutId));
 }
 
-/** Exercise ids already in the session, so the picker can mark them as added. */
-export async function getWorkoutExerciseIds(workoutId: string): Promise<string[]> {
-  const rows = await db
-    .select({ exerciseId: workoutExercises.exerciseId })
-    .from(workoutExercises)
-    .where(eq(workoutExercises.workoutId, workoutId))
-    .orderBy(asc(workoutExercises.position));
-
-  return rows.map((row) => row.exerciseId);
-}
-
 /**
  * Moves a logged session to another date and time. The duration is preserved:
  * `finishedAt` shifts by the same amount, because correcting when a session

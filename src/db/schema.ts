@@ -390,7 +390,6 @@ export const events = sqliteTable(
 );
 
 export type Exercise = typeof exercises.$inferSelect;
-export type NewExercise = typeof exercises.$inferInsert;
 export type Routine = typeof routines.$inferSelect;
 export type Workout = typeof workouts.$inferSelect;
 export type WorkoutSet = typeof sets.$inferSelect;
@@ -398,7 +397,6 @@ export type Food = typeof foods.$inferSelect;
 export type FoodEntry = typeof foodEntries.$inferSelect;
 export type MealRow = typeof meals.$inferSelect;
 export type BodyMetric = typeof bodyMetrics.$inferSelect;
-export type RestDay = typeof restDays.$inferSelect;
 export type Note = typeof notes.$inferSelect;
 export type CalendarEvent = typeof events.$inferSelect;
 export type Task = typeof tasks.$inferSelect;

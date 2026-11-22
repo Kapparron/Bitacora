@@ -20,9 +20,6 @@ export const Colors = {
   dark: palette.dark,
 };
 
-/** Green the launcher icon and the splash are drawn on, shared with the web. */
-export const BrandColor = palette.brand;
-
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
@@ -50,15 +47,4 @@ export const Fonts = Platform.select({
   },
 });
 
-export const Spacing = {
-  half: 2,
-  one: 4,
-  two: 8,
-  three: 16,
-  four: 24,
-  five: 32,
-  six: 64,
-} as const;
-
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;

@@ -1,18 +1,10 @@
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
-import { createContext, use, useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import migrations from '../../drizzle/migrations';
 import { db } from './client';
 import { seedExercises } from './seed';
-
-type DatabaseStatus = { ready: boolean; error: Error | null };
-
-const DatabaseStatusContext = createContext<DatabaseStatus>({ ready: false, error: null });
-
-export function useDatabaseStatus(): DatabaseStatus {
-  return use(DatabaseStatusContext);
-}
 
 /**
  * Blocks the app until migrations and the exercise seed have run. Everything
@@ -65,7 +57,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  return <DatabaseStatusContext value={{ ready: true, error: null }}>{children}</DatabaseStatusContext>;
+  return <>{children}</>;
 }
 
 const styles = StyleSheet.create({

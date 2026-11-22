@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, max, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, max, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { newId } from '@/db/ids';
@@ -306,13 +306,3 @@ export async function importRoutine(shared: SharedRoutine): Promise<ImportResult
   return { status: 'imported', routineId };
 }
 
-/** Exercise ids already in the routine, so the picker can pre-tick them. */
-export async function getRoutineExerciseIds(routineId: string): Promise<string[]> {
-  const rows = await db
-    .select({ exerciseId: routineExercises.exerciseId })
-    .from(routineExercises)
-    .where(eq(routineExercises.routineId, routineId))
-    .orderBy(asc(routineExercises.position));
-
-  return rows.map((row) => row.exerciseId);
-}
