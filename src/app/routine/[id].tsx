@@ -5,10 +5,17 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 
 import { Button } from '@/components/button';
 import { useConfirm } from '@/components/confirm-dialog';
-import { OptionSheet, type SheetOption } from '@/components/option-sheet';
+import { OptionSheet } from '@/components/option-sheet';
 import { ScreenHeader } from '@/components/screen-header';
 import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
+import {
+  MAX_PLAN,
+  formatPlan,
+  movePlan,
+  summaryOfPlan,
+  type PlanKind,
+} from '@/features/routines/plan';
 import { ExerciseThumbnail } from '@/features/exercises/components/exercise-thumbnail';
 import { ReorderSheet } from '@/features/exercises/components/reorder-sheet';
 import {
@@ -28,10 +35,21 @@ import { useActiveWorkout } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatRest } from '@/lib/format';
 
-const SET_COUNT_OPTIONS: SheetOption<number>[] = [1, 2, 3, 4, 5, 6, 8, 10].map((value) => ({
-  value,
-  label: `${value} series`,
-}));
+type ChipAction = PlanKind | 'left' | 'right' | 'delete';
+
+const KIND_LABEL: Record<PlanKind, string> = {
+  normal: 'Serie',
+  drop: 'Drop',
+  three_seven: '3/7',
+};
+
+/** What a plan entry shows: the number of a normal set, or the letter of its kind. */
+function chipLabel(plan: readonly PlanKind[], index: number): string {
+  if (plan[index] === 'drop') return 'D';
+  if (plan[index] === 'three_seven') return '3/7';
+
+  return String(plan.slice(0, index + 1).filter((kind) => kind === 'normal').length);
+}
 
 export default function RoutineEditorScreen() {
   const theme = useTheme();
@@ -199,7 +217,9 @@ function RoutineExerciseCard({
 }) {
   const theme = useTheme();
   const confirm = useConfirm();
-  const [sheet, setSheet] = useState<'sets' | 'rest' | null>(null);
+  const [sheet, setSheet] = useState<'rest' | null>(null);
+  /** Index of the plan entry whose menu is open. */
+  const [editing, setEditing] = useState<number | null>(null);
   const [reps, setReps] = useState(entry.targetReps ?? '');
 
   async function remove() {
@@ -210,6 +230,14 @@ function RoutineExerciseCard({
     });
 
     if (accepted) await removeRoutineExercise(entry.routineExerciseId);
+  }
+
+  function savePlan(plan: readonly PlanKind[]) {
+    void updateRoutineExercise(entry.routineExerciseId, { plan: formatPlan(plan) });
+  }
+
+  function addToPlan(kind: PlanKind) {
+    if (entry.plan.length < MAX_PLAN) savePlan([...entry.plan, kind]);
   }
 
   return (
@@ -243,21 +271,31 @@ function RoutineExerciseCard({
           </Pressable>
         ) : null}
 
+        {entry.supersetGroup !== null || canLink ? (
+          <Pressable
+            onPress={() =>
+              void (entry.supersetGroup !== null
+                ? unlinkSuperset(entry.routineExerciseId)
+                : linkWithNext(entry.routineExerciseId))
+            }
+            hitSlop={8}
+            accessibilityLabel={
+              entry.supersetGroup !== null ? 'Separar de la superserie' : 'Superserie con el siguiente'
+            }>
+            <Ionicons
+              name={entry.supersetGroup !== null ? 'unlink' : 'link'}
+              size={20}
+              color={entry.supersetGroup !== null ? theme.accentText : theme.textSecondary}
+            />
+          </Pressable>
+        ) : null}
+
         <Pressable onPress={() => void remove()} hitSlop={8} accessibilityLabel="Quitar ejercicio">
           <Ionicons name="trash-outline" size={20} color={theme.textSecondary} />
         </Pressable>
       </View>
 
       <View style={styles.fields}>
-        <Pressable
-          onPress={() => setSheet('sets')}
-          style={[styles.field, { backgroundColor: theme.backgroundElement }]}>
-          <ThemedText type="small" themeColor="textSecondary">
-            SERIES
-          </ThemedText>
-          <ThemedText type="default">{entry.targetSets ?? 3}</ThemedText>
-        </Pressable>
-
         <View style={[styles.field, { backgroundColor: theme.backgroundElement }]}>
           <ThemedText type="small" themeColor="textSecondary">
             REPS
@@ -286,33 +324,66 @@ function RoutineExerciseCard({
         </Pressable>
       </View>
 
-      <View style={styles.tools}>
-        {entry.supersetGroup === null ? (
-          <Tool
-            icon="link"
-            label="Unir con el siguiente"
-            disabled={!canLink}
-            onPress={() => void linkWithNext(entry.routineExerciseId)}
-          />
-        ) : (
-          <Tool
-            icon="unlink"
-            label="Separar"
-            onPress={() => void unlinkSuperset(entry.routineExerciseId)}
-          />
-        )}
+      <View style={styles.plan}>
+        <ThemedText type="small" themeColor="textSecondary">
+          {summaryOfPlan(entry.plan)}
+        </ThemedText>
+
+        <View style={styles.chips}>
+          {entry.plan.map((kind, index) => (
+            <Pressable
+              key={`${index}-${kind}`}
+              onPress={() => setEditing(index)}
+              accessibilityLabel={`${KIND_LABEL[kind]} ${chipLabel(entry.plan, index)}`}
+              style={[styles.chip, { backgroundColor: theme.backgroundElement }]}>
+              <ThemedText
+                type="smallBold"
+                style={{ color: kind === 'normal' ? theme.text : theme.accentText }}>
+                {chipLabel(entry.plan, index)}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.addRow}>
+          {(['normal', 'drop', 'three_seven'] as const).map((kind) => (
+            <Pressable
+              key={kind}
+              onPress={() => addToPlan(kind)}
+              accessibilityLabel={`Anadir ${KIND_LABEL[kind]}`}
+              style={[styles.addButton, { backgroundColor: theme.backgroundElement }]}>
+              <Ionicons name="add" size={14} color={theme.text} />
+              <ThemedText type="small">{KIND_LABEL[kind]}</ThemedText>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
-      {sheet === 'sets' ? (
-        <OptionSheet
-          title="Series objetivo"
-          options={SET_COUNT_OPTIONS}
-          current={entry.targetSets ?? 3}
-          onSelect={(value) => {
-            setSheet(null);
-            void updateRoutineExercise(entry.routineExerciseId, { targetSets: value });
+      {editing !== null && editing < entry.plan.length ? (
+        <OptionSheet<ChipAction | null>
+          title={`${KIND_LABEL[entry.plan[editing]]} ${chipLabel(entry.plan, editing)}`}
+          options={[
+            ...(['normal', 'drop', 'three_seven'] as const)
+              .filter((kind) => kind !== entry.plan[editing])
+              .map((kind) => ({ value: kind, label: `Cambiar a ${KIND_LABEL[kind].toLowerCase()}` })),
+            ...(editing > 0 ? [{ value: 'left' as const, label: 'Mover a la izquierda' }] : []),
+            ...(editing < entry.plan.length - 1
+              ? [{ value: 'right' as const, label: 'Mover a la derecha' }]
+              : []),
+            { value: 'delete' as const, label: 'Borrar' },
+          ]}
+          current={null}
+          onSelect={(action) => {
+            const index = editing;
+            setEditing(null);
+            if (action === null) return;
+
+            if (action === 'left') savePlan(movePlan(entry.plan, index, -1));
+            else if (action === 'right') savePlan(movePlan(entry.plan, index, 1));
+            else if (action === 'delete') savePlan(entry.plan.filter((_, other) => other !== index));
+            else savePlan(entry.plan.map((kind, other) => (other === index ? action : kind)));
           }}
-          onClose={() => setSheet(null)}
+          onClose={() => setEditing(null)}
         />
       ) : null}
 
@@ -327,34 +398,6 @@ function RoutineExerciseCard({
         />
       ) : null}
     </View>
-  );
-}
-
-function Tool({
-  icon,
-  label,
-  disabled,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  disabled?: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityLabel={label}
-      style={({ pressed }) => [
-        styles.tool,
-        { backgroundColor: theme.backgroundElement },
-        (pressed || disabled) && { opacity: 0.4 },
-      ]}>
-      <Ionicons name={icon} size={16} color={theme.text} />
-    </Pressable>
   );
 }
 
@@ -388,8 +431,25 @@ const styles = StyleSheet.create({
   fields: { flexDirection: 'row', gap: 8, paddingHorizontal: 12 },
   field: { flex: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, gap: 2 },
   repsInput: { fontSize: 16, fontWeight: '500', padding: 0 },
-  tools: { flexDirection: 'row', gap: 8, paddingHorizontal: 12 },
-  tool: { width: 40, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  plan: { gap: 8, paddingHorizontal: 12 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: {
+    minWidth: 40,
+    alignItems: 'center',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  addRow: { flexDirection: 'row', gap: 8 },
+  addButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    borderRadius: 8,
+    paddingVertical: 8,
+  },
   actions: { paddingHorizontal: 12, gap: 8 },
   empty: { textAlign: 'center', paddingHorizontal: 32, paddingBottom: 16 },
 });

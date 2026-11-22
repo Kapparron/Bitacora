@@ -1,0 +1,20 @@
+[
+ {
+  "id": "9001",
+  "name": "Hip thrust en maquina",
+  "nameEn": "hip thrust machine",
+  "muscleGroup": "gluteos",
+  "equipment": "maquina",
+  "bodyPart": "upper legs",
+  "steps": [
+   "Ajusta la maquina y sientate con la espalda apoyada en el respaldo, con la almohadilla de la cadera sobre la parte baja de la pelvis.",
+   "Coloca los pies sobre la plataforma, separados a la anchura de los hombros, con las rodillas flexionadas.",
+   "Empuja con los talones y eleva la cadera apretando los gluteos hasta que el tronco y los muslos queden alineados.",
+   "Haz una pausa arriba con los gluteos contraidos y baja de forma controlada hasta la posicion inicial.",
+   "Repite el numero de repeticiones deseado."
+  ],
+  "image": "https://kapparron.github.io/Bitacora/media/9001-hip-thrust-machine.jpg",
+  "gif": "https://kapparron.github.io/Bitacora/media/9001-hip-thrust-machine.gif",
+  "tracking": "weight_reps"
+ }
+]

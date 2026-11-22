@@ -1,0 +1,1 @@
+ALTER TABLE `routine_exercises` DROP COLUMN `target_sets`;

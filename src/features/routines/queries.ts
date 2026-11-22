@@ -10,6 +10,7 @@ import {
   type Exercise,
   type Routine,
 } from '@/db/schema';
+import { parsePlan, type PlanKind } from './plan';
 
 const ROUTINE_TABLES = ['routines', 'routine_exercises', 'exercises'] as const;
 
@@ -33,8 +34,8 @@ export type RoutineEntry = {
   routineExerciseId: string;
   position: number;
   supersetGroup: number | null;
-  targetSets: number | null;
   targetReps: string | null;
+  plan: PlanKind[];
   restSeconds: number | null;
   notes: string | null;
   exercise: Exercise;
@@ -105,8 +106,8 @@ export function useRoutineContents(routineId: string): {
         routineExerciseId: row.routineExercise.id,
         position: row.routineExercise.position,
         supersetGroup: row.routineExercise.supersetGroup,
-        targetSets: row.routineExercise.targetSets,
         targetReps: row.routineExercise.targetReps,
+        plan: parsePlan(row.routineExercise.plan),
         restSeconds: row.routineExercise.restSeconds,
         notes: row.routineExercise.notes,
         exercise: row.exercise,

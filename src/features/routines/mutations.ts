@@ -1,9 +1,10 @@
-import { and, asc, eq, inArray, isNull, max, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, max, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { newId } from '@/db/ids';
 import { exercises, routineExercises, routines } from '@/db/schema';
 
+import { DEFAULT_PLAN, formatPlan, kindOfCode } from './plan';
 import type { SharedRoutine } from './share';
 
 const touch = () => ({ updatedAt: Date.now() });
@@ -66,7 +67,7 @@ export async function addExercisesToRoutine(
     routineId,
     exerciseId,
     position: position++,
-    targetSets: 3,
+    plan: formatPlan(DEFAULT_PLAN),
     restSeconds: 90,
   }));
 
@@ -76,8 +77,8 @@ export async function addExercisesToRoutine(
 export async function updateRoutineExercise(
   routineExerciseId: string,
   patch: Partial<{
-    targetSets: number | null;
     targetReps: string | null;
+    plan: string | null;
     restSeconds: number | null;
     notes: string | null;
   }>
@@ -293,8 +294,8 @@ export async function importRoutine(shared: SharedRoutine): Promise<ImportResult
           exerciseId,
           position,
           supersetGroup: entry.g,
-          targetSets: entry.s,
           targetReps: entry.r,
+          plan: formatPlan(entry.p.flatMap((code) => kindOfCode(code) ?? [])),
           restSeconds: entry.d,
           notes: entry.o,
         })
@@ -305,13 +306,3 @@ export async function importRoutine(shared: SharedRoutine): Promise<ImportResult
   return { status: 'imported', routineId };
 }
 
-/** Exercise ids already in the routine, so the picker can pre-tick them. */
-export async function getRoutineExerciseIds(routineId: string): Promise<string[]> {
-  const rows = await db
-    .select({ exerciseId: routineExercises.exerciseId })
-    .from(routineExercises)
-    .where(eq(routineExercises.routineId, routineId))
-    .orderBy(asc(routineExercises.position));
-
-  return rows.map((row) => row.exerciseId);
-}

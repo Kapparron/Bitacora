@@ -37,7 +37,7 @@ const NAME_SAYS = Object.fromEntries(
  * check only stops it from growing, since the dataset is far too big to
  * translate whole.
  */
-const MAX_UNTRANSLATED = 1207;
+const MAX_UNTRANSLATED = 0;
 
 /** The name the rebuild would write, with the precedence the build script uses. */
 function rebuiltName(exercise) {

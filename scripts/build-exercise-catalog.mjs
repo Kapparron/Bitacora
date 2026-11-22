@@ -98,6 +98,10 @@ const catalogue = raw.map((exercise) => {
   };
 });
 
+// Exercises the upstream dataset lacks, written by hand in data/exercises-extra.json.
+// Their media are whole addresses, not paths on the CDN.
+catalogue.push(...JSON.parse(readFileSync(resolve(ROOT, 'data/exercises-extra.json'), 'utf8')));
+
 catalogue.sort((a, b) => a.id.localeCompare(b.id));
 
 mkdirSync(dirname(OUTPUT), { recursive: true });

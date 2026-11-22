@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 // Kept apart from the build script so scripts/checks can read the same list
 // and prove the shipped catalogue still carries every name in it.
 
@@ -143,7 +145,7 @@ export const SPANISH_NAMES = {
  * Applied on top of SPANISH_NAMES. An id that is no longer in the dataset
  * aborts the build.
  */
-export const SPANISH_NAMES_BY_ID = {
+const SPANISH_NAMES_BY_ID_BY_HAND = {
   // barbell seated calf raise
   '0088': 'Elevacion de talones sentado con barra',
   '1371': 'Elevacion de talones sentado con barra y disco',
@@ -168,3 +170,15 @@ export const SPANISH_NAMES_BY_ID = {
   '0763': 'Elevacion de talones inversa en multipower con plataforma',
   '1394': 'Elevacion de talones inversa en multipower',
 };
+
+/**
+ * The names of everything else, one per id: written out by hand one by one in
+ * `spanish-exercise-names.json`, so that each exercise has the name it goes by
+ * in a Spanish gym rather than a word-for-word translation. What is written
+ * above wins over the file.
+ */
+const BULK = JSON.parse(
+  readFileSync(new URL('./spanish-exercise-names.json', import.meta.url), 'utf8')
+);
+
+export const SPANISH_NAMES_BY_ID = { ...BULK, ...SPANISH_NAMES_BY_ID_BY_HAND };

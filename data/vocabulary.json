@@ -149,12 +149,12 @@
     {
       "en": "band",
       "es": "banda",
-      "namePattern": "\\bcon banda\\b|(?<!resistance )\\bband\\b"
+      "namePattern": "\\bcon banda\\b(?! elastica)|(?<!resistance )\\bband\\b"
     },
     {
       "en": "barbell",
       "es": "barra",
-      "namePattern": "\\bcon barra\\b(?! [VZ]\\b)|(?<!ez[- ])(?<!olympic )\\bbarbell\\b"
+      "namePattern": "\\bcon barra\\b(?! (?:[VZ]|olimpica|hexagonal)\\b)|(?<!ez[- ])(?<!olympic )\\bbarbell\\b"
     },
     {
       "en": "body weight",
@@ -208,7 +208,7 @@
       "en": "olympic barbell",
       "es": "barra olimpica",
       "family": "barra",
-      "namePattern": "\\bolympic barbell\\b"
+      "namePattern": "\\bolympic barbell\\b|\\bcon barra olimpica\\b"
     },
     {
       "en": "resistance band",

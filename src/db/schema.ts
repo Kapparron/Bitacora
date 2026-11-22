@@ -91,9 +91,12 @@ export const routineExercises = sqliteTable(
     position: integer('position').notNull(),
     /** Exercises sharing a non-null group are performed as a superset. */
     supersetGroup: integer('superset_group'),
-    targetSets: integer('target_sets'),
     /** Free text so ranges like "8-12" or "AMRAP" survive. */
     targetReps: text('target_reps'),
+    /**
+     * The sets planned, in order, e.g. "normal,normal,drop,three_seven".
+     */
+    plan: text('plan'),
     restSeconds: integer('rest_seconds'),
     notes: text('notes'),
     ...auditColumns,
@@ -155,6 +158,8 @@ export const sets = sqliteTable(
     rpe: real('rpe'),
     distanceM: real('distance_m'),
     durationS: integer('duration_s'),
+    /** Rest after this set; when null the exercise's own rest applies. */
+    restSeconds: integer('rest_seconds'),
     completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
     ...auditColumns,
   },
@@ -385,7 +390,6 @@ export const events = sqliteTable(
 );
 
 export type Exercise = typeof exercises.$inferSelect;
-export type NewExercise = typeof exercises.$inferInsert;
 export type Routine = typeof routines.$inferSelect;
 export type Workout = typeof workouts.$inferSelect;
 export type WorkoutSet = typeof sets.$inferSelect;
@@ -393,7 +397,6 @@ export type Food = typeof foods.$inferSelect;
 export type FoodEntry = typeof foodEntries.$inferSelect;
 export type MealRow = typeof meals.$inferSelect;
 export type BodyMetric = typeof bodyMetrics.$inferSelect;
-export type RestDay = typeof restDays.$inferSelect;
 export type Note = typeof notes.$inferSelect;
 export type CalendarEvent = typeof events.$inferSelect;
 export type Task = typeof tasks.$inferSelect;

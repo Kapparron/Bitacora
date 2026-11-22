@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
@@ -91,4 +93,39 @@ test('a day holds one measurement and one rest mark', () => {
 
   db.exec(`insert into rest_days (day) values ('2026-09-11')`);
   assert.throws(() => db.exec(`insert into rest_days (day) values ('2026-09-11')`), /UNIQUE/);
+});
+
+test('the plan migration turns the old set count into that many normal sets', () => {
+  const sql = (name) => readFileSync(new URL(`../../drizzle/${name}`, import.meta.url), 'utf8');
+  const files = migrationFiles();
+  const planFile = files.find((name) => name.startsWith('0011'));
+  const dropFile = files.find((name) => name.startsWith('0012'));
+
+  // Every migration before the plan, then a routine as v0.0.11 stored it.
+  const db = new DatabaseSync(':memory:');
+  for (const file of files.filter((name) => name < planFile)) {
+    for (const statement of sql(file).split('--> statement-breakpoint')) {
+      if (statement.trim()) db.exec(statement.trim());
+    }
+  }
+
+  db.exec(`insert into exercises (id, name, muscle_group, equipment, is_custom) values ('e','Press','pecho','barra',1)`);
+  db.exec(`insert into routines (id, name, position) values ('r','Torso',0)`);
+  db.exec(`insert into routine_exercises (id, routine_id, exercise_id, position, target_sets) values ('a','r','e',0,4)`);
+  db.exec(`insert into routine_exercises (id, routine_id, exercise_id, position) values ('b','r','e',1)`);
+
+  for (const file of [planFile, dropFile]) {
+    for (const statement of sql(file).split('--> statement-breakpoint')) {
+      if (statement.trim()) db.exec(statement.trim());
+    }
+  }
+
+  const plans = db.prepare('select id, plan from routine_exercises order by position').all();
+  assert.deepEqual(plans.map((row) => row.plan), [
+    'normal,normal,normal,normal',
+    'normal,normal,normal',
+  ]);
+
+  const columns = db.prepare(`pragma table_info(routine_exercises)`).all().map((row) => row.name);
+  assert.ok(!columns.includes('target_sets'), 'target_sets deberia haberse quitado');
 });

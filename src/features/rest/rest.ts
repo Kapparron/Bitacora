@@ -25,8 +25,6 @@ export type RestCycle = {
   anchor: string;
 };
 
-export const EMPTY_REST: RestPlan = { weekdays: new Set(), cycle: null, days: new Set() };
-
 export function isRestDay(plan: RestPlan, day: string): boolean {
   if (plan.days.has(day)) return true;
 

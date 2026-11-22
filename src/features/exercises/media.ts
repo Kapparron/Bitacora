@@ -11,5 +11,7 @@ export { MEDIA_ATTRIBUTION };
 
 export function exerciseMediaUrl(path: string | null): string | null {
   if (!path) return null;
+  // Pictures of our own are whole addresses; the dataset's are paths on the CDN.
+  if (path.startsWith('https://')) return path;
   return `${MEDIA_CDN}/${path}`;
 }

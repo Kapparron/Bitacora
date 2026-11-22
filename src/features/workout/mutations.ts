@@ -12,6 +12,8 @@ import {
   type WorkoutSet,
 } from '@/db/schema';
 import { updatePersonalRecords } from './records';
+import { parsePlan, setsOfPlan } from '@/features/routines/plan';
+import { dropWeight, THREE_SEVEN_REPS, THREE_SEVEN_RESTS } from './rest-after';
 
 const touch = () => ({ updatedAt: Date.now() });
 
@@ -91,26 +93,85 @@ export async function addExercisesToWorkout(
  * is the common case; changing the number afterwards is one tap.
  */
 export async function addSet(workoutExerciseId: string): Promise<void> {
-  const previous = await db
+  const existing = await db
+    .select()
+    .from(sets)
+    .where(eq(sets.workoutExerciseId, workoutExerciseId))
+    .orderBy(desc(sets.position));
+
+  const last = existing.at(0);
+
+  // After a drop the new set starts a block of its own, so it takes the weight
+  // the drops fell from, not the lightest one.
+  const head = existing.find((set) => set.type !== 'drop');
+
+  await db.insert(sets).values({
+    id: newId(),
+    workoutExerciseId,
+    position: (last?.position ?? -1) + 1,
+    // Copia el tipo de la anterior, salvo el calentamiento (despues de calentar
+    // viene una serie de trabajo), el drop y la 3/7, que tienen su propio boton.
+    type:
+      last && last.type !== 'drop' && last.type !== 'three_seven' && countsForVolume(last.type)
+        ? last.type
+        : 'normal',
+    weight: (last?.type === 'drop' ? head?.weight : last?.weight) ?? null,
+    reps: (last?.type === 'drop' ? head?.reps : last?.reps) ?? null,
+    durationS: last?.durationS ?? null,
+    distanceM: last?.distanceM ?? null,
+  });
+}
+
+/** A drop set goes straight after the previous set, a fifth lighter. */
+export async function addDropSet(workoutExerciseId: string): Promise<void> {
+  const [last] = await db
     .select()
     .from(sets)
     .where(eq(sets.workoutExerciseId, workoutExerciseId))
     .orderBy(desc(sets.position))
     .limit(1);
 
-  const last = previous.at(0);
-
   await db.insert(sets).values({
     id: newId(),
     workoutExerciseId,
     position: (last?.position ?? -1) + 1,
-    // Copia el tipo de la anterior, salvo el calentamiento: despues de
-    // calentar viene una serie de trabajo.
-    type: last && countsForVolume(last.type) ? last.type : 'normal',
-    weight: last?.weight ?? null,
+    type: 'drop',
+    weight: last?.weight != null ? dropWeight(last.weight) : null,
     reps: last?.reps ?? null,
     durationS: last?.durationS ?? null,
     distanceM: last?.distanceM ?? null,
+  });
+}
+
+/**
+ * One 3/7 series is five sets of type `three_seven`, with 3 to 7 reps. Each carries
+ * its own rest, so the short pauses and the long one do not depend on the
+ * exercise's rest.
+ */
+export async function addThreeSevenSeries(workoutExerciseId: string): Promise<void> {
+  const [last] = await db
+    .select()
+    .from(sets)
+    .where(eq(sets.workoutExerciseId, workoutExerciseId))
+    .orderBy(desc(sets.position))
+    .limit(1);
+
+  const start = (last?.position ?? -1) + 1;
+
+  db.transaction((tx) => {
+    THREE_SEVEN_REPS.forEach((reps, index) => {
+      tx.insert(sets)
+        .values({
+          id: newId(),
+          workoutExerciseId,
+          position: start + index,
+          type: 'three_seven',
+          weight: last?.weight ?? null,
+          reps,
+          restSeconds: THREE_SEVEN_RESTS[index],
+        })
+        .run();
+    });
   });
 }
 
@@ -364,10 +425,19 @@ export async function startWorkoutFromRoutine(routineId: string): Promise<string
         })
         .run();
 
-      const plannedSets = Math.max(1, item.targetSets ?? 1);
-      for (let position = 0; position < plannedSets; position += 1) {
-        tx.insert(sets).values({ id: newId(), workoutExerciseId, position }).run();
-      }
+      // The routine's plan, in order, becomes the session's sets.
+      setsOfPlan(parsePlan(item.plan)).forEach((planned, position) => {
+        tx.insert(sets)
+          .values({
+            id: newId(),
+            workoutExerciseId,
+            position,
+            type: planned.type,
+            reps: planned.reps,
+            restSeconds: planned.restSeconds,
+          })
+          .run();
+      });
     }
   });
 
@@ -405,17 +475,6 @@ export async function deleteWorkout(workoutId: string): Promise<void> {
     .where(eq(workouts.id, workoutId));
 }
 
-/** Exercise ids already in the session, so the picker can mark them as added. */
-export async function getWorkoutExerciseIds(workoutId: string): Promise<string[]> {
-  const rows = await db
-    .select({ exerciseId: workoutExercises.exerciseId })
-    .from(workoutExercises)
-    .where(eq(workoutExercises.workoutId, workoutId))
-    .orderBy(asc(workoutExercises.position));
-
-  return rows.map((row) => row.exerciseId);
-}
-
 /**
  * Moves a logged session to another date and time. The duration is preserved:
  * `finishedAt` shifts by the same amount, because correcting when a session
@@ -434,4 +493,71 @@ export async function rescheduleWorkout(workoutId: string, startedAt: number): P
     .update(workouts)
     .set({ startedAt, finishedAt, ...touch() })
     .where(eq(workouts.id, workoutId));
+}
+
+/** Puts an exercise and the one after it in a superset, joining a group that exists. */
+export async function linkWorkoutWithNext(workoutExerciseId: string): Promise<void> {
+  const [target] = await db
+    .select()
+    .from(workoutExercises)
+    .where(eq(workoutExercises.id, workoutExerciseId));
+  if (!target) return;
+
+  const [next] = await db
+    .select()
+    .from(workoutExercises)
+    .where(
+      and(
+        eq(workoutExercises.workoutId, target.workoutId),
+        eq(workoutExercises.position, target.position + 1)
+      )
+    );
+  if (!next) return;
+
+  const [{ value } = { value: null }] = await db
+    .select({ value: max(workoutExercises.supersetGroup) })
+    .from(workoutExercises)
+    .where(eq(workoutExercises.workoutId, target.workoutId));
+
+  const group = target.supersetGroup ?? next.supersetGroup ?? (value ?? 0) + 1;
+
+  db.transaction((tx) => {
+    for (const id of [target.id, next.id]) {
+      tx.update(workoutExercises)
+        .set({ supersetGroup: group, updatedAt: Date.now() })
+        .where(eq(workoutExercises.id, id))
+        .run();
+    }
+  });
+}
+
+/** Takes an exercise out of its superset; a group left with one exercise is dissolved. */
+export async function unlinkWorkoutSuperset(workoutExerciseId: string): Promise<void> {
+  const [target] = await db
+    .select()
+    .from(workoutExercises)
+    .where(eq(workoutExercises.id, workoutExerciseId));
+  if (!target?.supersetGroup) return;
+
+  await db
+    .update(workoutExercises)
+    .set({ supersetGroup: null, ...touch() })
+    .where(eq(workoutExercises.id, workoutExerciseId));
+
+  const remaining = await db
+    .select({ id: workoutExercises.id })
+    .from(workoutExercises)
+    .where(
+      and(
+        eq(workoutExercises.workoutId, target.workoutId),
+        eq(workoutExercises.supersetGroup, target.supersetGroup)
+      )
+    );
+
+  if (remaining.length === 1) {
+    await db
+      .update(workoutExercises)
+      .set({ supersetGroup: null, ...touch() })
+      .where(eq(workoutExercises.id, remaining[0].id));
+  }
 }

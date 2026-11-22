@@ -9,6 +9,7 @@ import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
 import { DatePrompt } from '@/features/calendar/date-prompt';
 import { ReorderSheet } from '@/features/exercises/components/reorder-sheet';
+import { closesSuperset } from '@/features/workout/rest-after';
 import { ExerciseCard } from '@/features/workout/components/exercise-card';
 import { SummaryCarousel } from '@/features/workout/components/summary/summary-carousel';
 import { reorderWorkoutExercises, rescheduleWorkout, updateWorkout } from '@/features/workout/mutations';
@@ -122,12 +123,14 @@ export default function WorkoutDetailScreen() {
           </View>
         ) : null}
 
-        {entries.map((entry) => (
+        {entries.map((entry, index) => (
           <ExerciseCard
             key={entry.workoutExerciseId}
             entry={entry}
             workoutId={workout.id}
             editable={editing}
+            closesGroup={closesSuperset(entries.map((other) => other.supersetGroup), index)}
+            canLink={index < entries.length - 1}
             onReorder={entries.length > 1 ? openReorder : undefined}
           />
         ))}

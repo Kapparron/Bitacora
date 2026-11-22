@@ -9,7 +9,7 @@ import setsData from '@/data/sets.json';
  * declared here once as a tuple, and `scripts/checks/data.test.mjs` fails if
  * they ever stop matching the file.
  */
-export const SET_TYPE_IDS = ['normal', 'warmup', 'drop', 'failure'] as const;
+export const SET_TYPE_IDS = ['normal', 'warmup', 'drop', 'failure', 'three_seven'] as const;
 export type SetType = (typeof SET_TYPE_IDS)[number];
 
 export const TRACKING_TYPE_IDS = [

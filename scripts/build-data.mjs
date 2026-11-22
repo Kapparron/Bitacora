@@ -48,6 +48,9 @@ const WARNING = '// Generado por `npm run build:data` desde data/. No se edita a
  */
 export function webCatalogue(catalogue, media) {
   const entries = catalogue.map((exercise) => {
+    // An exercise with media of its own is not on the CDN the pages read from.
+    if (exercise.image?.startsWith('https://')) return [exercise.id, [exercise.name, null]];
+
     const slug = (exercise.image ?? '').replace(new RegExp(`^${media.imageDir}/`), '').replace(/\.jpg$/, '');
 
     if (
