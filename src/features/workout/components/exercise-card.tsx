@@ -11,6 +11,7 @@ import { ExerciseThumbnail } from '@/features/exercises/components/exercise-thum
 import { useTheme } from '@/hooks/use-theme';
 import { formatRest } from '@/lib/format';
 import {
+  addDropSet,
   addSet,
   addThreeSevenSeries,
   completeSet,
@@ -235,6 +236,12 @@ function ExerciseCardComponent({
             variant="secondary"
             style={styles.addSet}
             onPress={() => void addSet(entry.workoutExerciseId)}
+          />
+          <Button
+            title="+ Drop"
+            variant="secondary"
+            style={styles.addSet}
+            onPress={() => void addDropSet(entry.workoutExerciseId)}
           />
           <Button
             title="Serie 3/7"

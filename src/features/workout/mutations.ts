@@ -92,25 +92,50 @@ export async function addExercisesToWorkout(
  * is the common case; changing the number afterwards is one tap.
  */
 export async function addSet(workoutExerciseId: string): Promise<void> {
-  const previous = await db
+  const existing = await db
     .select()
     .from(sets)
     .where(eq(sets.workoutExerciseId, workoutExerciseId))
-    .orderBy(desc(sets.position))
-    .limit(1);
+    .orderBy(desc(sets.position));
 
-  const last = previous.at(0);
+  const last = existing.at(0);
+
+  // After a drop the new set starts a block of its own, so it takes the weight
+  // the drops fell from, not the lightest one.
+  const head = existing.find((set) => set.type !== 'drop');
 
   await db.insert(sets).values({
     id: newId(),
     workoutExerciseId,
     position: (last?.position ?? -1) + 1,
     // Copia el tipo de la anterior, salvo el calentamiento (despues de calentar
-    // viene una serie de trabajo) y la 3/7, que solo se crea de cinco en cinco.
-    type: last && last.type !== 'three_seven' && countsForVolume(last.type) ? last.type : 'normal',
-    // After a drop the next one goes lighter still.
-    weight:
-      last?.type === 'drop' && last.weight !== null ? dropWeight(last.weight) : (last?.weight ?? null),
+    // viene una serie de trabajo), el drop y la 3/7, que tienen su propio boton.
+    type:
+      last && last.type !== 'drop' && last.type !== 'three_seven' && countsForVolume(last.type)
+        ? last.type
+        : 'normal',
+    weight: (last?.type === 'drop' ? head?.weight : last?.weight) ?? null,
+    reps: (last?.type === 'drop' ? head?.reps : last?.reps) ?? null,
+    durationS: last?.durationS ?? null,
+    distanceM: last?.distanceM ?? null,
+  });
+}
+
+/** A drop set goes straight after the previous set, a fifth lighter. */
+export async function addDropSet(workoutExerciseId: string): Promise<void> {
+  const [last] = await db
+    .select()
+    .from(sets)
+    .where(eq(sets.workoutExerciseId, workoutExerciseId))
+    .orderBy(desc(sets.position))
+    .limit(1);
+
+  await db.insert(sets).values({
+    id: newId(),
+    workoutExerciseId,
+    position: (last?.position ?? -1) + 1,
+    type: 'drop',
+    weight: last?.weight != null ? dropWeight(last.weight) : null,
     reps: last?.reps ?? null,
     durationS: last?.durationS ?? null,
     distanceM: last?.distanceM ?? null,
