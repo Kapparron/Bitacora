@@ -12,7 +12,7 @@ import {
   type WorkoutSet,
 } from '@/db/schema';
 import { updatePersonalRecords } from './records';
-import { parseExtras, setsOfExtras } from '@/features/routines/extras';
+import { parsePlan, setsOfPlan } from '@/features/routines/plan';
 import { dropWeight, THREE_SEVEN_REPS, THREE_SEVEN_RESTS } from './rest-after';
 
 const touch = () => ({ updatedAt: Date.now() });
@@ -425,18 +425,13 @@ export async function startWorkoutFromRoutine(routineId: string): Promise<string
         })
         .run();
 
-      const plannedSets = Math.max(1, item.targetSets ?? 1);
-      for (let position = 0; position < plannedSets; position += 1) {
-        tx.insert(sets).values({ id: newId(), workoutExerciseId, position }).run();
-      }
-
-      // Drops and 3/7 series planned in the routine come after the normal sets.
-      setsOfExtras(parseExtras(item.extraSets)).forEach((planned, index) => {
+      // The routine's plan, in order, becomes the session's sets.
+      setsOfPlan(parsePlan(item.plan)).forEach((planned, position) => {
         tx.insert(sets)
           .values({
             id: newId(),
             workoutExerciseId,
-            position: plannedSets + index,
+            position,
             type: planned.type,
             reps: planned.reps,
             restSeconds: planned.restSeconds,

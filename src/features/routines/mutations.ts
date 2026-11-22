@@ -4,7 +4,7 @@ import { db } from '@/db/client';
 import { newId } from '@/db/ids';
 import { exercises, routineExercises, routines } from '@/db/schema';
 
-import { extraOfCode, formatExtras } from './extras';
+import { DEFAULT_PLAN, formatPlan, kindOfCode } from './plan';
 import type { SharedRoutine } from './share';
 
 const touch = () => ({ updatedAt: Date.now() });
@@ -67,7 +67,7 @@ export async function addExercisesToRoutine(
     routineId,
     exerciseId,
     position: position++,
-    targetSets: 3,
+    plan: formatPlan(DEFAULT_PLAN),
     restSeconds: 90,
   }));
 
@@ -77,9 +77,8 @@ export async function addExercisesToRoutine(
 export async function updateRoutineExercise(
   routineExerciseId: string,
   patch: Partial<{
-    targetSets: number | null;
     targetReps: string | null;
-    extraSets: string | null;
+    plan: string | null;
     restSeconds: number | null;
     notes: string | null;
   }>
@@ -295,9 +294,8 @@ export async function importRoutine(shared: SharedRoutine): Promise<ImportResult
           exerciseId,
           position,
           supersetGroup: entry.g,
-          targetSets: entry.s,
           targetReps: entry.r,
-          extraSets: formatExtras(entry.x.flatMap((code) => extraOfCode(code) ?? [])),
+          plan: formatPlan(entry.p.flatMap((code) => kindOfCode(code) ?? [])),
           restSeconds: entry.d,
           notes: entry.o,
         })

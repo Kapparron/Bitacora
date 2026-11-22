@@ -12,7 +12,6 @@ import {
   ESQUEMA,
   INSIGNIA_SERIE,
   PAQUETE,
-  TIPOS_SERIE,
 } from '../datos.js';
 import {
   decodePayload,
@@ -30,9 +29,9 @@ const SHARE_VERSION = 1;
 /** Generoso, solo para que un enlace hostil no inunde la pagina. */
 const MAX_ENTRIES = 60;
 
-/** Lo que una rutina puede planear detras de las series normales, y cuantos. */
-const EXTRAS = ['drop', 'three_seven'];
-const MAX_EXTRAS = 10;
+/** Lo que se planea para un ejercicio, la letra con la que viaja, y cuantas como mucho. */
+const PLAN = { n: 'normal', d: 'drop', t: 'three_seven' };
+const MAX_PLAN = 30;
 
 /** Las series que la app enseña cuando una rutina no las fija. */
 const DEFAULT_SETS = 3;
@@ -61,15 +60,19 @@ export function parseSharedRoutine(input) {
     if (!isOptionalInt(raw.g, 1, MAX_ENTRIES)) return null;
     if (!isOptionalText(raw.r) || !isOptionalText(raw.o)) return null;
 
-    const x = raw.x ?? [];
-    if (!Array.isArray(x) || x.length > MAX_EXTRAS) return null;
-    if (!x.every((code) => EXTRAS.includes(TIPOS_SERIE[code]))) return null;
+    // Un enlace de antes de los planes trae `s` series normales y los extras `x` detras.
+    const p = raw.p ?? [
+      ...Array(raw.s ?? DEFAULT_SETS).fill('n'),
+      ...(Array.isArray(raw.x) ? raw.x : []),
+    ];
+    if (!Array.isArray(p) || p.length > MAX_PLAN) return null;
+    if (!p.every((code) => typeof code === 'string' && code in PLAN)) return null;
 
     entries.push({
       e,
       s: raw.s ?? null,
       r: raw.r ?? null,
-      x,
+      p,
       d: raw.d ?? null,
       g: raw.g ?? null,
       o: raw.o ?? null,
@@ -95,8 +98,9 @@ function entryCard(entry, catalogue) {
 
   const targets = element('div', 'targets');
   targets.append(element('span', 'target', formatTarget(entry)));
-  for (const code of entry.x) {
-    targets.append(element('span', 'target', INSIGNIA_SERIE[TIPOS_SERIE[code]]));
+  const extras = entry.p.filter((code) => code !== 'n');
+  for (const code of extras) {
+    targets.append(element('span', 'target', INSIGNIA_SERIE[PLAN[code]]));
   }
   targets.append(element('span', 'muted', `Descanso: ${formatRest(entry.d)}`));
   card.append(targets);

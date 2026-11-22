@@ -96,6 +96,11 @@ export const routineExercises = sqliteTable(
     targetReps: text('target_reps'),
     /** Drops and 3/7 series planned after the normal sets, e.g. "drop,drop,three_seven". */
     extraSets: text('extra_sets'),
+    /**
+     * The sets planned, in order, e.g. "normal,normal,drop,three_seven". Replaces
+     * `target_sets` and `extra_sets`, which are only read by the migration.
+     */
+    plan: text('plan'),
     restSeconds: integer('rest_seconds'),
     notes: text('notes'),
     ...auditColumns,

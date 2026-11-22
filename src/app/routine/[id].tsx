@@ -5,12 +5,17 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 
 import { Button } from '@/components/button';
 import { useConfirm } from '@/components/confirm-dialog';
-import { OptionSheet, type SheetOption } from '@/components/option-sheet';
+import { OptionSheet } from '@/components/option-sheet';
 import { ScreenHeader } from '@/components/screen-header';
 import { TextPrompt } from '@/components/text-prompt';
 import { ThemedText } from '@/components/themed-text';
-import { badgeOf } from '@/constants/sets';
-import { MAX_EXTRAS, formatExtras, type RoutineExtra } from '@/features/routines/extras';
+import {
+  MAX_PLAN,
+  formatPlan,
+  movePlan,
+  summaryOfPlan,
+  type PlanKind,
+} from '@/features/routines/plan';
 import { ExerciseThumbnail } from '@/features/exercises/components/exercise-thumbnail';
 import { ReorderSheet } from '@/features/exercises/components/reorder-sheet';
 import {
@@ -30,17 +35,21 @@ import { useActiveWorkout } from '@/features/workout/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { formatRest } from '@/lib/format';
 
-type AddChoice = RoutineExtra | 'link' | 'unlink';
+type ChipAction = PlanKind | 'left' | 'right' | 'delete';
 
-const EXTRA_OPTIONS: SheetOption<AddChoice | null>[] = [
-  { value: 'drop', label: 'Drop set', badge: 'D', description: 'Un quinto mas ligero, sin descanso' },
-  { value: 'three_seven', label: 'Serie 3/7', badge: '3/7', description: 'De 3 a 7 reps con descansos cortos' },
-];
+const KIND_LABEL: Record<PlanKind, string> = {
+  normal: 'Serie',
+  drop: 'Drop',
+  three_seven: '3/7',
+};
 
-const SET_COUNT_OPTIONS: SheetOption<number>[] = [1, 2, 3, 4, 5, 6, 8, 10].map((value) => ({
-  value,
-  label: `${value} series`,
-}));
+/** What a plan entry shows: the number of a normal set, or the letter of its kind. */
+function chipLabel(plan: readonly PlanKind[], index: number): string {
+  if (plan[index] === 'drop') return 'D';
+  if (plan[index] === 'three_seven') return '3/7';
+
+  return String(plan.slice(0, index + 1).filter((kind) => kind === 'normal').length);
+}
 
 export default function RoutineEditorScreen() {
   const theme = useTheme();
@@ -208,7 +217,9 @@ function RoutineExerciseCard({
 }) {
   const theme = useTheme();
   const confirm = useConfirm();
-  const [sheet, setSheet] = useState<'sets' | 'rest' | 'extra' | null>(null);
+  const [sheet, setSheet] = useState<'rest' | null>(null);
+  /** Index of the plan entry whose menu is open. */
+  const [editing, setEditing] = useState<number | null>(null);
   const [reps, setReps] = useState(entry.targetReps ?? '');
 
   async function remove() {
@@ -221,12 +232,13 @@ function RoutineExerciseCard({
     if (accepted) await removeRoutineExercise(entry.routineExerciseId);
   }
 
-  const superset: SheetOption<AddChoice | null>[] =
-    entry.supersetGroup !== null
-      ? [{ value: 'unlink', label: 'Separar de la superserie', description: 'Dejar de alternarlo con el siguiente' }]
-      : canLink
-        ? [{ value: 'link', label: 'Superserie con el siguiente', description: 'Alternar los dos ejercicios sin descanso' }]
-        : [];
+  function savePlan(plan: readonly PlanKind[]) {
+    void updateRoutineExercise(entry.routineExerciseId, { plan: formatPlan(plan) });
+  }
+
+  function addToPlan(kind: PlanKind) {
+    if (entry.plan.length < MAX_PLAN) savePlan([...entry.plan, kind]);
+  }
 
   return (
     <View
@@ -259,21 +271,31 @@ function RoutineExerciseCard({
           </Pressable>
         ) : null}
 
+        {entry.supersetGroup !== null || canLink ? (
+          <Pressable
+            onPress={() =>
+              void (entry.supersetGroup !== null
+                ? unlinkSuperset(entry.routineExerciseId)
+                : linkWithNext(entry.routineExerciseId))
+            }
+            hitSlop={8}
+            accessibilityLabel={
+              entry.supersetGroup !== null ? 'Separar de la superserie' : 'Superserie con el siguiente'
+            }>
+            <Ionicons
+              name={entry.supersetGroup !== null ? 'unlink' : 'link'}
+              size={20}
+              color={entry.supersetGroup !== null ? theme.accentText : theme.textSecondary}
+            />
+          </Pressable>
+        ) : null}
+
         <Pressable onPress={() => void remove()} hitSlop={8} accessibilityLabel="Quitar ejercicio">
           <Ionicons name="trash-outline" size={20} color={theme.textSecondary} />
         </Pressable>
       </View>
 
       <View style={styles.fields}>
-        <Pressable
-          onPress={() => setSheet('sets')}
-          style={[styles.field, { backgroundColor: theme.backgroundElement }]}>
-          <ThemedText type="small" themeColor="textSecondary">
-            SERIES
-          </ThemedText>
-          <ThemedText type="default">{entry.targetSets ?? 3}</ThemedText>
-        </Pressable>
-
         <View style={[styles.field, { backgroundColor: theme.backgroundElement }]}>
           <ThemedText type="small" themeColor="textSecondary">
             REPS
@@ -302,62 +324,66 @@ function RoutineExerciseCard({
         </Pressable>
       </View>
 
-      <View style={styles.extras}>
-        {entry.extras.map((extra, index) => (
-          <Pressable
-            key={`${extra}-${index}`}
-            onPress={() =>
-              void updateRoutineExercise(entry.routineExerciseId, {
-                extraSets: formatExtras(entry.extras.filter((_, other) => other !== index)),
-              })
-            }
-            accessibilityLabel={`Quitar ${extra === 'drop' ? 'drop set' : 'serie 3/7'}`}
-            style={[styles.extraChip, { backgroundColor: theme.backgroundElement }]}>
-            <ThemedText type="smallBold" style={{ color: theme.accentText }}>
-              {badgeOf(extra)}
-            </ThemedText>
-            <Ionicons name="close" size={12} color={theme.textSecondary} />
-          </Pressable>
-        ))}
+      <View style={styles.plan}>
+        <ThemedText type="small" themeColor="textSecondary">
+          {summaryOfPlan(entry.plan)}
+        </ThemedText>
 
-        <Pressable
-          onPress={() => setSheet('extra')}
-          accessibilityLabel="Anadir drop set, serie 3/7 o superserie"
-          style={[styles.extraChip, { backgroundColor: theme.backgroundElement }]}>
-          <Ionicons name="add" size={14} color={theme.text} />
-          <ThemedText type="small">Anadir</ThemedText>
-        </Pressable>
+        <View style={styles.chips}>
+          {entry.plan.map((kind, index) => (
+            <Pressable
+              key={`${index}-${kind}`}
+              onPress={() => setEditing(index)}
+              accessibilityLabel={`${KIND_LABEL[kind]} ${chipLabel(entry.plan, index)}`}
+              style={[styles.chip, { backgroundColor: theme.backgroundElement }]}>
+              <ThemedText
+                type="smallBold"
+                style={{ color: kind === 'normal' ? theme.text : theme.accentText }}>
+                {chipLabel(entry.plan, index)}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.addRow}>
+          {(['normal', 'drop', 'three_seven'] as const).map((kind) => (
+            <Pressable
+              key={kind}
+              onPress={() => addToPlan(kind)}
+              accessibilityLabel={`Anadir ${KIND_LABEL[kind]}`}
+              style={[styles.addButton, { backgroundColor: theme.backgroundElement }]}>
+              <Ionicons name="add" size={14} color={theme.text} />
+              <ThemedText type="small">{KIND_LABEL[kind]}</ThemedText>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
-      {sheet === 'extra' ? (
-        <OptionSheet<AddChoice | null>
-          title="Anadir"
-          options={[...EXTRA_OPTIONS, ...superset]}
+      {editing !== null && editing < entry.plan.length ? (
+        <OptionSheet<ChipAction | null>
+          title={`${KIND_LABEL[entry.plan[editing]]} ${chipLabel(entry.plan, editing)}`}
+          options={[
+            ...(['normal', 'drop', 'three_seven'] as const)
+              .filter((kind) => kind !== entry.plan[editing])
+              .map((kind) => ({ value: kind, label: `Cambiar a ${KIND_LABEL[kind].toLowerCase()}` })),
+            ...(editing > 0 ? [{ value: 'left' as const, label: 'Mover a la izquierda' }] : []),
+            ...(editing < entry.plan.length - 1
+              ? [{ value: 'right' as const, label: 'Mover a la derecha' }]
+              : []),
+            { value: 'delete' as const, label: 'Borrar' },
+          ]}
           current={null}
-          onSelect={(choice) => {
-            setSheet(null);
-            if (choice === 'link') void linkWithNext(entry.routineExerciseId);
-            else if (choice === 'unlink') void unlinkSuperset(entry.routineExerciseId);
-            else if (choice !== null && entry.extras.length < MAX_EXTRAS) {
-              void updateRoutineExercise(entry.routineExerciseId, {
-                extraSets: formatExtras([...entry.extras, choice]),
-              });
-            }
-          }}
-          onClose={() => setSheet(null)}
-        />
-      ) : null}
+          onSelect={(action) => {
+            const index = editing;
+            setEditing(null);
+            if (action === null) return;
 
-      {sheet === 'sets' ? (
-        <OptionSheet
-          title="Series objetivo"
-          options={SET_COUNT_OPTIONS}
-          current={entry.targetSets ?? 3}
-          onSelect={(value) => {
-            setSheet(null);
-            void updateRoutineExercise(entry.routineExerciseId, { targetSets: value });
+            if (action === 'left') savePlan(movePlan(entry.plan, index, -1));
+            else if (action === 'right') savePlan(movePlan(entry.plan, index, 1));
+            else if (action === 'delete') savePlan(entry.plan.filter((_, other) => other !== index));
+            else savePlan(entry.plan.map((kind, other) => (other === index ? action : kind)));
           }}
-          onClose={() => setSheet(null)}
+          onClose={() => setEditing(null)}
         />
       ) : null}
 
@@ -405,14 +431,24 @@ const styles = StyleSheet.create({
   fields: { flexDirection: 'row', gap: 8, paddingHorizontal: 12 },
   field: { flex: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, gap: 2 },
   repsInput: { fontSize: 16, fontWeight: '500', padding: 0 },
-  extras: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 12 },
-  extraChip: {
-    flexDirection: 'row',
+  plan: { gap: 8, paddingHorizontal: 12 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: {
+    minWidth: 40,
     alignItems: 'center',
-    gap: 4,
     borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 8,
+  },
+  addRow: { flexDirection: 'row', gap: 8 },
+  addButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    borderRadius: 8,
+    paddingVertical: 8,
   },
   actions: { paddingHorizontal: 12, gap: 8 },
   empty: { textAlign: 'center', paddingHorizontal: 32, paddingBottom: 16 },
