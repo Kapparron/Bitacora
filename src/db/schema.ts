@@ -91,14 +91,10 @@ export const routineExercises = sqliteTable(
     position: integer('position').notNull(),
     /** Exercises sharing a non-null group are performed as a superset. */
     supersetGroup: integer('superset_group'),
-    targetSets: integer('target_sets'),
     /** Free text so ranges like "8-12" or "AMRAP" survive. */
     targetReps: text('target_reps'),
-    /** Drops and 3/7 series planned after the normal sets, e.g. "drop,drop,three_seven". */
-    extraSets: text('extra_sets'),
     /**
-     * The sets planned, in order, e.g. "normal,normal,drop,three_seven". Replaces
-     * `target_sets` and `extra_sets`, which are only read by the migration.
+     * The sets planned, in order, e.g. "normal,normal,drop,three_seven".
      */
     plan: text('plan'),
     restSeconds: integer('rest_seconds'),

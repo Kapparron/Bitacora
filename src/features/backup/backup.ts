@@ -7,6 +7,7 @@ import { exercises } from '@/db/schema';
 import { toIsoDay } from '@/lib/format';
 
 import { TABLES } from './tables';
+import { upgradeRow } from './upgrade';
 
 /**
  * Bumped when a backup written by an older version can no longer be restored as
@@ -139,7 +140,7 @@ export async function restoreBackup(backup: Backup): Promise<RestoreResult> {
     }
 
     for (const [name, table] of TABLES) {
-      const contents = backup.tables[name] ?? [];
+      const contents = (backup.tables[name] ?? []).map((row) => upgradeRow(name, row));
 
       for (let index = 0; index < contents.length; index += CHUNK) {
         const chunk = contents.slice(index, index + CHUNK);

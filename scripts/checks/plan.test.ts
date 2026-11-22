@@ -83,3 +83,25 @@ test('the plan survives the link; an unknown or oversized one is refused', () =>
   assert.equal(parseSharedRoutine(routineLink(routine({ ...exercise, p: [1] }))), null);
   assert.equal(parseSharedRoutine(routineLink(routine({ ...exercise, p: Array(31).fill('n') }))), null);
 });
+
+import { upgradeRow } from '@/features/backup/upgrade';
+
+test('a backup row with a set count gets that many normal sets as its plan', () => {
+  const old = { id: 'a', position: 0, targetSets: 2, targetReps: '8-12' };
+
+  assert.deepEqual(upgradeRow('routineExercises', old), {
+    id: 'a',
+    position: 0,
+    targetReps: '8-12',
+    plan: 'normal,normal',
+  });
+  assert.equal(upgradeRow('routineExercises', { id: 'b', targetSets: null }).plan, 'normal,normal,normal');
+});
+
+test('rows that already carry a plan, or belong to another table, are left alone', () => {
+  const current = { id: 'a', plan: 'normal,drop' };
+  const other = { id: 'x', targetSets: 3 };
+
+  assert.equal(upgradeRow('routineExercises', current), current);
+  assert.equal(upgradeRow('sets', other), other);
+});

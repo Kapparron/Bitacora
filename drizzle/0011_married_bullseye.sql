@@ -1,1 +1,0 @@
-ALTER TABLE `routine_exercises` ADD `extra_sets` text;

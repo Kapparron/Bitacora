@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "51819cc8-2b76-49e8-80dc-b3a27ebf07c8",
+  "id": "6783ce69-b246-4c81-a868-475f95b158b6",
   "prevId": "ff138da4-0cf9-46e8-b60a-4185f09935ab",
   "tables": {
     "body_metrics": {
@@ -981,13 +981,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "target_sets": {
-          "name": "target_sets",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "target_reps": {
           "name": "target_reps",
           "type": "text",
@@ -995,8 +988,15 @@
           "notNull": false,
           "autoincrement": false
         },
-        "extra_sets": {
-          "name": "extra_sets",
+        "target_sets": {
+          "name": "target_sets",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "plan": {
+          "name": "plan",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
